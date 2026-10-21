@@ -1,0 +1,19 @@
+Textos oficiales en español
+===========================
+Si pones aquí los textos del juego exportados en TSV, el planner usa los nombres
+OFICIALES en español de habilidades, hechizos, unidades y efectos. Sin esto se usa
+el glosario propio (backend/src/i18n.ts) y los nombres propios quedan en inglés.
+
+1. El juego debe tener descargado el idioma español (Steam > Total War: WARHAMMER III >
+   Propiedades > Idioma > Español). Eso baja el pack de idioma (local_*.pack) en la carpeta data.
+2. Abre RPFM y carga ese pack de idioma español (PackFile > Open PackFile...).
+3. Clic derecho sobre la carpeta "text" > exportar como TSV (en RPFM: "Mass-Export TSV" / "Exportar TSV").
+4. Copia los .tsv aquí (puede ser con subcarpetas).
+5. Reinicia el backend. En la consola verás cuántos textos oficiales se cargaron.
+
+Archivos que se usan (los demás se ignoran):
+- character_skills__*.tsv     nombres y descripciones de habilidades
+- unit_abilities__*.tsv       nombres de hechizos y habilidades
+- land_units__*.tsv           nombres de unidades
+- effects__*.tsv              textos de efectos (con %+n para el número)
+Formato esperado: clave <TAB> texto <TAB> tooltip

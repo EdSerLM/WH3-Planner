@@ -1,0 +1,20 @@
+{
+  "name": "wh3-planner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Planner de Total War: Warhammer III: árboles de habilidades, bufos sobre la tarjeta de unidad y DPS",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n back,front -c yellow,cyan \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "dev:back": "npm run dev -w backend",
+    "dev:front": "npm run dev -w frontend",
+    "build": "npm run build -w frontend",
+    "test": "npm test -w backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

@@ -1,0 +1,11 @@
+Iconos de habilidades
+=====================
+Pon aquí los iconos del juego (PNG). El planner los busca como:  /skills/<nombre>.png
+
+Cómo sacarlos con RPFM (Rusted PackFile Manager):
+1. Abre RPFM > PackFile > Open PackFile... y elige  <carpeta del juego>\data\data.pack
+2. En el árbol ve a:  ui > campaign ui > skills
+3. Clic derecho en la carpeta "skills" > Extract  y elige esta carpeta (frontend\public\skills).
+   Si se crea una subcarpeta, mueve los .png para que queden directamente aquí.
+4. Algunos iconos de DLC pueden estar en otros paquetes (data_*.pack); si faltan, repite con esos.
+5. Recarga la página. Los que no encuentre se muestran con un símbolo según el tipo.

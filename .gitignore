@@ -1,0 +1,7 @@
+node_modules/
+dist/
+backend/data/builds.json
+*.log
+.vite/
+tsconfig.tsbuildinfo
+frontend/public/skills/*.png
