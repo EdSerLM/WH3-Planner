@@ -61,6 +61,7 @@ export const officialCount = () => officialLoc.size;
 export const officialSkillName = (skillKey: string) => official(`character_skills_localised_name_${skillKey}`);
 export const officialSkillDesc = (skillKey: string) => official(`character_skills_localised_description_${skillKey}`);
 export const officialAbilityName = (abilityKey: string) => official(`unit_abilities_onscreen_name_${abilityKey}`);
+export const officialCharacterName = (nodeSetKey: string) => official(`planner_character_name_${nodeSetKey}`);
 export const officialUnitName = (unitKey: string) =>
   official(`land_units_onscreen_name_${unitKey}`) ?? official(`main_units_onscreen_name_${unitKey}`);
 

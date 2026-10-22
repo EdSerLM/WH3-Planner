@@ -1,6 +1,6 @@
-import { abilities, getCharacter, getUnit } from './data.js';
+import { abilities, getCharacter, getUnit, techEffects, unitInList } from './data.js';
 import { translateAttribute } from './i18n.js';
-import { MAX_RANK, effectiveLevel, isFreeLevel, pointsAtRank, pointsFor } from './rankRules.js';
+import { MAX_RANK, autoRank, effectiveLevel, isFreeLevel, pointsAtRank, pointsFor } from './rankRules.js';
 import type {
   AbilityInfo, BuildSelection, CharacterStats, CharacterTree, ComputeRequest, ComputedCard, Contribution,
   ParsedEffect, SkillNode, StatKey, StatLine, UnitData,
@@ -67,7 +67,10 @@ export function resolveBuild(sel: BuildSelection): ResolvedBuild | null {
   const warnings: string[] = [];
   let pointsUsed = 0;
   let minRank = 1;
-  const rank = Math.min(MAX_RANK, Math.max(1, sel.rank ?? MAX_RANK));
+  // Rango automático: sube solo con lo comprado (como el planner original); sel.rank es el mínimo
+  const rankNeeded = autoRank(tree.rows.flat(), sel.levels, sel.rank ?? 1);
+  const rank = Math.min(MAX_RANK, rankNeeded);
+  if (rankNeeded > MAX_RANK) warnings.push(`El build no cabe: necesitaría rango ${rankNeeded} (máximo ${MAX_RANK})`);
 
   const innate = sel.innate === undefined ? tree.defaultInnate : sel.innate;
   for (const node of all) {
@@ -88,7 +91,7 @@ export function resolveBuild(sel: BuildSelection): ResolvedBuild | null {
     }
   }
   minRank = Math.max(minRank, pointsUsed);
-  if (pointsUsed > pointsAtRank(rank)) warnings.push(`Usas ${pointsUsed} puntos y en rango ${rank} hay ~${pointsAtRank(rank)}`);
+
 
   const activeNodes: { node: SkillNode; level: number }[] = [];
   for (const node of all) {
@@ -98,8 +101,21 @@ export function resolveBuild(sel: BuildSelection): ResolvedBuild | null {
     activeNodes.push({ node, level: lvl });
   }
 
-  // Habilidades excluyentes
-  for (const g of tree.exclusiveGroups) {
+  // Bloqueos oficiales del juego
+  const levelBySkill = new Map<string, number>();
+  for (const n of all) levelBySkill.set(n.skillKey, Math.max(levelBySkill.get(n.skillKey) ?? 0, levels.get(n.key) ?? 0));
+  for (const [nodeKey, ls] of Object.entries(tree.locks ?? {})) {
+    if (!(levels.get(nodeKey) ?? 0)) continue;
+    const node = all.find((n) => n.key === nodeKey);
+    for (const l of ls) {
+      if ((levelBySkill.get(l.skill) ?? 0) >= l.level) {
+        const by = all.find((n) => n.skillKey === l.skill)?.name ?? l.skill;
+        warnings.push(`"${node?.name}" está bloqueada por "${by}" (no se pueden tener juntas)`);
+      }
+    }
+  }
+  // Grupos excluyentes manuales (data/exclusivas.json)
+  for (const g of tree.exclusiveGroups.filter((x) => x.name !== 'Excluyentes del juego')) {
     const bought = g.nodes.filter((k) => (levels.get(k) ?? 0) > 0);
     if (bought.length > g.max) {
       const names = bought.map((k) => all.find((n) => n.key === k)?.name ?? k);
@@ -116,6 +132,9 @@ export function resolveBuild(sel: BuildSelection): ResolvedBuild | null {
     }
   }
   if (minRank > 50) warnings.push(`El build necesita rango ${minRank}; el máximo normal es 50`);
+  for (const it of tree.items ?? []) {
+    if ((sel.items ?? []).includes(it.key) && it.rank && it.rank > rank) warnings.push(`"${it.name}" se consigue con su misión en rango ${it.rank}`);
+  }
 
   return { tree, selection: sel, levels, activeNodes, mountNode, pointsUsed, minRank, rank, warnings };
 }
@@ -129,12 +148,16 @@ function effectsOf(b: ResolvedBuild): { effect: ParsedEffect; skill: string }[] 
     const lv = node.levels[level - 1];
     for (const e of lv.effects) out.push({ effect: e, skill: skillLabel(node) });
   }
+  // Objetos equipados (y su conjunto si lleva todas las piezas)
+  const worn = new Set(b.selection.items ?? []);
+  for (const it of b.tree.items ?? []) if (worn.has(it.key)) for (const e of it.effects) out.push({ effect: e, skill: it.name });
+  for (const st of b.tree.itemSets ?? []) if (st.items.every((k) => worn.has(k))) for (const e of st.effects) out.push({ effect: e, skill: `Conjunto: ${st.name}` });
   return out;
 }
 
 /** Nombre a mostrar como fuente (las habilidades ocultas del juego son "iniciales") */
 function skillLabel(node: SkillNode): string {
-  return /\[HIDDEN\]/i.test(node.name) ? 'Inicial' : node.name;
+  return /\[HIDDEN\]/i.test(node.name) || node.name === node.skillKey ? 'Inicial' : node.name;
 }
 
 function abilitiesOf(b: ResolvedBuild): { ability: AbilityInfo; skill: string }[] {
@@ -152,16 +175,24 @@ function abilitiesOf(b: ResolvedBuild): { ability: AbilityInfo; skill: string }[
     // "Replaces" (p. ej. Stand or Die! reemplaza a Rally!) se maneja quitando la reemplazada abajo
     for (const k of node.levels[level - 1].abilities) add(k, skillLabel(node));
   }
+  // Habilidades que dan los objetos equipados
+  const worn = new Set(b.selection.items ?? []);
+  for (const it of b.tree.items ?? []) {
+    if (!worn.has(it.key)) continue;
+    for (const e of it.effects) if (e.kind === 'ability' && e.ability && e.target !== 'chars') add(e.ability, it.name);
+  }
   const baseStats = b.mountNode ? b.mountNode.levels[0].mountStats : b.tree.stats;
   for (const k of baseStats?.abilities ?? b.tree.stats?.abilities ?? []) add(k, 'Innata');
 
   // Reemplazos: si un efecto dice Replaces: "X", quitamos la habilidad X
   const replaced = new Set<string>();
+  const removedKeys = new Set<string>();
   for (const { effect } of effectsOf(b)) {
+    if (effect.disable) removedKeys.add(effect.disable);
     const m = (effect.textEn ?? effect.text).match(/^Replaces: "([^"]+)"/);
     if (m) replaced.add(m[1]);
   }
-  return out.filter((x) => !replaced.has(x.ability.nameEn ?? x.ability.name));
+  return out.filter((x) => !removedKeys.has(x.ability.key) && !replaced.has(x.ability.nameEn ?? x.ability.name));
 }
 
 // ---------- Tarjetas ----------
@@ -192,9 +223,9 @@ function charBase(s: CharacterStats): Partial<Record<StatKey, number>> {
   };
 }
 
-function contribute(lines: Record<StatKey, StatLine>, stat: StatKey, c: Contribution) {
-  // "Fuerza del arma" (%) sube daño base y perforante a la vez
-  if (stat === 'dmg' && c.how === 'pct') {
+function contribute(lines: Record<StatKey, StatLine>, stat: StatKey, c: Contribution, exact = false) {
+  // "Fuerza del arma" (%) sube daño base y perforante a la vez (los datos del juego ya traen las dos por separado)
+  if (stat === 'dmg' && c.how === 'pct' && !exact) {
     lines.dmg.contributions.push(c);
     lines.ap.contributions.push({ ...c });
     return;
@@ -223,6 +254,7 @@ function finalize(lines: Record<StatKey, StatLine>) {
 export interface AbilityState {
   key: string;
   name: string;
+  nameEn?: string;
   owner: string;
   skill: string;
   mode: AbilityInfo['mode'];
@@ -280,7 +312,22 @@ export function compute(req: ComputeRequest): ComputeResult {
   const inAura = req.inAura !== false;
 
   // Efectos de todos los personajes
-  const effects = builds.flatMap((b) => effectsOf(b).map((x) => ({ ...x, owner: b.tree.name, build: b })));
+  const effects: { effect: ParsedEffect; skill: string; owner: string; build: ResolvedBuild | null }[] =
+    builds.flatMap((b) => effectsOf(b).map((x) => ({ ...x, owner: b.tree.name, build: b })));
+  // Tecnologías investigadas: aplican a todos los ejércitos y personajes de la facción
+  for (const t of req.techs ?? []) {
+    const te = techEffects(t);
+    if (te) for (const effect of te.effects) effects.push({ effect, skill: te.name, owner: 'Tecnologías', build: null });
+  }
+  /** ¿Un efecto de tecnología "a los personajes" aplica a este señor/héroe? */
+  const charMatch = (effect: ParsedEffect, b: ResolvedBuild, isLord: boolean) => {
+    if (effect.target !== 'chars') return false;
+    if (effect.who === 'lord' && !isLord) return false;
+    if (effect.who === 'hero' && isLord) return false;
+    if (effect.who === 'wizard' && !b.tree.rows.flat().some((n) => n.category === 'magic')) return false;
+    const unit = (b.mountNode?.levels[0].mountStats ?? b.tree.stats)?.unit ?? b.tree.stats?.unit;
+    return effect.unitList === undefined || (!!unit && unitInList(effect.unitList, unit));
+  };
 
   // Habilidades
   const abilityStates: AbilityState[] = [];
@@ -301,7 +348,7 @@ export function compute(req: ComputeRequest): ComputeResult {
         }
       }
       abilityStates.push({
-        key: ability.key, name: ability.name, owner: b.tree.name, skill, mode: ability.mode, passive: ability.passive,
+        key: ability.key, name: ability.name, nameEn: ability.nameEn, owner: b.tree.name, skill, mode: ability.mode, passive: ability.passive,
         duration: ability.duration, cooldown: ability.cooldown, range: ability.range, mana: ability.mana, type: ability.type,
         stats: ability.stats.map((s) => s.d), attributes: ability.attributes, hasBattleStats, active: isOn,
       });
@@ -321,7 +368,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     const isLord = b === lordBuild;
     for (const { effect, skill, owner, build } of effects) {
       if (effect.kind === 'attribute' && effect.attribute) {
-        if ((effect.target === 'self' && build === b) || (effect.target === 'army' && !effect.units)) {
+        if ((effect.target === 'self' && build === b) || (effect.target === 'army' && !effect.units && effect.unitList === undefined) || charMatch(effect, b, isLord)) {
           attributes.push({ name: effect.attribute, from: `${skill} (${owner})` });
           if (/flam/i.test(effect.attribute)) flaming = true;
           if (/mágic/i.test(effect.attribute)) magical = true;
@@ -332,9 +379,10 @@ export function compute(req: ComputeRequest): ComputeResult {
       const applies =
         (effect.target === 'self' && build === b) ||
         (effect.target === 'lord' && isLord) ||
-        (effect.target === 'army' && !effect.units && !effect.rank7);
+        (effect.target === 'army' && !effect.units && effect.unitList === undefined && !effect.rank7) ||
+        charMatch(effect, b, isLord);
       if (!applies) continue;
-      contribute(lines, effect.stat, { source: skill, from: owner, value: effect.value, how: effect.pct ? 'pct' : 'add' });
+      contribute(lines, effect.stat, { source: skill, from: owner, value: effect.value, how: effect.pct ? 'pct' : 'add' }, effect.exact);
     }
     for (const x of allyAbilities) {
       if (x.selfOnly && x.build !== b) continue;
@@ -363,6 +411,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     for (const { effect, skill, owner } of effects) {
       if (effect.target !== 'army') continue;
       if (effect.units && !effect.units.includes(u.card)) continue;
+      if (effect.unitList !== undefined && !unitInList(effect.unitList, u.key)) continue;
       if (effect.rank7 && !sel.rank7) continue;
       if (effect.kind === 'attribute' && effect.attribute) {
         if (effect.forNames && !effect.forNames.some((n) => (u.nameEn ?? u.name).toLowerCase().includes(n.toLowerCase()))) continue;
@@ -373,8 +422,9 @@ export function compute(req: ComputeRequest): ComputeResult {
       }
       if (effect.kind !== 'battle' || !effect.stat || effect.value === undefined) continue;
       contribute(lines, effect.stat, {
-        source: skill, from: owner, value: effect.value, how: effect.pct ? 'pct' : 'add', conditional: effect.rank7 ? 'rango 7+' : undefined,
-      });
+        source: skill, from: owner, value: effect.value, how: effect.pct ? 'pct' : 'add',
+        conditional: effect.rank7 ? `rango ${effect.rankMin ?? 7}+` : undefined,
+      }, effect.exact);
     }
     for (const x of allyAbilities) {
       if (x.selfOnly) continue;
@@ -405,6 +455,7 @@ export function compute(req: ComputeRequest): ComputeResult {
   const campaign: ComputeResult['campaign'] = [];
   const magic: ComputeResult['magic'] = [];
   for (const { effect, skill, owner } of effects) {
+    if (!effect.text) continue;
     if (effect.kind === 'campaign') campaign.push({ owner, skill, text: effect.text });
     else if (effect.kind === 'magic') magic.push({ owner, skill, text: effect.text });
   }
@@ -485,18 +536,26 @@ const LABEL_ES: Partial<Record<StatKey, string>> = {
 
 function summarize(b: ResolvedBuild): BuildSummary {
   const sum: BuildSummary = { self: [], army: [], lord: [], attributes: [], abilities: [], campaign: [], magic: [] };
+  let lastKey = '';
+  let seen = new Set<string>();
   for (const { effect, skill } of effectsOf(b)) {
-    if (!effect.text) continue;
+    // Datos del juego: un efecto puede venir en varias partes (fuerza del arma = base + perforante,
+    // o la misma stat para otro grupo de unidades, p. ej. los Regimientos de Renombre). El resumen muestra una.
+    if (effect.key !== lastKey || effect.text) { lastKey = effect.key; seen = new Set(); }
+    const sig = `${effect.stat ?? effect.attribute}|${effect.value}`;
+    if (effect.exact && !effect.text && (seen.has(sig) || (effect.stat === 'ap' && effect.pct))) continue;
+    seen.add(sig);
+    if (!effect.text && !(effect.exact && (effect.kind === 'battle' || effect.kind === 'attribute'))) continue;
     if (effect.kind === 'battle' && effect.stat && effect.value !== undefined) {
       const line: SummaryLine = {
         label: LABEL_ES[effect.stat] ?? effect.stat, stat: effect.stat, value: effect.value, pct: effect.pct,
         rank7: effect.rank7, sources: [skill],
       };
-      if (effect.target === 'army') addLine(sum.army, { ...line, scope: scopeOf(effect.textEn ?? effect.text) });
+      if (effect.target === 'army') addLine(sum.army, { ...line, scope: effect.exact ? effect.scope ?? 'todo el ejército' : scopeOf(effect.textEn ?? effect.text) });
       else if (effect.target === 'lord') addLine(sum.lord, line);
       else addLine(sum.self, line);
     } else if (effect.kind === 'attribute' && effect.attribute) {
-      sum.attributes.push({ label: effect.attribute, scope: effect.target === 'army' ? (effect.forNames?.join(', ') ?? scopeOf(effect.textEn ?? effect.text)) : 'propio', sources: [skill] });
+      sum.attributes.push({ label: effect.attribute, scope: effect.target === 'army' ? (effect.forNames?.join(', ') ?? (effect.exact ? effect.scope ?? 'tropas' : scopeOf(effect.textEn ?? effect.text))) : 'propio', sources: [skill] });
     } else if (effect.kind === 'campaign') {
       const c = campaignLabel(effect.text);
       addLine(sum.campaign, { ...c, sources: [skill], text: c.value === undefined ? effect.text : undefined });

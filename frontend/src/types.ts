@@ -10,7 +10,10 @@ export interface ParsedEffect {
   text: string;
   textEn?: string;
   kind: 'battle' | 'campaign' | 'magic' | 'ability' | 'mount' | 'attribute' | 'other';
-  target: 'self' | 'army' | 'lord' | 'none';
+  target: 'self' | 'army' | 'lord' | 'chars' | 'none';
+  who?: 'lord' | 'hero' | 'wizard';
+  ability?: string;
+  rankMin?: number;
   stat?: StatKey;
   value?: number;
   pct?: boolean;
@@ -51,8 +54,10 @@ export interface SkillNode {
 export interface CharacterSummary {
   key: string;
   name: string;
+  nameEn?: string;
   type: 'lord' | 'hero';
   legendary: boolean;
+  faction?: string;
 }
 
 export interface AbilityInfo {
@@ -75,7 +80,21 @@ export interface CharacterTree extends CharacterSummary {
   background: SkillNode[];
   defaultInnate: string | null;
   exclusiveGroups: { name: string; max: number; nodes: string[] }[];
+  locks?: Record<string, { skill: string; level: number }[]>;
   abilityInfo: Record<string, AbilityInfo>;
+  items?: ItemInfo[];
+  itemSets?: { key: string; name: string; items: string[]; effects: ParsedEffect[] }[];
+}
+
+export interface ItemInfo {
+  key: string;
+  name: string;
+  description?: string;
+  category: string;
+  rank?: number;
+  questBattle?: boolean;
+  effects: ParsedEffect[];
+  ability?: string;
 }
 
 export interface UnitData {
@@ -83,6 +102,7 @@ export interface UnitData {
   card: string;
   name: string;
   caste: string;
+  casteEs?: string;
   group: string;
   tier: number;
   cost: number;
@@ -96,7 +116,10 @@ export interface BuildSelection {
   levels: Record<string, number>;
   mount?: string | null;
   innate?: string | null;
-  rank?: number;
+  rank?: number; // rango mínimo elegido en la barra
+  rankEff?: number; // rango efectivo (calculado: sube solo con las compras)
+  rankOver?: number; // si el build no cabe en 50
+  items?: string[]; // objetos equipados (claves)
 }
 
 export interface ArmyUnitSelection {
@@ -111,7 +134,20 @@ export interface ArmyState {
   units: ArmyUnitSelection[];
   activeAbilities: string[];
   inAura: boolean;
+  /** Facción (subcultura) del ejército */
+  faction?: string;
+  /** Tecnologías investigadas (claves de tecnología) y el árbol elegido */
+  techs?: string[];
+  techTree?: string;
+  techVariant?: string;
 }
+
+export interface TechNode {
+  key: string; tech: string; name: string; description?: string; icon?: string; col: number; row: number;
+  cost?: number; parents: string[]; parentsNeeded: number; requires: string[]; battle: boolean; effects: ParsedEffect[];
+}
+export interface TechTreeData { key: string; name: string; variant?: string; variants: { fk: string; name: string }[]; nodes: TechNode[]; minRow: number }
+export interface TechTreeSummary { key: string; name: string; variants: { fk: string; name: string }[] }
 
 export interface Contribution {
   source: string;
@@ -207,7 +243,7 @@ export interface DpsRow {
 }
 
 export interface Meta {
-  sources: { skills: string; units: string; faction: string };
+  sources: { skills: string; units: string; faction: string; gameTrees?: number; allUnits?: number };
   statLabels: Record<StatKey, string>;
   dpsDisclaimer: string;
 }

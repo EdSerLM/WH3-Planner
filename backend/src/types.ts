@@ -15,6 +15,7 @@ export interface RawAbilityPhase {
 export interface RawAbility {
   key: string;
   name: string;
+  spell?: boolean;
   type?: string;
   over?: string;
   active?: number;
@@ -88,6 +89,7 @@ export interface CharacterStats {
   barrier?: number;
   attributes?: string[];
   abilities?: string[];
+  unit?: string;
 }
 
 export interface RawCharacter {
@@ -163,7 +165,7 @@ export type StatKey =
   | 'missileDmg' | 'ammo' | 'reload' | 'range' | 'barrier' | 'shield';
 
 export type EffectKind = 'battle' | 'campaign' | 'magic' | 'ability' | 'mount' | 'attribute' | 'other';
-export type EffectTarget = 'self' | 'army' | 'lord' | 'none';
+export type EffectTarget = 'self' | 'army' | 'lord' | 'chars' | 'none';
 
 export interface ParsedEffect {
   key: string;
@@ -178,6 +180,20 @@ export interface ParsedEffect {
   units?: string[]; // tarjetas (unit card) a las que aplica; vacío = todo el ejército
   attribute?: string;
   forNames?: string[]; // atributo limitado a unidades con estos nombres (p. ej. "Forsaken")
+  /** Datos del juego (db.pack): índice de la lista de unidades (claves de unidad) a las que aplica */
+  unitList?: number;
+  /** El valor ya viene separado por stat (no duplicar "fuerza del arma" en perforante) */
+  exact?: boolean;
+  /** A quién aplica, en texto ("infantería no demoníaca") */
+  scope?: string;
+  /** Rango mínimo de la unidad para que aplique */
+  rankMin?: number;
+  ability?: string;
+  /** Tecnologías "a los personajes": solo señores, solo héroes o solo hechiceros */
+  who?: 'lord' | 'hero' | 'wizard';
+  /** Habilidad que este efecto quita (p. ej. Stand or Die! reemplaza a Rally!) */
+  disable?: string;
+  action?: boolean;
 }
 
 export interface SkillLevel {
@@ -221,8 +237,11 @@ export interface ExclusiveGroup {
 export interface CharacterSummary {
   key: string;
   name: string;
+  nameEn?: string;
   type: 'lord' | 'hero';
   legendary: boolean;
+  /** Facción (subcultura) con la que se arma el árbol */
+  faction?: string;
 }
 
 export interface CharacterTree extends CharacterSummary {
@@ -234,7 +253,24 @@ export interface CharacterTree extends CharacterSummary {
   defaultInnate: string | null;
   /** Grupos excluyentes presentes en este árbol (claves de nodo) */
   exclusiveGroups: ExclusiveGroup[];
+  /** Bloqueos oficiales: nodo -> [habilidad que lo bloquea, nivel] */
+  locks: Record<string, { skill: string; level: number }[]>;
   stats: CharacterStats | null;
+  /** Objetos propios del legendario (de su misión o exclusivos) */
+  items?: ItemInfo[];
+  /** Conjuntos de esos objetos: bonificación extra con todas las piezas */
+  itemSets?: { key: string; name: string; items: string[]; effects: ParsedEffect[] }[];
+}
+
+export interface ItemInfo {
+  key: string;
+  name: string;
+  description?: string;
+  category: string;
+  /** Rango en el que se desbloquea su misión */
+  rank?: number;
+  questBattle?: boolean;
+  effects: ParsedEffect[];
 }
 
 export interface AbilityInfo {
@@ -249,6 +285,7 @@ export interface AbilityInfo {
   overcast?: string;
   mode: 'self' | 'allies' | 'enemies' | 'none';
   passive: boolean;
+  spell?: boolean;
   magicalAttacks: boolean;
   flamingAttacks: boolean;
   stats: { stat: string; how: string; v: number; d: string }[];
@@ -263,6 +300,7 @@ export interface BuildSelection {
   mount?: string | null; // nodo de montura elegido
   innate?: string | null; // nodo del rasgo innato elegido (undefined = el de por defecto)
   rank?: number; // rango del personaje (1-50); por defecto 50
+  items?: string[]; // objetos equipados (claves de ancillary)
 }
 
 export interface ArmyUnitSelection {
@@ -276,6 +314,7 @@ export interface ComputeRequest {
   heroes?: BuildSelection[];
   units: ArmyUnitSelection[];
   activeAbilities?: string[]; // habilidades activas encendidas (afectan a aliados / a sí mismo)
+  techs?: string[]; // tecnologías investigadas (claves de tecnología)
   inAura?: boolean; // las unidades están dentro de las auras (35 m)
 }
 

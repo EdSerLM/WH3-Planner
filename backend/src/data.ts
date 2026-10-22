@@ -4,10 +4,10 @@ import { fileURLToPath } from 'node:url';
 import { parseEffect } from './effects.js';
 import {
   ABILITY_TYPES, CASTES, loadOfficialLoc, officialAbilityName, officialSkillDesc, officialSkillName, officialUnitName,
-  officialCount, translateAbilityStat, translateAttribute, translateEffect,
+  officialCount, officialCharacterName, translateAbilityStat, translateAttribute, translateEffect,
 } from './i18n.js';
 import type {
-  AbilityInfo, CharacterSummary, CharacterTree, ExclusiveGroup, RawAbility, RawNode, SkillNode, SkillsFile, UnitData, UnitsFile,
+  AbilityInfo, CharacterStats, CharacterSummary, ItemInfo, CharacterTree, ExclusiveGroup, ParsedEffect, RawAbility, RawNode, SkillNode, SkillsFile, UnitData, UnitsFile,
 } from './types.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -18,6 +18,39 @@ function readJson<T>(file: string): T {
 }
 
 const skillsFile = readJson<SkillsFile>('raw/wh3_chs_skills.json');
+
+// Árboles de TODAS las facciones sacados de tu instalación (npm run extraer). Si no existen, se usa el planner (solo Caos).
+interface GameNode { k: string; s: string; t: number; i: number; poc?: number; rnp?: number; pr?: string[]; psr?: string[]; sc?: string; ck?: string; fk?: string; bg?: boolean; auto?: boolean }
+interface GameEffect { k: string; d: string; s: { kind: string; target: string; who?: string; stat?: string; value?: number; pct?: boolean; u?: number; rank?: number; attribute?: string; ability?: string; disable?: string; action?: boolean } }
+interface GameSkill { sk: string; n: string; nEn?: string; d?: string; img?: string; bgSkill?: boolean; lv: { e: GameEffect[]; ab?: string[]; ur?: number; ar?: number }[] }
+interface GameCharacter {
+  key: string; subtype: string; name: string; nameEn: string; unit: string; type: 'lord' | 'hero'; legendary: boolean;
+  subcultures: string[]; home: string; nodes: GameNode[]; bg: GameNode[]; stats: CharacterStats | null; mounts?: Record<string, CharacterStats>;
+  items?: { k: string; rank?: number; quest?: boolean }[];
+}
+interface GameSkillsFile {
+  source: string; format: number; subcultures: { key: string; name: string }[]; characters: GameCharacter[];
+  skills: Record<string, GameSkill>; abilities: Record<string, RawAbility>; unitLists: string[][]; locks: { skill: string; node: string; level: number }[];
+  techTrees?: GameTechTree[]; techs?: Record<string, GameTech>;
+  ancillaries?: Record<string, { n: string; d?: string; cat: string; e: GameEffect[] }>;
+  itemSets?: { key: string; n: string; items: string[]; e: GameEffect[] }[];
+}
+interface GameTechTree {
+  key: string; name: string; subcultures: string[];
+  nodes: { k: string; tech: string; t: number; i: number; rp?: number; pr?: string[]; need?: number; fk?: string }[];
+  variants: { fk: string; name: string; sc?: string }[];
+}
+interface GameTech { n: string; d?: string; img?: string; e: GameEffect[]; req?: string[] }
+const gameFile: GameSkillsFile | null = existsSync(join(DATA_DIR, 'raw', 'wh3_all_skills.json'))
+  ? readJson<GameSkillsFile>('raw/wh3_all_skills.json')
+  : null;
+/** Listas de unidades (claves) de los efectos del juego */
+const unitListSets: Set<string>[] = (gameFile?.unitLists ?? []).map((l) => new Set(l));
+export function unitInList(list: number, unitKey: string): boolean {
+  return unitListSets[list]?.has(unitKey) ?? false;
+}
+/** Facción por defecto (la del planner original) */
+export const DEFAULT_FACTION = 'wh_main_sc_chs_chaos';
 // Textos oficiales en español (si existen en data/loc-es)
 loadOfficialLoc(DATA_DIR);
 const unitsFile = readJson<UnitsFile>('raw/wh3_chs_units.json');
@@ -76,6 +109,7 @@ function toAbility(a: RawAbility): AbilityInfo {
     overcast: a.over,
     mode: negativeSelf ? 'none' : allies ? 'allies' : enemies ? 'enemies' : self ? 'self' : 'none',
     passive: duration === -1,
+    spell: a.spell ?? (a.mana ?? 0) > 0,
     magicalAttacks: a.phases.some((p) => p.mag),
     flamingAttacks: a.phases.some((p) => p.fire),
     stats: a.phases.flatMap((p) => p.stats.map((st) => ({ ...st, d: translateAbilityStat(st.d) }))),
@@ -84,7 +118,7 @@ function toAbility(a: RawAbility): AbilityInfo {
 }
 
 export const abilities: Record<string, AbilityInfo> = Object.fromEntries(
-  Object.entries(skillsFile.abilities).map(([k, a]) => [k, toAbility(a)]),
+  Object.entries(gameFile?.abilities ?? skillsFile.abilities).map(([k, a]) => [k, toAbility(a)]),
 );
 
 // ---------- Árboles ----------
@@ -128,11 +162,134 @@ function toNode(n: RawNode): SkillNode {
   };
 }
 
+/** "Armadura: +12 a todas las unidades de infantería no demoníacas (Ejército del Señor)" -> "Infantería no demoníaca..." */
+function scopeFromText(text: string): string | undefined {
+  const m = text.match(/^[^:]+:\s*[+-]?[\d.,]+%?\s*(.*?)\s*(\([^)]*\))?\s*$/);
+  if (!m) return undefined;
+  let s = m[1].replace(/^(a|para|de)\s+(todas\s+)?(las\s+)?unidades\s+(de\s+)?/i, '').replace(/^(a|para)\s+/i, '').trim();
+  if (!s) return undefined;
+  return s[0].toUpperCase() + s.slice(1);
+}
+
+function gameEffect(e: GameEffect, first: boolean, keyText: string): ParsedEffect {
+  const x = e.s as GameEffect['s'] & { who?: 'lord' | 'hero' | 'wizard' };
+  return {
+    who: x.who,
+    key: e.k,
+    text: first ? e.d : '',
+    kind: (x.kind as ParsedEffect['kind']) ?? 'other',
+    target: (x.target as ParsedEffect['target']) ?? 'none',
+    stat: x.stat as ParsedEffect['stat'],
+    value: x.value,
+    pct: x.pct,
+    rank7: x.rank ? true : undefined,
+    rankMin: x.rank,
+    unitList: x.u,
+    attribute: x.attribute ? translateAttribute(x.attribute) : undefined,
+    ability: x.ability,
+    disable: x.disable,
+    action: x.action,
+    exact: true,
+    scope: x.target === 'army' ? scopeFromText(keyText) : undefined,
+  };
+}
+
+function gameEffects(list: GameEffect[]): ParsedEffect[] {
+  let prev = '';
+  let keyText = '';
+  return list.map((e) => {
+    const first = e.k !== prev || !!e.d;
+    if (first) keyText = e.d;
+    prev = e.k;
+    return gameEffect(e, first, keyText);
+  });
+}
+
+function gameNode(n: GameNode, c: GameCharacter, present: Set<string>): SkillNode {
+  const raw = gameFile!.skills[n.s];
+  const levels = raw.lv.map((l, i) => {
+    const effects = gameEffects(l.e);
+    return {
+      effects,
+      abilities: l.ab ?? [],
+      requiredRank: l.ur,
+      autoRank: l.ar,
+      mountStats: i === 0 ? c.mounts?.[n.s] : undefined,
+    };
+  });
+  return {
+    key: n.k,
+    skillKey: n.s,
+    name: nameEs(n.s, raw.n),
+    nameEn: raw.nEn ?? raw.n,
+    description: raw.d,
+    col: n.t,
+    row: n.i,
+    pointsOnCreation: n.poc ?? 0,
+    background: !!n.bg,
+    visible: !n.bg,
+    parentsRequired: (n.pr ?? []).filter((p) => present.has(p)),
+    parentSubset: (n.psr ?? []).filter((p) => present.has(p)),
+    parentSubsetCount: n.rnp ?? 0,
+    levels,
+    isMount: levels.some((l) => l.mountStats || l.effects.some((e) => e.kind === 'mount')),
+    icon: raw.img ? raw.img.split('/').pop() : undefined,
+    autoActive: n.bg ? !!n.auto : undefined,
+  };
+}
+
 // Grupos de habilidades excluyentes (data/exclusivas.json)
 interface ExclusiveFile { grupos: { nombre: string; max?: number; skills: string[] }[] }
 const exclusiveDefs: ExclusiveFile['grupos'] = existsSync(join(DATA_DIR, 'exclusivas.json'))
   ? readJson<ExclusiveFile>('exclusivas.json').grupos ?? []
   : [];
+
+// Bloqueos oficiales del juego (db.pack: character_skill_nodes_skill_locks):
+// el nodo queda bloqueado si el personaje tiene la habilidad "skill" al nivel "level" o más.
+interface LockRow { skill: string; node: string; level: number }
+const lockRows: LockRow[] = gameFile ? gameFile.locks : existsSync(join(DATA_DIR, 'raw', 'wh3_skill_locks.json'))
+  ? readJson<{ locks: LockRow[] }>('raw/wh3_skill_locks.json').locks
+  : [];
+const locksByNode = new Map<string, { skill: string; level: number }[]>();
+for (const l of lockRows) locksByNode.set(l.node, [...(locksByNode.get(l.node) ?? []), { skill: l.skill, level: l.level }]);
+
+function locksFor(nodes: SkillNode[]): Record<string, { skill: string; level: number }[]> {
+  const out: Record<string, { skill: string; level: number }[]> = {};
+  const skillsHere = new Set(nodes.map((n) => n.skillKey));
+  for (const n of nodes) {
+    const l = (locksByNode.get(n.key) ?? []).filter((x) => skillsHere.has(x.skill));
+    if (l.length) out[n.key] = l;
+  }
+  return out;
+}
+
+/** Grupos "elige 1" deducidos de los bloqueos mutuos (para etiquetas y textos de ayuda). */
+function groupsFromLocks(nodes: SkillNode[], locks: Record<string, { skill: string; level: number }[]>): ExclusiveGroup[] {
+  const bySkill = new Map(nodes.map((n) => [n.skillKey, n.key]));
+  const parent = new Map<string, string>();
+  const find = (x: string): string => {
+    let r = x;
+    while (parent.has(r) && parent.get(r) !== r) r = parent.get(r)!;
+    return r;
+  };
+  const union = (a: string, b: string) => {
+    const ra = find(a), rb = find(b);
+    if (ra !== rb) parent.set(ra, rb);
+  };
+  const members = new Set<string>();
+  for (const [node, ls] of Object.entries(locks)) {
+    for (const l of ls) {
+      const other = bySkill.get(l.skill);
+      if (!other || other === node) continue;
+      union(node, other);
+      members.add(node);
+      members.add(other);
+    }
+  }
+  const comps = new Map<string, string[]>();
+  for (const m of members) comps.set(find(m), [...(comps.get(find(m)) ?? []), m]);
+  return [...comps.values()].filter((g) => g.length >= 2).map((g) => ({ name: 'Excluyentes del juego', max: 1, nodes: g }));
+}
 
 function exclusiveGroupsFor(nodes: SkillNode[]): ExclusiveGroup[] {
   const out: ExclusiveGroup[] = [];
@@ -150,8 +307,9 @@ function nodeCategory(n: SkillNode): NodeCat {
   if (n.isMount) return 'mount';
   const effects = n.levels.flatMap((l) => l.effects);
   const abil = n.levels.flatMap((l) => l.abilities).map((k) => abilities[k]).filter(Boolean);
-  if (effects.some((e) => /^(Spell|Overcast spell|Bound spell)/i.test(e.text)) || (effects.length && effects.every((e) => e.kind === 'magic' || e.kind === 'ability') && effects.some((e) => e.kind === 'magic'))) return 'magic';
-  if (effects.some((e) => / action\b/i.test(e.text))) return 'actions';
+  const spell = effects.some((e) => (e.textEn && /^(Spell|Overcast spell|Bound spell)/i.test(e.textEn)) || (e.ability && abilities[e.ability]?.spell));
+  if (spell || (effects.length && effects.every((e) => e.kind === 'magic' || e.kind === 'ability') && effects.some((e) => e.kind === 'magic'))) return 'magic';
+  if (effects.some((e) => e.action || (e.textEn && / action\b/i.test(e.textEn)))) return 'actions';
   const army = effects.filter((e) => (e.kind === 'battle' || e.kind === 'attribute') && e.target === 'army').length + abil.filter((a) => a.mode === 'allies').length;
   const self = effects.filter((e) => (e.kind === 'battle' || e.kind === 'attribute') && e.target === 'self').length + abil.filter((a) => a.mode === 'self' || a.mode === 'enemies').length;
   const camp = effects.filter((e) => e.kind === 'campaign').length;
@@ -194,46 +352,194 @@ function rowLabel(row: SkillNode[], index: number, groups: ExclusiveGroup[]): st
 
 // En cuántos personajes aparece cada rasgo innato (los únicos suelen ser del legendario)
 const innateCount = new Map<string, number>();
-for (const c of skillsFile.characters) for (const n of c.bg) if (n) innateCount.set(n.s, (innateCount.get(n.s) ?? 0) + 1);
+if (gameFile) {
+  for (const c of gameFile.characters) for (const n of c.bg) if (!n.auto) innateCount.set(n.s, (innateCount.get(n.s) ?? 0) + 1);
+} else {
+  for (const c of skillsFile.characters) for (const n of c.bg) if (n) innateCount.set(n.s, (innateCount.get(n.s) ?? 0) + 1);
+}
 
-const trees = new Map<string, CharacterTree>();
-const summaries: CharacterSummary[] = [];
-for (const c of skillsFile.characters) {
-  const legendary = !GENERIC.test(c.name);
-  const background = c.bg.filter((n): n is RawNode => !!n).map(toNode);
-  for (const b of background) b.autoActive = /\[HIDDEN\]/i.test(b.name);
+function assemble(
+  base: { key: string; name: string; nameEn?: string; type: 'lord' | 'hero'; legendary: boolean; faction?: string },
+  rows: SkillNode[][], background: SkillNode[], stats: CharacterStats | null,
+): CharacterTree {
   const innates = background.filter((b) => !b.autoActive);
   // Rasgo por defecto: si solo hay uno, ese; si es legendario, el que lleva su nombre o es único de él
   let defaultInnate: string | null = innates.length === 1 ? innates[0].key : null;
-  if (!defaultInnate && legendary) {
+  if (!defaultInnate && base.legendary) {
     const own = innates.find((b) => (innateCount.get(b.skillKey) ?? 0) === 1 && !/_(khorne|nurgle|all)_\d+$|_all_/.test(b.skillKey));
     defaultInnate = own?.key ?? null;
   }
-  const rows = c.rows.map((r) => r.filter((n): n is RawNode => !!n).map(toNode));
   for (const n of rows.flat()) n.category = nodeCategory(n);
-  const exclusiveGroups = exclusiveGroupsFor(rows.flat());
-  const tree: CharacterTree = {
-    key: c.key,
-    name: nameEs(c.key, characterNameEs(c.name)),
-    type: c.type,
-    legendary,
+  const locks = locksFor(rows.flat());
+  const exclusiveGroups = [...groupsFromLocks(rows.flat(), locks), ...exclusiveGroupsFor(rows.flat())];
+  return {
+    ...base,
+    locks,
     rows,
     rowLabels: rows.map((r, i) => rowLabel(r, i, exclusiveGroups)),
     background,
     defaultInnate,
     exclusiveGroups,
-    stats: c.stats,
+    stats,
   };
-  trees.set(c.key, tree);
-  summaries.push({ key: c.key, name: tree.name, type: c.type, legendary });
 }
 
-export function listCharacters(): CharacterSummary[] {
-  return summaries;
+const trees = new Map<string, CharacterTree>();
+const summaries: CharacterSummary[] = [];
+const gameChars = new Map((gameFile?.characters ?? []).map((c) => [c.key, c]));
+
+if (!gameFile) {
+  for (const c of skillsFile.characters) {
+    const legendary = !GENERIC.test(c.name);
+    const background = c.bg.filter((n): n is RawNode => !!n).map(toNode);
+    for (const b of background) b.autoActive = /\[HIDDEN\]/i.test(b.name);
+    const rows = c.rows.map((r) => r.filter((n): n is RawNode => !!n).map(toNode));
+    const tree = assemble(
+      { key: c.key, name: nameEs(c.key, officialCharacterName(c.key) ?? characterNameEs(c.name)), nameEn: c.name, type: c.type, legendary, faction: DEFAULT_FACTION },
+      rows, background, c.stats,
+    );
+    trees.set(c.key, tree);
+    summaries.push({ key: c.key, name: tree.name, nameEn: c.name, type: c.type, legendary, faction: DEFAULT_FACTION });
+  }
+}
+
+/** Id del personaje en una facción: la clave sola si es su facción propia, o "clave@facción". */
+function charId(c: GameCharacter, faction: string): string {
+  return faction === c.home ? c.key : `${c.key}@${faction}`;
+}
+
+function buildGameTree(c: GameCharacter, faction: string): CharacterTree {
+  // Nodos que aplican en esa facción y en la campaña de Imperios Inmortales
+  const keep = (n: GameNode) => (!n.sc || n.sc === faction) && (!n.ck || n.ck === 'wh3_main_combi');
+  const nodes = c.nodes.filter(keep);
+  const present = new Set(nodes.map((n) => n.k));
+  const byRow = new Map<number, GameNode[]>();
+  for (const n of nodes) byRow.set(n.i, [...(byRow.get(n.i) ?? []), n]);
+  const rows = [...byRow.keys()].sort((a, b) => a - b).map((i) => byRow.get(i)!.sort((a, b) => a.t - b.t).map((n) => gameNode(n, c, present)));
+  const background = c.bg.filter(keep).map((n) => gameNode(n, c, present));
+  const tree = assemble(
+    { key: charId(c, faction), name: factionNames(faction).get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction },
+    rows, background, c.stats,
+  );
+  if (c.items?.length) {
+    tree.items = c.items
+      .filter((i) => gameFile!.ancillaries?.[i.k])
+      .map((i): ItemInfo => {
+        const a = gameFile!.ancillaries![i.k];
+        return { key: i.k, name: a.n, description: a.d, category: a.cat, rank: i.rank, questBattle: i.quest, effects: gameEffects(a.e) };
+      });
+    const mine = new Set(tree.items.map((i) => i.key));
+    tree.itemSets = (gameFile!.itemSets ?? [])
+      .filter((st) => st.items.every((k) => mine.has(k)))
+      .map((st) => ({ key: st.key, name: st.n, items: st.items, effects: gameEffects(st.e) }));
+  }
+  return tree;
+}
+
+/** Facciones con árboles (las 25 del juego si extrajiste tus datos; si no, solo Guerreros del Caos). */
+export function listCharacterFactions(): { key: string; name: string }[] {
+  if (!gameFile) return [{ key: DEFAULT_FACTION, name: 'Guerreros del Caos' }];
+  return [...gameFile.subcultures].sort((a, b) => a.name.localeCompare(b.name, 'es'));
+}
+
+/**
+ * Nombres únicos dentro de una facción: si dos árboles se llaman igual (dinastías de Reyes Funerarios,
+ * Slann de horda...), se agrega lo que distingue a su clave ("Rey Funerario · Alkhazzar II").
+ */
+const namesByFaction = new Map<string, Map<string, string>>();
+function factionNames(f: string): Map<string, string> {
+  if (namesByFaction.has(f)) return namesByFaction.get(f)!;
+  const chars = gameFile!.characters.filter((c) => c.subcultures.includes(f));
+  const groups = new Map<string, GameCharacter[]>();
+  for (const c of chars) {
+    const n = nameEs(c.key, c.name);
+    groups.set(n, [...(groups.get(n) ?? []), c]);
+  }
+  const IGNORE = new Set(['wh', 'wh2', 'wh3', 'main', 'skill', 'node', 'set', 'dlc', 'cha', 'lord', 'hero', 'legendary', '0', '1']);
+  const out = new Map<string, string>();
+  for (const [name, list] of groups) {
+    if (list.length === 1) { out.set(list[0].key, name); continue; }
+    const toks = list.map((c) => c.key.split(/[_]+/).filter((t) => !IGNORE.has(t) && !/^(dlc|pro|twa|cp)\d+$/.test(t)));
+    list.forEach((c, i) => {
+      const mine = toks[i].filter((t) => toks.some((o, j) => j !== i && !o.includes(t)));
+      const extra = mine.map((t) => (t === 'horde' ? 'horda' : t)).join(' ').replace(/\b\w/g, (m) => m.toUpperCase());
+      out.set(c.key, extra ? `${name} · ${extra}` : name);
+    });
+  }
+  namesByFaction.set(f, out);
+  return out;
+}
+
+export function listCharacters(faction?: string): CharacterSummary[] {
+  if (!gameFile) return summaries;
+  const f = faction || DEFAULT_FACTION;
+  const names = factionNames(f);
+  return gameFile.characters
+    .filter((c) => c.subcultures.includes(f))
+    .map((c) => ({ key: charId(c, f), name: names.get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction: f }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'));
 }
 
 export function getCharacter(key: string): CharacterTree | undefined {
-  return trees.get(key);
+  if (!gameFile) return trees.get(key);
+  const cached = trees.get(key);
+  if (cached) return cached;
+  const [base, faction] = key.split('@');
+  const c = gameChars.get(base);
+  if (!c) return undefined;
+  const f = faction && c.subcultures.includes(faction) ? faction : c.home;
+  const tree = buildGameTree(c, f);
+  trees.set(key, tree);
+  return tree;
+}
+
+// ---------- Tecnologías (datos del juego) ----------
+export interface TechNode {
+  key: string; tech: string; name: string; description?: string; icon?: string; col: number; row: number;
+  cost?: number; parents: string[]; parentsNeeded: number; requires: string[]; battle: boolean; effects: ParsedEffect[];
+}
+export interface TechTree { key: string; name: string; variant?: string; variants: { fk: string; name: string }[]; nodes: TechNode[]; minRow: number }
+
+const techCache = new Map<string, ParsedEffect[]>();
+export function techEffects(tech: string): { name: string; effects: ParsedEffect[] } | null {
+  const t = gameFile?.techs?.[tech];
+  if (!t) return null;
+  if (!techCache.has(tech)) techCache.set(tech, gameEffects(t.e));
+  return { name: t.n, effects: techCache.get(tech)! };
+}
+
+/** Árboles de tecnología de una facción (la genérica y los de facciones concretas, como Azazel o Be'lakor). */
+export function listTechTrees(faction: string): { key: string; name: string; variants: { fk: string; name: string }[] }[] {
+  return (gameFile?.techTrees ?? [])
+    .filter((t) => t.subcultures.includes(faction))
+    .map((t) => ({ key: t.key, name: t.name, variants: t.variants.filter((v) => !v.sc || v.sc === faction).map(({ fk, name }) => ({ fk, name })) }));
+}
+
+export function getTechTree(key: string, variant?: string): TechTree | undefined {
+  const t = gameFile?.techTrees?.find((x) => x.key === key);
+  if (!t) return undefined;
+  // Variante de facción: sus nodos propios reemplazan a los genéricos que ocupan la misma casilla
+  const own = t.nodes.filter((n) => variant && n.fk === variant);
+  const taken = new Set(own.map((n) => `${n.t}|${n.i}`));
+  const nodes = [...t.nodes.filter((n) => !n.fk && !taken.has(`${n.t}|${n.i}`)), ...own];
+  const present = new Set(nodes.map((n) => n.k));
+  const techToNode = new Map(nodes.map((n) => [n.tech, n.k]));
+  const out: TechNode[] = nodes.map((n) => {
+    const def = gameFile!.techs![n.tech];
+    const effects = techEffects(n.tech)!.effects;
+    const parents = (n.pr ?? []).filter((p) => present.has(p));
+    return {
+      key: n.k, tech: n.tech, name: def.n, description: def.d, icon: def.img, col: n.t, row: n.i, cost: n.rp,
+      parents, parentsNeeded: n.need || parents.length,
+      requires: (def.req ?? []).map((r) => techToNode.get(r)).filter((x): x is string => !!x),
+      battle: effects.some((e) => e.kind === 'battle' || e.kind === 'attribute'),
+      effects,
+    };
+  });
+  return {
+    key: t.key, name: t.name, variant, variants: t.variants.map(({ fk, name }) => ({ fk, name })),
+    nodes: out, minRow: Math.min(...out.map((n) => n.row)),
+  };
 }
 
 // ---------- Unidades ----------
@@ -253,12 +559,64 @@ export function listUnits(): UnitData[] {
 }
 
 export function getUnit(card: string): UnitData | undefined {
-  return units.get(card);
+  return units.get(card) ?? allByKey.get(card);
+}
+
+// ---------- Unidades de TODAS las facciones (se generan con npm run extraer) ----------
+interface AllUnitsFile { source: string; subcultures: { key: string; name: string }[]; units: (UnitData & { subcultures: string[]; casteKey?: string })[] }
+const allUnitsFile: AllUnitsFile | null = existsSync(join(DATA_DIR, 'raw', 'wh3_all_units.json'))
+  ? readJson<AllUnitsFile>('raw/wh3_all_units.json')
+  : null;
+
+// Grupo del panel de ejército según el tipo de unidad del juego
+const GROUP_BY_CASTE: Record<string, string> = {
+  melee_infantry: 'Infantry', monstrous_infantry: 'Infantry', missile_infantry: 'Missile Infantry',
+  melee_cavalry: 'Cavalry & Chariots', monstrous_cavalry: 'Cavalry & Chariots', chariot: 'Cavalry & Chariots',
+  missile_cavalry: 'Missile Cavalry & Chariots', monster: 'Monsters & Beasts', war_beast: 'Monsters & Beasts',
+  warmachine: 'Artillery & War Machines', generic: 'Infantry',
+};
+
+/** Unidad de otra facción con el mismo formato que el roster del Caos (id = clave de unidad). */
+function asRosterUnit(u: AllUnitsFile['units'][number]): UnitData & { subcultures: string[] } {
+  return {
+    ...u,
+    card: u.key,
+    nameEn: u.name,
+    casteEs: u.caste,
+    caste: u.casteKey ?? u.caste,
+    category: u.casteKey ?? '',
+    group: GROUP_BY_CASTE[u.casteKey ?? ''] ?? 'Infantry',
+    tier: 0, campaignOnly: false, mounts: 0, entity: '', barrier: 0,
+    attrs: u.attrs.map(translateAttribute),
+  };
+}
+const allByKey = new Map((allUnitsFile?.units ?? []).map((u) => [u.key, asRosterUnit(u)]));
+const allByCard = new Map((allUnitsFile?.units ?? []).map((u) => [u.card, allByKey.get(u.key)!]));
+
+export function listSubcultures() {
+  return allUnitsFile?.subcultures ?? [];
+}
+
+export function listTargets(subculture: string) {
+  return [...allByKey.values()].filter((u) => u.subcultures.includes(subculture));
+}
+
+/** Roster para armar el ejército: el del Caos (twwstats) o el de la facción elegida (datos del juego). */
+export function listRoster(faction?: string): UnitData[] {
+  if (!faction || faction === DEFAULT_FACTION || !allUnitsFile) return listUnits();
+  return listTargets(faction).filter((u) => u.caste !== 'lord' && u.caste !== 'hero');
+}
+
+/** Busca un objetivo por clave de unidad (todas las facciones) o por unit card (roster del Caos). */
+export function getTarget(id: string): UnitData | undefined {
+  return units.get(id) ?? allByKey.get(id) ?? allByCard.get(id);
 }
 
 export const sources = {
+  gameTrees: gameFile ? gameFile.characters.length : 0,
+  allUnits: allUnitsFile ? allUnitsFile.units.length : 0,
   officialLoc: officialCount(),
-  skills: `${skillsFile.source} (extraído ${skillsFile.extracted})`,
+  skills: gameFile ? `${gameFile.source}: ${gameFile.characters.length} señores y héroes` : `${skillsFile.source} (extraído ${skillsFile.extracted})`,
   units: `${unitsFile.source} (extraído ${unitsFile.extracted})`,
   faction: skillsFile.faction,
 };

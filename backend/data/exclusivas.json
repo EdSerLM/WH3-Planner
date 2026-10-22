@@ -1,23 +1,4 @@
 {
-  "_nota": "Grupos de habilidades excluyentes: de cada grupo solo se pueden comprar 'max' habilidades. Se usa la clave de habilidad (skillKey), que es compartida entre personajes, así un grupo aplica a todos los que la tengan. Puedes ver la skillKey en el detalle de cada nodo del árbol. Reinicia el backend al cambiar este archivo.",
-  "grupos": [
-    {
-      "nombre": "Especialidad del Héroe Exaltado",
-      "max": 1,
-      "skills": [
-        "wh3_dlc20_skill_shared_chs_cha_exalted_hero_duelist",
-        "wh3_dlc20_skill_shared_chs_cha_exalted_hero_tactician",
-        "wh3_dlc20_skill_shared_chs_cha_exalted_hero_strategist"
-      ]
-    },
-    {
-      "nombre": "Don de los Poderes Ruinosos",
-      "max": 1,
-      "skills": [
-        "wh3_dlc20_skills_shared_undivided_wrath",
-        "wh3_dlc20_skills_shared_undivided_leadership",
-        "wh3_dlc20_skills_shared_undivided_unity"
-      ]
-    }
-  ]
+  "_nota": "Grupos excluyentes EXTRA hechos a mano. Los del juego ya se cargan solos desde raw/wh3_skill_locks.json (tabla oficial character_skill_nodes_skill_locks). Agrega aquí solo si encuentras alguno que falte: { \"nombre\": \"...\", \"max\": 1, \"skills\": [claves de habilidad] }.",
+  "grupos": []
 }

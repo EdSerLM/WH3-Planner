@@ -29,7 +29,7 @@ export function SkillIcon({ node, size = 34 }: { node: SkillNode; size?: number 
   return (
     <img
       className="skill-icon"
-      src={`/skills/${node.icon}.png`}
+      src={`/skills/${node.icon.toLowerCase()}.png`}
       width={size}
       height={size}
       alt=""

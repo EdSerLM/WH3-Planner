@@ -7,29 +7,45 @@ import { AbilitiesPanel } from './components/AbilitiesPanel';
 import { UnitCard } from './components/UnitCard';
 import { DpsPanel } from './components/DpsPanel';
 import { BuildSummary } from './components/BuildSummary';
+import { TechTree } from './components/TechTree';
 import { emptyBuild } from './treeLogic';
 import type { ArmyState, BuildSelection, CharacterSummary, CharacterTree, ComputeResult, Meta, SavedBuild, UnitData } from './types';
 
 const STORAGE_KEY = 'wh3-planner:army';
+const FACTION_KEY = 'wh3-planner:faction';
+const DEFAULT_FACTION = 'wh_main_sc_chs_chaos';
 const EMPTY: ArmyState = { lord: null, heroes: [], units: [], activeAbilities: [], inAura: true };
 
-function loadLocal(): ArmyState {
+// Un ejército guardado en el navegador por facción
+const armyKey = (f: string) => (f === DEFAULT_FACTION ? STORAGE_KEY : `${STORAGE_KEY}:${f}`);
+
+function loadLocal(faction: string): ArmyState {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? { ...EMPTY, ...JSON.parse(raw) } : EMPTY;
+    const raw = localStorage.getItem(armyKey(faction));
+    return raw ? { ...EMPTY, ...JSON.parse(raw), faction } : { ...EMPTY, faction };
   } catch {
-    return EMPTY;
+    return { ...EMPTY, faction };
   }
 }
 
-type Tab = 'lord' | number; // número = índice de héroe
+function loadFaction(): string {
+  try {
+    return localStorage.getItem(FACTION_KEY) ?? DEFAULT_FACTION;
+  } catch {
+    return DEFAULT_FACTION;
+  }
+}
+
+type Tab = 'lord' | 'techs' | number; // número = índice de héroe
 
 export default function App() {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [characters, setCharacters] = useState<CharacterSummary[]>([]);
   const [units, setUnits] = useState<UnitData[]>([]);
   const [trees, setTrees] = useState<Record<string, CharacterTree>>({});
-  const [army, setArmy] = useState<ArmyState>(loadLocal);
+  const [faction, setFaction] = useState<string>(loadFaction);
+  const [factions, setFactions] = useState<{ key: string; name: string }[]>([]);
+  const [army, setArmy] = useState<ArmyState>(() => loadLocal(loadFaction()));
   const [result, setResult] = useState<ComputeResult | null>(null);
   const [tab, setTab] = useState<Tab>('lord');
   const [error, setError] = useState<string | null>(null);
@@ -41,15 +57,42 @@ export default function App() {
 
   // Carga inicial
   useEffect(() => {
-    Promise.all([api.meta(), api.characters(), api.units(), api.builds()])
-      .then(([m, c, u, b]) => {
+    Promise.all([api.meta(), api.characterFactions(), api.builds()])
+      .then(([m, f, b]) => {
         setMeta(m);
-        setCharacters(c);
-        setUnits(u);
+        setFactions(f.factions);
         setSaved(b);
+        // Si la facción guardada no existe en estos datos, volver a la de por defecto
+        if (!f.factions.some((x) => x.key === faction)) changeFaction(f.default);
       })
       .catch((e) => setError(`No se pudo conectar con el backend (${e.message}). ¿Está corriendo en el puerto 3001?`));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Personajes y roster de la facción elegida
+  useEffect(() => {
+    try {
+      localStorage.setItem(FACTION_KEY, faction);
+    } catch {
+      /* sin almacenamiento */
+    }
+    Promise.all([api.characters(faction), api.units(faction)])
+      .then(([c, u]) => {
+        setCharacters(c);
+        setUnits(u);
+      })
+      .catch((e) => setError(e.message));
+  }, [faction]);
+
+  function changeFaction(f: string, next?: ArmyState) {
+    setFaction(f);
+    setArmy(next ?? loadLocal(f));
+    setTab('lord');
+    if (!next) {
+      setCurrentId(undefined);
+      setBuildName('');
+    }
+  }
 
   const ensureTree = useCallback(
     async (key: string) => {
@@ -70,7 +113,7 @@ export default function App() {
   // Guardar en el navegador y recalcular
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(army));
+      localStorage.setItem(armyKey(army.faction ?? DEFAULT_FACTION), JSON.stringify(army));
     } catch {
       /* sin almacenamiento */
     }
@@ -115,13 +158,14 @@ export default function App() {
   const updateSelection = (sel: BuildSelection) => {
     setArmy((a) => {
       if (tab === 'lord') return { ...a, lord: sel };
+      if (tab === 'techs') return a;
       const heroes = [...a.heroes];
       heroes[tab] = sel;
       return { ...a, heroes };
     });
   };
 
-  const currentSel = tab === 'lord' ? army.lord : army.heroes[tab];
+  const currentSel = tab === 'lord' ? army.lord : tab === 'techs' ? null : army.heroes[tab];
   const currentTree = currentSel ? trees[currentSel.character] : undefined;
   const currentInfo = result?.builds.find((b) => b.character === currentSel?.character);
 
@@ -133,12 +177,15 @@ export default function App() {
 
   const save = async () => {
     const name = buildName.trim() || 'Ejército sin nombre';
-    const b = await api.saveBuild({ id: currentId, name, army });
+    const b = await api.saveBuild({ id: currentId, name, army: { ...army, faction } });
     setCurrentId(b.id);
     setSaved(await api.builds());
   };
   const open = (b: SavedBuild) => {
-    setArmy({ ...EMPTY, ...b.army });
+    const f = b.army.faction ?? DEFAULT_FACTION;
+    const next = { ...EMPTY, ...b.army, faction: f };
+    if (f !== faction) changeFaction(f, next);
+    else setArmy(next);
     setCurrentId(b.id);
     setBuildName(b.name);
     setTab('lord');
@@ -164,14 +211,22 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        <h1>WH3 Planner <span>· Guerreros del Caos</span></h1>
+        <h1>WH3 Planner</h1>
+        <label className="faction-pick">
+          Facción:{' '}
+          <select value={faction} onChange={(e) => changeFaction(e.target.value)}>
+            {(factions.length ? factions : [{ key: DEFAULT_FACTION, name: 'Guerreros del Caos' }]).map((f) => (
+              <option key={f.key} value={f.key}>{f.name}</option>
+            ))}
+          </select>
+        </label>
         <div className="saves">
           <input placeholder="Nombre del ejército" value={buildName} onChange={(e) => setBuildName(e.target.value)} />
           <button onClick={save}>{currentId ? 'Guardar cambios' : 'Guardar'}</button>
           <button
             className="ghost"
             onClick={() => {
-              setArmy(EMPTY);
+              setArmy({ ...EMPTY, faction });
               setCurrentId(undefined);
               setBuildName('');
             }}
@@ -210,8 +265,21 @@ export default function App() {
               </button>
             ))}
             <button className="ghost" onClick={addHero} disabled={usedSlots >= 20}>+ Héroe</button>
+            <button className={tab === 'techs' ? 'active' : ''} onClick={() => setTab('techs')} title="Tecnologías investigadas: sus bufos se suman a las tarjetas">
+              Tecnologías{army.techs?.length ? ` (${army.techs.length})` : ''}
+            </button>
           </nav>
 
+          {tab === 'techs' ? (
+            <TechTree
+              faction={faction}
+              treeKey={army.techTree}
+              variant={army.techVariant}
+              researched={army.techs ?? []}
+              onChange={(p) => setArmy((a) => ({ ...a, ...p }))}
+            />
+          ) : (
+          <>
           <div className="char-bar">
             {tab === 'lord' ? (
               <CharacterPicker characters={characters} type="lord" value={army.lord?.character ?? null} onChange={setLord} />
@@ -245,6 +313,8 @@ export default function App() {
           ) : (
             <p className="muted">Elige un personaje para ver su árbol de habilidades.</p>
           )}
+          </>
+          )}
         </section>
 
         <aside className="right">
@@ -277,7 +347,7 @@ export default function App() {
           </>
         )}
 
-        {view === 'dps' && <DpsPanel army={army} cards={cards} units={units} />}
+        {view === 'dps' && <DpsPanel army={army} cards={cards} units={units} ownName={factions.find((f) => f.key === faction)?.name ?? 'Mi facción'} />}
 
         {view === 'campaign' && (
           <div className="campaign">
@@ -306,7 +376,9 @@ export default function App() {
       </section>
 
       <footer className="small muted">
-        Datos: {meta?.sources.skills} · {meta?.sources.units}. Nombres del juego en inglés; puedes poner los tuyos en backend/data/nombres-es.json.
+        Datos: {meta?.sources.skills} · {meta?.sources.units}
+        {meta?.sources.allUnits ? ` · ${meta.sources.allUnits} unidades de todas las facciones` : ''}.
+        {!meta?.sources.gameTrees && ' Para las demás facciones corre npm run extraer con la carpeta data del juego.'}
       </footer>
     </div>
   );

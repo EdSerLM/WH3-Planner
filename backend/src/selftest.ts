@@ -3,7 +3,7 @@
  * con su ejército de wh3.ninja y revisa que los bufos coincidan con lo leído en el planner.
  *   npm test
  */
-import { getCharacter } from './data.js';
+import { getCharacter, listCharacters, listTechTrees, getTechTree } from './data.js';
 import { compute } from './engine.js';
 import { meleeDps, targetsFromCards } from './dps.js';
 import type { BuildSelection } from './types.js';
@@ -14,10 +14,10 @@ function byNames(charKey: string, levels: Record<string, number>, mountName?: st
   const out: Record<string, number> = {};
   let mount: string | null = null;
   for (const n of tree.rows.flat()) {
-    if (levels[n.name] !== undefined) out[n.key] = levels[n.name];
-    if (mountName && n.name === mountName) { out[n.key] = 1; mount = n.key; }
+    if (levels[n.nameEn ?? n.name] !== undefined) out[n.key] = levels[n.nameEn ?? n.name];
+    if (mountName && (n.nameEn ?? n.name) === mountName) { out[n.key] = 1; mount = n.key; }
   }
-  const missing = Object.keys(levels).filter((k) => !tree.rows.flat().some((n) => n.name === k));
+  const missing = Object.keys(levels).filter((k) => !tree.rows.flat().some((n) => (n.nameEn ?? n.name) === k));
   if (missing.length) throw new Error('Habilidades no encontradas: ' + missing.join(', '));
   return { character: charKey, levels: out, mount, innate: null };
 }
@@ -90,24 +90,29 @@ expect('Maestros jinetes: Hammer into Anvil no les aplica (defensa +0)', horse.s
 
 // Excluyentes: el build real (Gladiator + Ruinous Unity) es válido; Gladiator + Commander no
 const heroInfo = r.builds.find((b) => b.character === hero.character)!;
-expect('Build real del héroe sin avisos de excluyentes (0)', heroInfo.warnings.filter((w) => /solo se puede/.test(w)).length, 0);
+expect('Build real del héroe sin avisos de excluyentes (0)', heroInfo.warnings.filter((w) => /solo se puede|bloqueada por/.test(w)).length, 0);
 const badHero = byNames('wh2_main_skill_node_set_chs_exalted_hero', { 'Chaos Gladiator': 1, 'Chaos Commander': 1 });
 const rBad = compute({ heroes: [badHero], units: [] });
-expect('Gladiator + Commander da aviso (1)', rBad.builds[0].warnings.filter((w) => /solo se puede/.test(w)).length, 1);
+expect('Gladiator + Commander da aviso (1 = sí)', rBad.builds[0].warnings.some((w) => /solo se puede|bloqueada por/.test(w)) ? 1 : 0, 1);
 
 // Rango: en rango 5 el Corcel se desbloquea solo y Skullcrusher (requiere 10) da aviso
 const r5sel = byNames('wh_main_skill_node_set_chs_lord', { 'Skullcrusher': 1 });
 const r5 = compute({ lord: { ...r5sel, rank: 5 }, units: [] });
-expect('Rango 5: aviso por Skullcrusher (1)', r5.builds[0].warnings.filter((w) => /requiere rango 10/.test(w)).length, 1);
+expect('Rango mínimo 5 + Skullcrusher (pide 10): el rango sube solo a 10', r5.builds[0].rank, 10);
+const empty = compute({ lord: { character: 'wh_main_skill_node_set_chs_lord', levels: {} }, units: [] });
+expect('Build vacío empieza en rango 1', empty.builds[0].rank, 1);
+const four = byNames('wh_main_skill_node_set_chs_lord', { 'Dominating Presence': 1, 'Chaos Vanguard': 3 });
+const r4 = compute({ lord: four, units: [] });
+expect('4 puntos -> rango 4', r4.builds[0].rank, 4);
 const steedTree = getCharacter('wh_main_skill_node_set_chs_lord')!;
-const steed = steedTree.rows.flat().find((n) => n.name === 'Chaos Steed')!;
+const steed = steedTree.rows.flat().find((n) => n.nameEn === 'Chaos Steed')!;
 const r5b = compute({ lord: { character: steedTree.key, levels: {}, mount: steed.key, rank: 5 }, units: [] });
 expect('Rango 5: Corcel del Caos gratis y montado (1)', r5b.builds[0].mount ? 1 : 0, 1);
 expect('Rango 5: puntos usados 0', r5b.builds[0].pointsUsed, 0);
 
 // Con rango 7 y Stand or Die! + Flaming Sword activos
-const sod = r.abilities.find((a) => a.name === 'Stand or Die!')!;
-const fsw = r.abilities.find((a) => a.name === 'Flaming Sword of Rhuin')!;
+const sod = r.abilities.find((a) => a.key === 'wh_main_character_abilities_stand_or_die')!;
+const fsw = r.abilities.find((a) => a.key === 'wh_main_spell_fire_flaming_sword_of_rhuin')!;
 const r2 = compute({ ...army, activeAbilities: [sod.key, fsw.key], units: army.units.map((u) => ({ ...u, rank7: true })) });
 const f2 = r2.cards.find((c) => c.id === 'wh_dlc01_chs_forsaken')!;
 expect('Abandonados R7 + Stand or Die!: defensa +29 (Legion +5, SoD +24)', f2.stats.md.final - f2.stats.md.base, 29);
@@ -118,3 +123,31 @@ const targets = targetsFromCards(['wh_main_chs_warriors', 'wh_main_chs_chosen', 
 console.log('\nDPS Abandonados (R7 + SoD + Flaming Sword):');
 for (const t of targets) console.log(meleeDps(f2, t));
 console.log('\nHabilidades:', r.abilities.filter((a) => a.hasBattleStats).map((a) => `${a.name}[${a.mode}${a.passive ? ',pasiva' : ''}]`).join(', '));
+
+// Tecnologías (solo con los datos del juego): Preparación del hierro da +10 armadura a los Barbaslargas
+const dwfTrees = listTechTrees('wh_main_sc_dwf_dwarfs');
+if (dwfTrees.length) {
+  const tt = getTechTree(dwfTrees[0].key)!;
+  const iron = tt.nodes.find((n) => n.name === 'Preparación del hierro');
+  const thor = listCharacters('wh_main_sc_dwf_dwarfs').find((c) => /Thorgrim/.test(c.name));
+  if (iron && thor) {
+    const units = [{ card: 'wh_main_dwf_inf_longbeards', count: 1 }, { card: 'wh_main_dwf_inf_hammerers', count: 1 }];
+    const sel = { character: thor.key, levels: {} };
+    const a = compute({ lord: sel, units });
+    const b = compute({ lord: sel, units, techs: [iron.tech] });
+    const lb = (r: typeof a) => r.cards.find((c) => c.id === 'wh_main_dwf_inf_longbeards')!.stats.armour.final;
+    const hm = (r: typeof a) => r.cards.find((c) => c.id === 'wh_main_dwf_inf_hammerers')!.stats.armour.final;
+    expect('Tecnología Preparación del hierro: Barbaslargas armadura +10', lb(b) - lb(a), 10);
+    expect('Tecnología Preparación del hierro: Martilladores no (+0)', hm(b) - hm(a), 0);
+  }
+}
+
+// Objetos de legendario (datos del juego): Archaón con La Armadura de Morkar = +12 armadura, +6 defensa
+const arch = getCharacter('wh_main_skill_node_set_chs_archaon');
+const morkar = arch?.items?.find((i) => i.key === 'wh_main_anc_armour_the_armour_of_morkar');
+if (arch && morkar) {
+  const a0 = compute({ lord: { character: arch.key, levels: {} }, units: [] }).cards[0];
+  const a1 = compute({ lord: { character: arch.key, levels: {}, items: [morkar.key], rank: 12 }, units: [] }).cards[0];
+  expect('Archaón + Armadura de Morkar: armadura +12', a1.stats.armour.final - a0.stats.armour.final, 12);
+  expect('Archaón + Armadura de Morkar: defensa +6', a1.stats.md.final - a0.stats.md.final, 6);
+}

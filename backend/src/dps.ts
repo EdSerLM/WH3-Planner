@@ -1,4 +1,4 @@
-import { getUnit } from './data.js';
+import { getTarget } from './data.js';
 import type { ComputedCard, DpsTarget, StatKey, UnitData } from './types.js';
 
 /**
@@ -26,7 +26,7 @@ export interface DpsRow {
 export function unitAsTarget(u: UnitData): DpsTarget {
   return {
     id: u.card, name: u.name, models: u.models, hpPerModel: u.hpPerModel, md: u.md, armour: u.armour,
-    isLarge: u.size === 'large' || u.size === 'very_large', isInfantry: /Infantry/.test(u.caste), cost: u.cost,
+    isLarge: u.size === 'large' || u.size === 'very_large', isInfantry: /infantry|infanter/i.test(u.caste), cost: u.cost,
     res: { physical: u.res.physical, magic: u.res.magic, flame: u.res.flame, ward: u.res.ward },
   };
 }
@@ -77,7 +77,7 @@ export function meleeDps(att: ComputedCard, t: DpsTarget): DpsRow {
 }
 
 export function targetsFromCards(cards: string[]): DpsTarget[] {
-  return cards.map((c) => getUnit(c)).filter((u): u is UnitData => !!u).map(unitAsTarget);
+  return cards.map((c) => getTarget(c)).filter((u): u is UnitData => !!u).map(unitAsTarget);
 }
 
 export const DPS_DISCLAIMER =

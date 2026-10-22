@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { BuildSelection, CharacterTree, ComputeResult, SkillNode } from '../types';
-import { blockedBy, decrement, increment, isAvailable, levelOf, pointsLeft, pointsUsed, rankOf, setRank, whyNotBuy } from '../treeLogic';
-import { MAX_RANK, isFreeLevel, pointsAtRank } from '../rankRules';
+import { blockedBy, buyHint, decrement, increment, isAvailable, levelOf, normalize, pointsUsed, rankOf, setRank, whyNotBuy } from '../treeLogic';
+import { MAX_RANK, isFreeLevel } from '../rankRules';
 import { SkillIcon } from './SkillIcon';
+import { ItemsPanel } from './ItemsPanel';
 
 interface Props {
   tree: CharacterTree;
@@ -21,14 +22,16 @@ const KIND_LABEL: Record<string, string> = {
   other: 'Otro',
 };
 
-const TARGET_LABEL: Record<string, string> = { self: 'propio', army: 'ejército', lord: 'al señor', none: '' };
+const TARGET_LABEL: Record<string, string> = { self: 'propio', army: 'ejército', lord: 'al señor', chars: 'personajes', none: '' };
 
 interface Hover {
   node: SkillNode;
   rect: DOMRect;
 }
 
-export function SkillTree({ tree, selection, onChange, info }: Props) {
+export function SkillTree({ tree, selection: rawSelection, onChange, info }: Props) {
+  // Siempre trabajamos con el rango ya recalculado
+  const selection = useMemo(() => normalize(rawSelection, tree), [rawSelection, tree]);
   const [hover, setHover] = useState<Hover | null>(null);
   const rows = useMemo(
     () =>
@@ -39,8 +42,17 @@ export function SkillTree({ tree, selection, onChange, info }: Props) {
   );
   const rank = rankOf(selection);
   const used = pointsUsed(selection, tree);
-  const left = pointsLeft(selection, tree);
-  const mounts = tree.rows.flat().filter((n) => n.isMount && levelOf(selection, n) > 0);
+  const floor = selection.rank ?? 1;
+  const mounts = tree.rows.flat().filter((n) => n.isMount);
+  // Elegir una montura: si no está comprada, se compra (y el rango sube si hace falta)
+  const pickMount = (key: string) => {
+    if (!key) return onChange({ ...selection, mount: null });
+    const node = mounts.find((m) => m.key === key)!;
+    let next = selection;
+    if (levelOf(selection, node) === 0) next = normalize(increment(selection, node, tree), tree);
+    onChange({ ...next, mount: levelOf(next, node) > 0 ? key : next.mount ?? null });
+  };
+  const mountRank = (n: SkillNode) => n.levels[0]?.autoRank ?? n.levels[0]?.requiredRank;
   const innates = tree.background.filter((b) => !b.autoActive);
   const innateValue = selection.innate === undefined ? tree.defaultInnate : selection.innate;
 
@@ -56,24 +68,32 @@ export function SkillTree({ tree, selection, onChange, info }: Props) {
     <div className="tree" onMouseLeave={() => setHover(null)}>
       <div className="tree-head">
         <div className="rank-bar">
-          <label>
+          <label title="El rango sube solo al comprar habilidades (1 punto por rango, o el rango que pida la habilidad).">
             Rango <b className="rank-num">{rank}</b>
           </label>
-          <button className="ghost" onClick={() => onChange(setRank(selection, tree, rank - 1))} disabled={rank <= 1}>−</button>
-          <input type="range" min={1} max={MAX_RANK} value={rank} onChange={(e) => onChange(setRank(selection, tree, Number(e.target.value)))} />
+          <span className="muted small">mínimo</span>
+          <button className="ghost" onClick={() => onChange(setRank(selection, tree, Math.min(floor, rank) - 1))} disabled={rank <= 1}>−</button>
+          <input
+            type="range" min={1} max={MAX_RANK} value={rank}
+            title="Fija un rango mínimo (para ver lo que se desbloquea solo). Bajarlo quita lo que ya no cabe."
+            onChange={(e) => onChange(setRank(selection, tree, Number(e.target.value)))}
+          />
           <button className="ghost" onClick={() => onChange(setRank(selection, tree, rank + 1))} disabled={rank >= MAX_RANK}>+</button>
-          <span className={left < 0 ? 'bad' : ''}>
-            Puntos: <b>{used}</b> / {pointsAtRank(rank)} <span className="muted">({left >= 0 ? `quedan ${left}` : `te pasas por ${-left}`})</span>
+          <span>
+            Puntos gastados: <b>{used}</b> <span className="muted">(1 por rango)</span>
           </span>
-          <button className="ghost" onClick={() => onChange({ ...selection, levels: {}, mount: null })}>Reiniciar árbol</button>
+          {selection.rankOver ? <span className="bad">No cabe: necesitaría rango {selection.rankOver}</span> : null}
+          <button className="ghost" onClick={() => onChange(normalize({ ...selection, levels: {}, mount: null, rank: 1 }, tree))}>Reiniciar árbol</button>
         </div>
         <div className="tree-options">
           <label>
             Montura:{' '}
-            <select value={selection.mount ?? ''} onChange={(e) => onChange({ ...selection, mount: e.target.value || null })}>
+            <select value={selection.mount ?? ''} onChange={(e) => pickMount(e.target.value)} title="Al elegir una montura se compra en el árbol (y el rango sube si la pide)">
               <option value="">A pie</option>
               {mounts.map((m) => (
-                <option key={m.key} value={m.key}>{m.name}</option>
+                <option key={m.key} value={m.key}>
+                  {m.name}{levelOf(selection, m) > 0 ? '' : mountRank(m) ? ` (rango ${mountRank(m)})` : ' (comprar)'}
+                </option>
               ))}
             </select>
           </label>
@@ -92,6 +112,7 @@ export function SkillTree({ tree, selection, onChange, info }: Props) {
             <i className="lg bought" /> comprada <i className="lg auto" /> por rango (gratis) <i className="lg rank" /> requiere rango <i className="lg blocked" /> excluida
           </span>
         </div>
+        <ItemsPanel tree={tree} selection={selection} onChange={onChange} />
         {info?.warnings.length ? <div className="warn">{info.warnings.join(' · ')}</div> : null}
       </div>
 
@@ -198,9 +219,10 @@ function Tooltip({ hover, tree, selection }: { hover: Hover; tree: CharacterTree
       </div>
       {blocked && <div className="blocked-msg">⛓ Bloqueada por otra habilidad: {blocked.by.join(', ')}. Quítala (clic derecho) para elegir esta.</div>}
       {!blocked && reason && level < node.levels.length && <div className="reason">{reason}</div>}
+      {!reason && buyHint(node, selection) && <div className="hint">{buyHint(node, selection)}</div>}
       {group && (
         <div className="muted small">
-          Excluyente ({group.name}): elige {group.max} de {group.nodes.map((k) => all.find((n) => n.key === k)?.name ?? k).join(' / ')}
+          Excluyente{group.name === 'Excluyentes del juego' ? '' : ` (${group.name})`}: elige {group.max} de {group.nodes.map((k) => all.find((n) => n.key === k)?.name ?? k).join(' / ')}
         </div>
       )}
       {node.levels.map((l, i) => (
