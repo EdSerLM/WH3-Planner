@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api';
 import { CharacterPicker } from './components/CharacterPicker';
 import { SkillTree } from './components/SkillTree';
@@ -8,13 +8,62 @@ import { UnitCard } from './components/UnitCard';
 import { DpsPanel } from './components/DpsPanel';
 import { BuildSummary } from './components/BuildSummary';
 import { TechTree } from './components/TechTree';
+import { UnitBuffSummary } from './components/UnitBuffSummary';
 import { emptyBuild } from './treeLogic';
+import { CHAOS_CAMPAIGN, CHAOS_SUBCULTURE, campaignForLord } from './campaign';
 import type { ArmyState, BuildSelection, CharacterSummary, CharacterTree, ComputeResult, Meta, SavedBuild, UnitData } from './types';
 
 const STORAGE_KEY = 'wh3-planner:army';
 const FACTION_KEY = 'wh3-planner:faction';
 const DEFAULT_FACTION = 'wh_main_sc_chs_chaos';
 const EMPTY: ArmyState = { lord: null, heroes: [], units: [], activeAbilities: [], inAura: true };
+
+/** Por unidad: bufos que recibe con rango 0 y los que gana al subir de rango.
+ *  Una línea por habilidad: "Habilidad (Quién): efecto a stats; otro efecto…" */
+export type RosterBuffs = Record<string, { now: string[]; r7: string[] }>;
+
+const PCT_STATS = new Set(['resPhysical', 'resMissile', 'resMagic', 'resFlame', 'resWard', 'shield']);
+
+function buffSources(now: ComputeResult, r7: ComputeResult, labels: Record<string, string>): RosterBuffs {
+  // habilidad → efecto ("+5%", "+3%/rango"…) → stats que toca
+  const effects = (c: ComputeResult['cards'][number]) => {
+    const m = new Map<string, Map<string, Set<string>>>();
+    const put = (skill: string, eff: string, stat: string) => {
+      const e = m.get(skill) ?? new Map<string, Set<string>>();
+      m.set(skill, e);
+      e.set(eff, (e.get(eff) ?? new Set()).add(stat));
+    };
+    for (const [stat, line] of Object.entries(c.stats))
+      for (const x of line.contributions) {
+        const perRank = x.conditional ? /^([\d.]+)% × rango/.exec(x.conditional) : null;
+        const eff = perRank
+          ? `+${perRank[1]}% por rango`
+          : x.how === 'mult'
+            ? `×${x.value}`
+            : `${x.value > 0 ? '+' : ''}${x.value}${x.how === 'pct' || PCT_STATS.has(stat) ? '%' : ''}`;
+        put(`${x.source} (${x.from})`, eff, labels[stat] ?? stat);
+      }
+    for (const a of c.attributes) if (a.from) put(a.from, 'atributo', a.name);
+    return m;
+  };
+  const text = (eff: string, stats: Set<string>) => (eff === 'atributo' ? [...stats].join(', ') : `${eff} ${[...stats].join(', ')}`);
+  const out: RosterBuffs = {};
+  const nowMap = new Map(now.cards.filter((c) => c.kind === 'unit').map((c) => [c.id, effects(c)]));
+  for (const c of r7.cards) {
+    if (c.kind !== 'unit') continue;
+    const n = nowMap.get(c.id) ?? new Map();
+    const nowLines = [...n].map(([skill, e]) => `${skill}: ${[...e].map(([eff, s]) => text(eff, s)).join('; ')}`);
+    // Lo que solo aparece al subir de rango (efectos nuevos de una habilidad, o habilidades nuevas)
+    const extra: string[] = [];
+    for (const [skill, e] of effects(c)) {
+      const before = n.get(skill);
+      const fresh = [...e].filter(([eff]) => !before?.has(eff));
+      if (fresh.length) extra.push(`${skill}: ${fresh.map(([eff, s]) => text(eff, s)).join('; ')}`);
+    }
+    if (nowLines.length || extra.length) out[c.id] = { now: nowLines, r7: extra };
+  }
+  return out;
+}
 
 // Un ejército guardado en el navegador por facción
 const armyKey = (f: string) => (f === DEFAULT_FACTION ? STORAGE_KEY : `${STORAGE_KEY}:${f}`);
@@ -54,6 +103,12 @@ export default function App() {
   const [buildName, setBuildName] = useState('');
   const [view, setView] = useState<'cards' | 'dps' | 'campaign'>('cards');
   const [leftView, setLeftView] = useState<'tree' | 'summary'>('tree');
+  // Tarjeta elegida abajo para ver sus bufos acumulados ("kind:id")
+  const [picked, setPicked] = useState<string | null>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (picked) summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [picked]);
 
   // Carga inicial
   useEffect(() => {
@@ -129,11 +184,35 @@ export default function App() {
     return () => clearTimeout(t);
   }, [army]);
 
+  // Vista previa: qué unidades del roster reciben bufos permanentes del señor, héroes y tecnologías.
+  // Se calcula con todo el roster (1 de cada) y sin habilidades activas; una pasada en rango 0 y otra en rango 9.
+  const [rosterBuffs, setRosterBuffs] = useState<RosterBuffs>({});
+  useEffect(() => {
+    if (!units.length || (!army.lord && !army.heroes.length && !army.techs?.length)) {
+      setRosterBuffs({});
+      return;
+    }
+    const base: ArmyState = { ...army, activeAbilities: [], units: [] };
+    const t = setTimeout(() => {
+      Promise.all([
+        api.compute({ ...base, units: units.map((u) => ({ card: u.card, count: 1, rank: 0 })) }),
+        api.compute({ ...base, units: units.map((u) => ({ card: u.card, count: 1, rank: 9 })) }),
+      ])
+        .then(([now, r7]) => setRosterBuffs(buffSources(now, r7, meta?.statLabels ?? {})))
+        .catch(() => setRosterBuffs({}));
+    }, 300);
+    return () => clearTimeout(t);
+    // Solo cambia con lo que da bufos, no al agregar o quitar unidades
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [units, meta, army.lord, army.heroes, army.techs, army.techTree, army.techVariant, army.inAura]);
+
   const usedSlots = (army.lord ? 1 : 0) + army.heroes.length + army.units.reduce((s, u) => s + u.count, 0);
 
   const setLord = async (key: string) => {
     const t = await ensureTree(key);
-    setArmy((a) => ({ ...a, lord: emptyBuild(t) }));
+    // Un señor legendario fija su facción de campaña (Festus → The Fecundites); los genéricos respetan la elegida
+    const camp = faction === CHAOS_SUBCULTURE ? campaignForLord(key) : undefined;
+    setArmy((a) => ({ ...a, lord: emptyBuild(t), ...(camp ? { campaign: camp } : {}) }));
     setTab('lord');
   };
   const setHero = async (i: number, key: string) => {
@@ -199,6 +278,13 @@ export default function App() {
   const cards = result?.cards ?? [];
   const charCards = cards.filter((c) => c.kind !== 'unit');
   const unitCards = cards.filter((c) => c.kind === 'unit');
+  const cardKey = (c: { kind: string; id: string }) => `${c.kind}:${c.id}`;
+  const pickedCard = picked ? cards.find((c) => cardKey(c) === picked) : undefined;
+  const togglePick = (c: { kind: string; id: string }) => setPicked((p) => (p === cardKey(c) ? null : cardKey(c)));
+  // Tarjeta del personaje que se está editando (en Tecnologías se muestra la del señor)
+  const sideSel = tab === 'techs' ? army.lord : currentSel;
+  const sideKind = tab === 'lord' || tab === 'techs' ? 'lord' : 'hero';
+  const sideCard = sideSel ? cards.find((c) => c.id === sideSel.character && c.kind === sideKind) : undefined;
   const labels = meta?.statLabels ?? ({} as Meta['statLabels']);
   const heroTabName = (h: BuildSelection) => characters.find((c) => c.key === h.character)?.name ?? 'Héroe';
 
@@ -220,6 +306,17 @@ export default function App() {
             ))}
           </select>
         </label>
+        {faction === CHAOS_SUBCULTURE && (
+          <label className="faction-pick" title="En campaña, las facciones dedicadas a un dios solo tienen unidades de ese dios e indivisas. Se elige sola con el señor legendario.">
+            Campaña:{' '}
+            <select value={army.campaign ?? ''} onChange={(e) => setArmy((a) => ({ ...a, campaign: e.target.value || undefined }))}>
+              <option value="">Sin filtro (todo el roster)</option>
+              {CHAOS_CAMPAIGN.map((f) => (
+                <option key={f.key} value={f.key}>{f.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
         <div className="saves">
           <input placeholder="Nombre del ejército" value={buildName} onChange={(e) => setBuildName(e.target.value)} />
           <button onClick={save}>{currentId ? 'Guardar cambios' : 'Guardar'}</button>
@@ -318,7 +415,15 @@ export default function App() {
         </section>
 
         <aside className="right">
-          <ArmyPanel units={units} army={army.units} usedSlots={usedSlots} onChange={(u) => setArmy((a) => ({ ...a, units: u }))} />
+          <div className="char-card-box">
+            {sideCard ? (
+              <UnitCard card={sideCard} labels={labels} />
+            ) : (
+              <p className="muted small">
+                {sideSel ? 'Calculando tarjeta…' : `Elige un ${sideKind === 'lord' ? 'señor' : 'héroe'} para ver su tarjeta aquí.`}
+              </p>
+            )}
+          </div>
           <AbilitiesPanel
             abilities={result?.abilities ?? []}
             active={army.activeAbilities}
@@ -330,6 +435,10 @@ export default function App() {
       </main>
 
       <section className="bottom">
+        <aside className="army-col">
+          <ArmyPanel units={units} army={army.units} usedSlots={usedSlots} buffs={rosterBuffs} campaign={faction === CHAOS_SUBCULTURE ? army.campaign : undefined} onChange={(u) => setArmy((a) => ({ ...a, units: u }))} />
+        </aside>
+        <div className="bottom-main">
         <nav className="tabs">
           <button className={view === 'cards' ? 'active' : ''} onClick={() => setView('cards')}>Tarjetas ({cards.length})</button>
           <button className={view === 'dps' ? 'active' : ''} onClick={() => setView('dps')}>DPS</button>
@@ -338,11 +447,24 @@ export default function App() {
 
         {view === 'cards' && (
           <>
-            {charCards.length > 0 && <div className="cards">{charCards.map((c) => <UnitCard key={c.id + c.kind} card={c} labels={labels} />)}</div>}
-            <div className="cards">{unitCards.map((c) => <UnitCard key={c.id} card={c} labels={labels} />)}</div>
-            {!cards.length && <p className="muted">Elige un señor y agrega unidades para ver sus tarjetas con bufos.</p>}
+            <div ref={summaryRef}>
+              {pickedCard && <UnitBuffSummary card={pickedCard} labels={labels} onClose={() => setPicked(null)} />}
+            </div>
+            {charCards.length > 0 && (
+              <div className="cards">
+                {charCards.map((c) => (
+                  <UnitCard key={cardKey(c)} card={c} labels={labels} selected={picked === cardKey(c)} onSelect={() => togglePick(c)} />
+                ))}
+              </div>
+            )}
+            <div className="cards">
+              {unitCards.map((c) => (
+                <UnitCard key={cardKey(c)} card={c} labels={labels} selected={picked === cardKey(c)} onSelect={() => togglePick(c)} />
+              ))}
+            </div>
+            {!cards.length && <p className="muted">Elige un señor y agrega unidades en el panel de la izquierda para ver sus tarjetas con bufos.</p>}
             <p className="small muted">
-              Clic en una stat con bufos para ver de dónde sale cada número. Los efectos de "rango 7+" solo cuentan si marcas R7+ en la unidad.
+              Clic en el nombre de una tarjeta para ver todos sus bufos acumulados por señor, héroe y tecnologías. Clic en una stat para ver de dónde sale ese número. Los efectos de "rango 7+" y los que crecen por rango dependen del rango que elijas en cada unidad.
             </p>
           </>
         )}
@@ -373,6 +495,7 @@ export default function App() {
             </div>
           </div>
         )}
+        </div>
       </section>
 
       <footer className="small muted">

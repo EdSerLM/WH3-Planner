@@ -125,7 +125,14 @@ export interface BuildSelection {
 export interface ArmyUnitSelection {
   card: string;
   count: number;
+  /** Rango de veteranía (0-9). Si falta, rank7 = 7 (ejércitos guardados antes del selector). */
+  rank?: number;
   rank7?: boolean;
+}
+
+/** Rango efectivo de una unidad seleccionada (0-9) */
+export function unitRank(a: ArmyUnitSelection): number {
+  return Math.max(0, Math.min(9, a.rank ?? (a.rank7 ? 7 : 0)));
 }
 
 export interface ArmyState {
@@ -136,6 +143,8 @@ export interface ArmyState {
   inAura: boolean;
   /** Facción (subcultura) del ejército */
   faction?: string;
+  /** Facción de campaña (Guerreros del Caos: indivisa o dedicada a un dios); limita el roster */
+  campaign?: string;
   /** Tecnologías investigadas (claves de tecnología) y el árbol elegido */
   techs?: string[];
   techTree?: string;
@@ -169,6 +178,7 @@ export interface ComputedCard {
   name: string;
   kind: 'unit' | 'lord' | 'hero';
   count: number;
+  rank?: number;
   rank7?: boolean;
   caste?: string;
   cost?: number;

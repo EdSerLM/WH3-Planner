@@ -4,6 +4,9 @@ import type { ComputedCard, Contribution, StatKey } from '../types';
 interface Props {
   card: ComputedCard;
   labels: Record<StatKey, string>;
+  /** Si se pasa, clic en el encabezado selecciona la tarjeta (para ver sus bufos acumulados) */
+  onSelect?: () => void;
+  selected?: boolean;
 }
 
 // Stats que se muestran siempre; el resto solo si tienen valor o cambian
@@ -22,21 +25,25 @@ function contribText(c: Contribution) {
   return `${v} ${c.source}${c.conditional ? ` [${c.conditional}]` : ''} — ${c.from}`;
 }
 
-export function UnitCard({ card, labels }: Props) {
+export function UnitCard({ card, labels, onSelect, selected }: Props) {
   const [open, setOpen] = useState<StatKey | null>(null);
   const stats = [...MAIN, ...EXTRA.filter((s) => card.stats[s].base !== 0 || card.stats[s].final !== 0)];
   const buffed = stats.filter((s) => card.stats[s].contributions.length).length;
 
   return (
-    <div className={'card ' + card.kind}>
-      <div className="card-head">
+    <div className={'card ' + card.kind + (selected ? ' selected' : '')}>
+      <div
+        className={'card-head' + (onSelect ? ' clickable' : '')}
+        onClick={onSelect}
+        title={onSelect ? (selected ? 'Clic para cerrar sus bufos acumulados' : 'Clic para ver sus bufos acumulados') : undefined}
+      >
         <div>
           <div className="card-name">{card.name}</div>
           <div className="muted small">
             {KIND_ES[card.kind]} {card.caste ?? ''} · {card.models} modelo{card.models === 1 ? '' : 's'}
             {card.count > 1 ? ` · ×${card.count} unidades` : ''}
             {card.cost ? ` · ${card.cost} MP` : ''}
-            {card.rank7 ? ' · Rango 7+' : ''}
+            {card.kind === 'unit' && (card.rank ?? (card.rank7 ? 7 : 0)) > 0 ? ` · Rango ${card.rank ?? 7}` : ''}
           </div>
         </div>
         <span className="badge">{buffed} bufos</span>

@@ -56,8 +56,19 @@ h4 { margin: 10px 0 6px; font-size: 14px; }
 
 main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 14px; margin-top: 12px; }
 @media (max-width: 1100px) { main { grid-template-columns: 1fr; } }
-section.left, aside.right > div, .bottom { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
-aside.right { display: flex; flex-direction: column; gap: 14px; }
+section.left, aside.right > div, .army-col, .bottom-main { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+/* Columna derecha: tarjeta del personaje + habilidades, fija mientras recorres el árbol */
+aside.right { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 8px; align-self: start; max-height: calc(100vh - 16px); overflow-y: auto; }
+.char-card-box .card { margin: 0; }
+
+/* Abajo: selección de unidades a la izquierda, tarjetas/DPS/campaña a la derecha */
+.bottom { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 14px; align-items: start; }
+.army-col { position: sticky; top: 8px; max-height: calc(100vh - 16px); overflow-y: auto; }
+.army-col .roster { max-height: calc(100vh - 300px); }
+@media (max-width: 1100px) {
+  .bottom { grid-template-columns: 1fr; }
+  aside.right, .army-col { position: static; max-height: none; }
+}
 
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .tabs button.active { border-color: var(--gold); color: var(--gold); }
@@ -175,6 +186,25 @@ table.summary td.src { text-align: right; max-width: 220px; }
 
 /* Tarjetas */
 .bottom { margin-top: 14px; }
+.bottom-main .cards { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+/* Marca de bufos en la selección de unidades */
+.buff-mark { display: inline-flex; gap: 3px; margin-left: 4px; vertical-align: middle; }
+.bm-now, .bm-r7 { font-size: 10px; line-height: 1; padding: 2px 4px; border-radius: 4px; white-space: nowrap; }
+.bm-now { background: #3a2e12; color: var(--gold); border: 1px solid var(--gold-dim); }
+.bm-r7 { background: #1f3326; color: #8fd59a; border: 1px solid #3f6b4b; }
+.buff-legend { margin: 0 0 6px; }
+.r7 select, .rank-all select { padding: 1px 4px; font-size: 12px; }
+.rank-all { margin-left: auto; }
+.camp-warn { margin-left: 6px; font-size: 11px; color: #e07a5f; white-space: nowrap; }
+.exalted-tag { margin-left: 6px; font-size: 10px; padding: 0 4px; border: 1px solid #b08cd8; color: #b08cd8; border-radius: 3px; }
+.roster-tools { flex-wrap: wrap; row-gap: 4px; }
+.roster-tools input[type=text], .roster-tools input:not([type]) { flex: 1 1 100%; }
+.card-head.clickable { cursor: pointer; border-radius: 6px; }
+.card-head.clickable:hover .card-name { text-decoration: underline; }
+.card.selected { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+.unit-summary { background: #19151c; border: 1px solid var(--gold-dim); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
+.unit-summary-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.unit-summary .summary-cols .chip { margin: 4px 4px 0 0; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-bottom: 12px; }
 .card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 .card.lord { border-color: var(--gold-dim); }

@@ -46,9 +46,22 @@ const ABILITY_PREFIXES = ['Ability', 'Passive ability', 'Spell', 'Overcast spell
 // Alcances que significan "las tropas del ejército"
 const ARMY_SCOPES = new Set(["Lord's army", "Hero's army", 'own army', 'all units in army']);
 
+/**
+ * ¿El texto del efecto nombra a qué unidades aplica? ("... for all Infantry units", "for Forsaken")
+ * La lista de unidades del planner viene por NIVEL de habilidad, no por efecto: si un nivel mezcla un efecto
+ * para ciertas unidades con otro para todo el ejército (p. ej. Vessel de Archaón: "+3% por rango a los RoR" y
+ * "Resistencia física 5%"), la lista solo debe limitar al que nombra unidades.
+ */
+function namesUnits(main: string): boolean {
+  const colon = main.indexOf(':');
+  return /\sfor\s/.test(colon > 0 ? main.slice(colon + 1) : main);
+}
+
 export function parseEffect(key: string, text: string, unitCards?: string[]): ParsedEffect {
   const [mainRaw, ...rest] = text.split('\n');
   const main = mainRaw.trim();
+  // Solo se usa la lista del nivel si este efecto nombra unidades; si no, aplica a todo el ejército
+  if (unitCards && !namesUnits(main)) unitCards = undefined;
   const scopeMatch = rest.join(' ').match(/\(([^)]+)\)\s*$/);
   const scope = scopeMatch ? scopeMatch[1].trim() : '';
   const rank7 = /\(Rank 7 and above\)/i.test(main);

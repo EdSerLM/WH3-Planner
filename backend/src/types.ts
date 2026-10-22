@@ -143,6 +143,8 @@ export interface UnitData {
   interval: number;
   splash: number;
   splashSize?: string;
+  /** Carta original de la unidad (paquetes de facción: el id es la clave y varias variantes comparten carta) */
+  cardArt?: string;
   magical?: boolean;
   flaming?: boolean;
   missile?: { dmg: number; ap: number; range: number; reload: number; shots: number; ammo: number; bvl: number; bvi: number };
@@ -306,7 +308,16 @@ export interface BuildSelection {
 export interface ArmyUnitSelection {
   card: string; // unit card
   count: number;
+  /** Rango de veteranía de la unidad (0-9). Si falta, se usa rank7 (true = 7) por compatibilidad. */
+  rank?: number;
+  /** Obsoleto: antes era el interruptor "R7+". Se sigue leyendo en ejércitos guardados. */
   rank7?: boolean;
+}
+
+/** Rango efectivo de una unidad seleccionada (0-9) */
+export function unitRank(sel: ArmyUnitSelection): number {
+  const r = sel.rank ?? (sel.rank7 ? 7 : 0);
+  return Math.max(0, Math.min(9, Math.round(r)));
 }
 
 export interface ComputeRequest {
@@ -316,6 +327,7 @@ export interface ComputeRequest {
   activeAbilities?: string[]; // habilidades activas encendidas (afectan a aliados / a sí mismo)
   techs?: string[]; // tecnologías investigadas (claves de tecnología)
   inAura?: boolean; // las unidades están dentro de las auras (35 m)
+  campaign?: string; // facción de campaña del Caos (solo filtra el roster en la interfaz; se guarda con el build)
 }
 
 export interface Contribution {
@@ -338,6 +350,7 @@ export interface ComputedCard {
   name: string;
   kind: 'unit' | 'lord' | 'hero';
   count: number;
+  rank?: number; // rango de la unidad (0-9)
   rank7?: boolean;
   caste?: string;
   cost?: number;

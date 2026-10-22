@@ -1,6 +1,18 @@
 import { abilities, getCharacter, getUnit, techEffects, unitInList } from './data.js';
 import { translateAttribute } from './i18n.js';
 import { MAX_RANK, autoRank, effectiveLevel, isFreeLevel, pointsAtRank, pointsFor } from './rankRules.js';
+import { unitRank } from './types.js';
+
+/**
+ * Efectos que escalan con el rango de la unidad, p. ej. Vessel de Archaón:
+ * "Units gain +3% weapon and missile strength per rank achieved". Devuelve el % por rango.
+ */
+function perRankPct(effect: ParsedEffect): number | undefined {
+  if (!/scaling_experience_benefits/.test(effect.key)) return undefined;
+  if (effect.value !== undefined) return effect.value;
+  const m = /([\d.]+)\s*%/.exec(`${effect.textEn ?? ''} ${effect.text ?? ''}`);
+  return m ? parseFloat(m[1]) : undefined;
+}
 import type {
   AbilityInfo, BuildSelection, CharacterStats, CharacterTree, ComputeRequest, ComputedCard, Contribution,
   ParsedEffect, SkillNode, StatKey, StatLine, UnitData,
@@ -408,11 +420,23 @@ export function compute(req: ComputeRequest): ComputeResult {
     let magical = !!u.magical;
     let flaming = !!u.flaming;
     const notes: string[] = [];
+    const rank = unitRank(sel);
     for (const { effect, skill, owner } of effects) {
+      // Bufos que crecen con cada rango de la unidad (Vessel de Archaón)
+      const per = perRankPct(effect);
+      if (per !== undefined) {
+        if (rank > 0 && !/_ror/.test(u.key + u.card)) {
+          const c = { source: skill, from: owner, value: Math.round(per * rank * 100) / 100, how: 'pct' as const, conditional: `${per}% × rango ${rank}` };
+          contribute(lines, 'dmg', c); // fuerza del arma: daño base y perforante
+          if (u.missile) contribute(lines, 'missileDmg', { ...c });
+        }
+        continue;
+      }
       if (effect.target !== 'army') continue;
-      if (effect.units && !effect.units.includes(u.card)) continue;
+      // Las listas del planner usan la carta de la unidad; los Exaltados agregados a mano se buscan también por clave
+      if (effect.units && !effect.units.includes(u.card) && !effect.units.includes(u.key) && !(u.cardArt && effect.units.includes(u.cardArt))) continue;
       if (effect.unitList !== undefined && !unitInList(effect.unitList, u.key)) continue;
-      if (effect.rank7 && !sel.rank7) continue;
+      if (effect.rank7 && rank < (effect.rankMin ?? 7)) continue;
       if (effect.kind === 'attribute' && effect.attribute) {
         if (effect.forNames && !effect.forNames.some((n) => (u.nameEn ?? u.name).toLowerCase().includes(n.toLowerCase()))) continue;
         attributes.push({ name: effect.attribute, from: `${skill} (${owner})` });
@@ -435,7 +459,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     finalize(lines);
     if (!u.dmg) notes.push('Sin arma melee en los datos');
     cards.push({
-      id: u.card, name: u.name, kind: 'unit', count: sel.count, rank7: sel.rank7, caste: u.casteEs ?? u.caste, cost: u.cost,
+      id: u.card, name: u.name, kind: 'unit', count: sel.count, rank, rank7: rank >= 7, caste: u.casteEs ?? u.caste, cost: u.cost,
       models: u.models, size: u.size, interval: u.interval, splash: u.splash, magicalAttacks: magical, flamingAttacks: flaming,
       stats: lines, attributes, notes,
     });
