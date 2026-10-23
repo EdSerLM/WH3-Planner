@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import type { ComputedCard, Contribution, StatKey } from '../types';
+import type { AbilityState, ComputedCard, Contribution, StatKey } from '../types';
+import { AbilityIcons } from './AbilityIcons';
+import { attrIcon } from '../attrIcons';
 
 interface Props {
   card: ComputedCard;
@@ -7,6 +9,9 @@ interface Props {
   /** Si se pasa, clic en el encabezado selecciona la tarjeta (para ver sus bufos acumulados) */
   onSelect?: () => void;
   selected?: boolean;
+  /** Activables que solo afectan a este personaje (se encienden aquí) */
+  selfAbilities?: AbilityState[];
+  onToggleAbility?: (a: AbilityState) => void;
 }
 
 // Stats que se muestran siempre; el resto solo si tienen valor o cambian
@@ -25,7 +30,7 @@ function contribText(c: Contribution) {
   return `${v} ${c.source}${c.conditional ? ` [${c.conditional}]` : ''} — ${c.from}`;
 }
 
-export function UnitCard({ card, labels, onSelect, selected }: Props) {
+export function UnitCard({ card, labels, onSelect, selected, selfAbilities = [], onToggleAbility }: Props) {
   const [open, setOpen] = useState<StatKey | null>(null);
   const stats = [...MAIN, ...EXTRA.filter((s) => card.stats[s].base !== 0 || card.stats[s].final !== 0)];
   const buffed = stats.filter((s) => card.stats[s].contributions.length).length;
@@ -90,8 +95,20 @@ export function UnitCard({ card, labels, onSelect, selected }: Props) {
         <div className="attrs">
           {card.attributes.map((a, i) => (
             <span key={i} className={'chip' + (a.from ? ' buff' : '')} title={a.from ? `Por ${a.from}` : 'Propio de la unidad'}>
-              {a.name}
+              {attrIcon(a.name) ? <span className="chip-ai">{attrIcon(a.name)}</span> : null}{a.name}
             </span>
+          ))}
+        </div>
+      )}
+      {selfAbilities.length > 0 && (
+        <div className="self-abilities">
+          <div className="muted small">Habilidades propias (solo a sí mismo)</div>
+          {selfAbilities.map((a) => (
+            <label key={a.id} className={'self-ab' + (a.active ? ' on' : '')} title={a.stats.join('\n')}>
+              <input type="checkbox" checked={a.active} disabled={!onToggleAbility} onChange={() => onToggleAbility?.(a)} />
+              <b>{a.name}</b> <AbilityIcons a={a} />
+              <span className="muted small">{a.duration > 0 ? ` ${a.duration} s` : ''}{a.cooldown && a.cooldown > 0 ? ` · recarga ${a.cooldown} s` : ''}</span>
+            </label>
           ))}
         </div>
       )}

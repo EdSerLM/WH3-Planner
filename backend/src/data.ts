@@ -32,6 +32,18 @@ interface GameCharacter {
   key: string; subtype: string; name: string; nameEn: string; unit: string; type: 'lord' | 'hero'; legendary: boolean;
   subcultures: string[]; home: string; nodes: GameNode[]; bg: GameNode[]; stats: CharacterStats | null; mounts?: Record<string, CharacterStats>;
   items?: { k: string; rank?: number; quest?: boolean }[];
+  /** Dones del Príncipe Demonio (Daniel): piezas por ranura */
+  armory?: {
+    slots: { k: string; n: string; o: number; m?: boolean }[];
+    items: { k: string; s: string; n: string; d?: string; g: string; st?: string; c?: string[]; bs?: string[]; e: GameEffect[] }[];
+    sets: { k: string; n: string; d?: string; items: string[]; e: GameEffect[] }[];
+    def: string[];
+    black: Record<string, string[]>;
+  } | null;
+  /** Espacios de hechizo elegibles (Kairos): cada uno se abre con una habilidad del árbol */
+  spellSlots?: { k: string; n: string; r: string; o: number; by: string; ef: string; opts: { k: string; lore: string; lk: string; n: string; e: GameEffect[] }[] }[] | null;
+  /** Iniciativas del personaje (Senda a la Gloria, Ofrenda a las Fauces, Libros de Nagash...) */
+  initiatives?: { k: string; cat: string; n: string; max?: number; items: { k: string; n: string; req?: string; locked?: boolean; e: GameEffect[] }[] }[] | null;
 }
 interface GameSkillsFile {
   source: string; format: number; subcultures: { key: string; name: string }[]; characters: GameCharacter[];
@@ -39,6 +51,7 @@ interface GameSkillsFile {
   techTrees?: GameTechTree[]; techs?: Record<string, GameTech>;
   ancillaries?: Record<string, { n: string; d?: string; cat: string; e: GameEffect[] }>;
   itemSets?: { key: string; n: string; items: string[]; e: GameEffect[] }[];
+  graphs?: GameGraph[];
 }
 interface GameTechTree {
   key: string; name: string; subcultures: string[];
@@ -449,6 +462,41 @@ function buildGameTree(c: GameCharacter, faction: string): CharacterTree {
       .filter((st) => st.items.every((k) => mine.has(k)))
       .map((st) => ({ key: st.key, name: st.n, items: st.items, effects: gameEffects(st.e) }));
   }
+  if (c.spellSlots?.length) {
+    // Hechizos de Kairos: en cada espacio (común/poco común/raro) eliges el saber; se aplican como objetos equipados
+    const skillName = (sk: string) => gameFile!.skills[sk]?.n ?? sk;
+    tree.spellSlots = c.spellSlots.map((s) => ({
+      key: s.k, name: s.n, rarity: s.r, unlockSkill: s.by, unlockSkillName: skillName(s.by), unlockEffect: s.ef,
+      options: s.opts.map((o) => ({ key: o.k, lore: o.lore, loreKey: o.lk, name: o.n, effects: gameEffects(o.e) })),
+    }));
+    tree.items = [
+      ...(tree.items ?? []),
+      ...tree.spellSlots.flatMap((s) => s.options.map((o): ItemInfo => ({ key: o.key, name: `${o.name} (${o.lore})`, category: 'spell_slot', effects: o.effects }))),
+    ];
+  }
+  if (c.initiatives?.length) {
+    // Iniciativas del personaje: los dones se eligen (hasta "max"); las devociones/ascensos solo se informan
+    tree.initiativeSets = c.initiatives.map((s) => ({
+      key: s.k, category: s.cat, name: s.n, max: s.max ?? 0, selectable: s.cat !== 'PATH_TO_GLORY_MARK',
+      items: s.items.map((i) => ({ key: i.k, name: i.n, requirement: i.req, locked: !!i.locked, effects: gameEffects(i.e) })),
+    }));
+    tree.items = [
+      ...(tree.items ?? []),
+      ...tree.initiativeSets.filter((s) => s.selectable).flatMap((s) => s.items.map((i): ItemInfo => ({ key: i.key, name: i.name, category: 'char_initiative', effects: i.effects }))),
+    ];
+  }
+  if (c.armory) {
+    // Dones (piezas) de Daniel: se aplican como objetos equipados; los conjuntos completos dan su bonificación
+    const ar = c.armory;
+    const items = ar.items.map((i) => ({
+      key: i.k, slot: i.s, name: i.n, description: i.d, god: i.g, style: i.st, cats: i.c ?? [], blocksSlots: i.bs ?? [],
+      effects: gameEffects(i.e),
+    }));
+    const sets = ar.sets.map((st) => ({ key: st.k, name: st.n, description: st.d, items: st.items, effects: gameEffects(st.e) }));
+    tree.armory = { slots: ar.slots.map((s) => ({ key: s.k, name: s.n, order: s.o, mandatory: !!s.m })), items, sets, defaults: ar.def, blacklist: ar.black };
+    tree.items = [...(tree.items ?? []), ...items.map((i): ItemInfo => ({ key: i.key, name: i.name, description: i.description, category: 'armory', effects: i.effects }))];
+    tree.itemSets = [...(tree.itemSets ?? []), ...sets.map((st) => ({ key: st.key, name: st.name, items: st.items, effects: st.effects }))];
+  }
   return tree;
 }
 
@@ -533,6 +581,78 @@ export function listTechTrees(faction: string): { key: string; name: string; var
     .map((t) => ({ key: t.key, name: t.name, variants: t.variants.filter((v) => !v.sc || v.sc === faction).map(({ fk, name }) => ({ fk, name })) }));
 }
 
+// ---------- Resumen acumulado de tecnologías / nodos investigados ----------
+export interface TechSummaryLine { text: string; kind: string; count: number }
+/**
+ * Junta los efectos repetidos de lo investigado: "Armadura: +2 a infantería" ×3 -> "Armadura: +6 a infantería".
+ * Agrupa por el texto con el primer número quitado y suma ese número.
+ */
+export function techSummary(techs: string[]): { battle: TechSummaryLine[]; magic: TechSummaryLine[]; campaign: TechSummaryLine[]; count: number } {
+  const groups = new Map<string, { kind: string; tpl: string; sum: number; pct: boolean; count: number; hasNum: boolean; decimals: number }>();
+  let count = 0;
+  for (const t of techs) {
+    const te = techEffects(t);
+    if (!te) continue;
+    count++;
+    for (const e of te.effects) {
+      if (!e.text) continue;
+      const kind = e.kind === 'battle' || e.kind === 'attribute' ? 'battle' : e.kind === 'magic' ? 'magic' : 'campaign';
+      const m = /([+-]?)(\d+(?:[.,]\d+)?)(\s*%)?/.exec(e.text);
+      const tpl = m ? e.text.slice(0, m.index) + '{n}' + e.text.slice(m.index + m[0].length) : e.text;
+      const k = `${kind}|${tpl}`;
+      const g = groups.get(k) ?? { kind, tpl, sum: 0, pct: !!m?.[3], count: 0, hasNum: !!m, decimals: 0 };
+      if (m) {
+        const v = parseFloat(m[2].replace(',', '.')) * (m[1] === '-' ? -1 : 1);
+        g.sum += v;
+        g.decimals = Math.max(g.decimals, (m[2].split(/[.,]/)[1] ?? '').length);
+      }
+      g.count++;
+      groups.set(k, g);
+    }
+  }
+  const out = { battle: [] as TechSummaryLine[], magic: [] as TechSummaryLine[], campaign: [] as TechSummaryLine[], count };
+  for (const g of groups.values()) {
+    if (g.hasNum && Math.abs(g.sum) < 1e-9) continue; // se cancelan (p. ej. +1 y -1 de Autoridad)
+    const n = g.sum.toFixed(g.decimals).replace(/\.0+$/, '');
+    const text = g.hasNum ? g.tpl.replace('{n}', `${g.sum > 0 ? '+' : ''}${n}${g.pct ? '%' : ''}`) : g.tpl;
+    (out as unknown as Record<string, TechSummaryLine[]>)[g.kind].push({ text, kind: g.kind, count: g.count });
+  }
+  for (const list of [out.battle, out.magic, out.campaign]) list.sort((a, b) => a.text.localeCompare(b.text, 'es'));
+  return out;
+}
+
+// ---------- Grafos de iniciativas (Pirámide Negra de las Legiones No Muertas) ----------
+interface GameGraph {
+  key: string; name: string; subcultures: string[]; origin: string; originActive: boolean;
+  nodes: { k: string; tech: string; x: number; y: number; type?: string; cl?: string; pr?: string[]; th?: number }[];
+  clusters: Record<string, { n: string; d?: string; sc?: string; order?: number }>;
+}
+export interface GraphNode {
+  key: string; tech: string; name: string; description?: string; icon?: string; x: number; y: number; type?: string;
+  cluster?: string; parents: string[]; threshold?: number; cost: number; battle: boolean; effects: ParsedEffect[];
+}
+export interface GraphData { key: string; name: string; origin: string; originActive: boolean; nodes: GraphNode[]; clusters: GameGraph['clusters'] }
+
+/** Grafos de una facción (los nodos se investigan como tecnologías: van en army.techs con la clave de la iniciativa). */
+export function listGraphs(faction: string): { key: string; name: string }[] {
+  return (gameFile?.graphs ?? []).filter((g) => g.subcultures.includes(faction)).map((g) => ({ key: g.key, name: g.name }));
+}
+
+export function getGraph(key: string): GraphData | undefined {
+  const g = gameFile?.graphs?.find((x) => x.key === key);
+  if (!g) return undefined;
+  const nodes = g.nodes.map((n): GraphNode => {
+    const def = gameFile!.techs![n.tech] as GameTech & { cost?: number };
+    const effects = techEffects(n.tech)?.effects ?? [];
+    return {
+      key: n.k, tech: n.tech, name: def?.n ?? n.tech, description: def?.d, icon: def?.img, x: n.x, y: n.y, type: n.type,
+      cluster: n.cl, parents: n.pr ?? [], threshold: n.th, cost: def?.cost ?? 1,
+      battle: effects.some((e) => e.kind === 'battle' || e.kind === 'attribute'), effects,
+    };
+  });
+  return { key: g.key, name: g.name, origin: g.origin, originActive: g.originActive, nodes, clusters: g.clusters };
+}
+
 export function getTechTree(key: string, variant?: string): TechTree | undefined {
   const t = gameFile?.techTrees?.find((x) => x.key === key);
   if (!t) return undefined;
@@ -588,8 +708,10 @@ export function getUnit(card: string): UnitData | undefined {
 interface CampaignRow { key: string; name: string; subculture: string; leaders: string[]; units: string[]; upgrades?: Record<string, number> }
 interface AllUnitsFile {
   source: string; subcultures: { key: string; name: string }[];
-  units: (UnitData & { subcultures: string[]; casteKey?: string; uiGroup?: string })[];
+  units: (UnitData & { subcultures: string[]; casteKey?: string; uiGroup?: string; campOnly?: boolean })[];
   campaign?: CampaignRow[];
+  /** Puntos fuertes/débiles: nombre, ayuda, estado (positive/negative/very_...) y orden */
+  bulletDefs?: Record<string, { n: string; t?: string; s: string; o: number }>;
 }
 const allUnitsFile: AllUnitsFile | null = existsSync(join(DATA_DIR, 'raw', 'wh3_all_units.json'))
   ? readJson<AllUnitsFile>('raw/wh3_all_units.json')
@@ -601,12 +723,13 @@ const GROUP_BY_UI: Record<string, string> = {
   missile_cavalry_chariots: 'Missile Cavalry & Chariots', monster_beasts: 'Monsters & Beasts',
   missile_monster_beasts: 'Missile Monsters & Beasts', artillery_war_machines: 'Artillery & War Machines',
   flying_war_machine: 'Artillery & War Machines',
+  commander: 'Lords', heroes_agents: 'Heroes',
 };
 const GROUP_BY_CASTE: Record<string, string> = {
   melee_infantry: 'Infantry', monstrous_infantry: 'Infantry', missile_infantry: 'Missile Infantry',
   melee_cavalry: 'Cavalry & Chariots', monstrous_cavalry: 'Cavalry & Chariots', chariot: 'Cavalry & Chariots',
   missile_cavalry: 'Missile Cavalry & Chariots', monster: 'Monsters & Beasts', war_beast: 'Monsters & Beasts',
-  warmachine: 'Artillery & War Machines', generic: 'Infantry',
+  warmachine: 'Artillery & War Machines', generic: 'Infantry', lord: 'Lords', hero: 'Heroes',
 };
 
 /** Unidad del juego en el formato del roster (id = clave de unidad; la carta queda en cardArt). */
@@ -620,7 +743,7 @@ function asRosterUnit(u: AllUnitsFile['units'][number]): UnitData & { subculture
     caste: u.casteKey ?? u.caste,
     category: u.casteKey ?? '',
     group: GROUP_BY_UI[u.uiGroup ?? ''] ?? GROUP_BY_CASTE[u.casteKey ?? ''] ?? 'Infantry',
-    tier: u.tier ?? 0, campaignOnly: false, mounts: u.mounts ?? 0, entity: '', barrier: 0,
+    tier: u.tier ?? 0, campaignOnly: !!u.campOnly, mounts: u.mounts ?? 0, entity: '', barrier: 0,
     attrs: u.attrs.map(translateAttribute),
   };
 }
@@ -662,6 +785,42 @@ export function listCampaign(subculture: string): { key: string; name: string; l
 /** Busca un objetivo por clave de unidad (todas las facciones) o por carta. */
 export function getTarget(id: string): UnitData | undefined {
   return units.get(id) ?? allByKey.get(id) ?? allByCard.get(id);
+}
+
+/** Quita las marcas de imagen/color del juego ([[img:...]][[/img]], [[col:...]]) de un texto */
+function cleanGameText(t?: string): string | undefined {
+  if (!t) return t;
+  return t.replace(/\[\[img:[^\]]*\]\]\[\[\/img\]\]/g, '').replace(/\[\[\/?[a-z]+(:[^\]]*)?\]\]/gi, '').replace(/\s+/g, ' ').trim();
+}
+
+/** Ficha de un objetivo para la tabla de DPS: tipo, stats defensivos, descripción y puntos fuertes/débiles del juego */
+export function targetInfo(id: string) {
+  const u = getTarget(id);
+  if (!u) return undefined;
+  return {
+    group: u.group,
+    caste: u.casteEs ?? u.caste,
+    size: u.size,
+    large: !['small', 'very_small', ''].includes(u.size ?? ''),
+    cost: u.cost,
+    models: u.models,
+    hpPerModel: u.hpPerModel,
+    md: u.md,
+    armour: u.armour,
+    ld: u.leadership,
+    speed: u.speed,
+    res: u.res,
+    desc: cleanGameText(u.desc),
+    attrs: u.attrs ?? [],
+    bullets: bulletsInfo(u.bullets),
+    icon: (u as UnitData & { icon?: string }).icon,
+  };
+}
+
+/** Puntos fuertes/débiles de la carta (claves del juego -> nombre, ayuda y si es bueno) */
+export function bulletsInfo(keys?: string[]) {
+  const defs = allUnitsFile?.bulletDefs ?? {};
+  return (keys ?? []).filter((k) => defs[k]).map((k) => ({ name: defs[k].n, tip: cleanGameText(defs[k].t), good: !defs[k].s.includes('negative') }));
 }
 
 export const sources = {

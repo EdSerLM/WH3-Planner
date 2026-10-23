@@ -26,6 +26,16 @@ export const SKILL_TABLES = [
   'technology_nodes_tables', 'technology_required_technology_junctions_tables', 'cultures_subcultures_tables',
   'ancillary_to_effects_tables', 'character_ancillary_quest_ui_details_tables', 'ancillary_set_ancillary_junctions_tables',
   'ancillary_set_effect_junctions_tables',
+  // Grafos de iniciativas (p. ej. la Pirámide Negra de las Legiones No Muertas): nodos con efectos, como tecnologías
+  'initiatives_tables', 'initiative_set_items_tables', 'initiative_sets_tables', 'faction_initiative_sets_tables',
+  'campaign_effect_list_effect_junctions_tables', 'ui_graphs_tables', 'ui_graph_nodes_tables', 'ui_graph_node_links_tables',
+  'ui_graph_node_unlock_thresholds_tables', 'ui_graph_node_clusters_tables', 'initiative_to_ui_graph_node_junctions_tables',
+  // Hechizos elegibles por espacio (Kairos: Fragmentos de hechicería), como iniciativas de personaje
+  'effect_bonus_value_initiative_set_junctions_tables',
+  // Iniciativas de personaje (Senda a la Gloria: dones y devociones), ligadas al subtipo por grupos de campaña
+  'background_character_initiative_sets_tables', 'campaign_group_members_tables', 'campaign_group_member_criteria_agent_subtypes_tables', 'initiative_sets_tables',
+  // Dones del Príncipe Demonio (Daniel): piezas por ranura, con efectos, conjuntos y exclusiones
+  'armory_items_tables', 'armory_slot_types_tables', 'armory_slot_type_ui_infos_tables', 'armory_item_set_items_tables', 'armory_item_set_to_effects_tables', 'armory_items_to_effects_tables', 'armory_item_to_category_sets_tables', 'armory_item_slot_blacklists_tables', 'armory_item_category_blacklists_tables', 'armory_item_ui_infos_tables', 'armory_item_variants_tables',
 ];
 
 // bonus_value_id (con conjunto de unidades) -> [stat, es %]
@@ -100,6 +110,14 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
   for (const p of T['units_custom_battle_permissions_tables']) { if (!perms.has(p.unit)) perms.set(p.unit, new Set()); perms.get(p.unit)!.add(p.faction); }
   const unitSc = new Map<string, string[]>();
   for (const [u, fs] of perms) unitSc.set(u, [...new Set([...fs].filter((f) => fac.has(f)).map((f) => fac.get(f)!.subculture as string))].sort());
+  // Algunos legendarios (p. ej. Kairos) usan en batalla personalizada otra unidad ("..._custom_battle_0") que apunta a la
+  // suya con set_piece_character: sus facciones se toman de esa
+  const setPieceSc = new Map<string, string[]>();
+  for (const p of T['units_custom_battle_permissions_tables']) {
+    if (!p.set_piece_character || !fac.has(p.faction)) continue;
+    const sc = fac.get(p.faction)!.subculture as string;
+    setPieceSc.set(p.set_piece_character, [...new Set([...(setPieceSc.get(p.set_piece_character) ?? []), sc])].sort());
+  }
   const attrGroups = group('unit_attributes_to_groups_junctions_tables', 'attribute_group');
   const luAbil = group('land_units_to_unit_abilites_junctions_tables', 'land_unit');
   const universe: { rec: string; caste: string; cat: string; cls: string }[] = [];
@@ -248,6 +266,11 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       else if (r.bonus_value_id === 'disable') out.push({ kind: 'ability', target: 'self', disable: r.unit_ability });
       else out.push({ kind: 'magic', target: 'self' });
     }
+    // "Activa ataques envenenados/desgarradores/encantados..." no tienen tabla de bonificación: atributo con el nombre del texto
+    if (!out.length && /enable_[a-z_]*attacks/.test(key) && tgt !== 'none') {
+      const t = clean(resolve(sp.get(`effects_description_${key}`) ?? '')).replace(/\s*\(.*$/, '').replace(/^Activa\s+/i, '');
+      if (t) out.push({ kind: 'attribute', target: tgt, who, attribute: t.charAt(0).toUpperCase() + t.slice(1) });
+    }
     if (!out.length) out.push({ kind: key.includes('enable_mount') ? 'mount' : 'campaign', target: 'none', action: bAction.has(key) ? true : null });
     // Un mismo efecto con varios conjuntos de unidades para la misma stat: unir las listas
     const merged: Row[] = [];
@@ -383,13 +406,138 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     return scs.find((sc) => sc.includes(`_sc_${tok}_`)) ?? scs[0];
   };
 
+  // ---------------- Dones del Príncipe Demonio (armería) ----------------
+  // Personajes con piezas intercambiables: Daniel (wh3_main_dae_daemon_prince). Las piezas "_fe_" son las del cuerpo
+  // femenino (mismos efectos), así que no se duplican.
+  const ARMORY_PREFIX: Record<string, string> = { wh3_main_dae_daemon_prince: 'wh3_main_dae_cha_daemon_prince_' };
+  const armItemEff = group('armory_items_to_effects_tables', 'armory_item');
+  const armCats = group('armory_item_to_category_sets_tables', 'armory_item');
+  const armSlotBl = group('armory_item_slot_blacklists_tables', 'armory_item');
+  const armUi = by('armory_item_ui_infos_tables', 'armory_item');
+  const armVar = group('armory_item_variants_tables', 'armory_item');
+  const armSetItems = group('armory_item_set_items_tables', 'armory_item_set');
+  const armSetEff = group('armory_item_set_to_effects_tables', 'armory_item_set');
+  const effRows = (list: Row[], kKey = 'effect') => {
+    const e: Row[] = [];
+    for (const r of list) {
+      // armory_*_to_effects usan effect_scope; campaign_effect_list_effect_junctions usa scope
+      const sc = r.effect_scope ?? r.scope ?? '';
+      const text = effectText(r[kKey], r.value, sc);
+      parts(r[kKey], r.value, sc).forEach((p, j) => e.push({ k: r[kKey], d: j === 0 ? text : '', s: p }));
+      if (!parts(r[kKey], r.value, sc).length && text) e.push({ k: r[kKey], d: text, s: { kind: 'other', target: 'none' } });
+    }
+    return e;
+  };
+  const armoryFor = (subtype: string): Row | null => {
+    const pre = ARMORY_PREFIX[subtype];
+    if (!pre) return null;
+    const items = T['armory_items_tables'].filter((r) => r.key.startsWith(pre) && !r.key.includes('_fe_'));
+    if (!items.length) return null;
+    const keys = new Set(items.map((r) => r.key as string));
+    const order = by('armory_slot_type_ui_infos_tables', 'slot_type');
+    const mand = by('armory_slot_types_tables', 'slot_type_name');
+    const slots = [...new Set(items.map((r) => r.slot_type as string))]
+      .map((k) => strip({ k, n: L(`armory_slot_type_ui_infos_localised_name_${k}`) ?? k, o: order.get(k)?.sort_order ?? 99, m: mand.get(k)?.mandatory || null }))
+      .sort((x, y) => x.o - y.o);
+    const vName = (k: string) => {
+      const v = (armVar.get(k) ?? []).find((x) => x.use_as_default) ?? (armVar.get(k) ?? [])[0];
+      return v?.ui_info ? L(`armory_item_variant_ui_infos_localised_name_${v.ui_info}`) : null;
+    };
+    const out = items.map((r) => {
+      const k = r.key as string;
+      const cats = (armCats.get(k) ?? []).map((x) => x.category_set as string);
+      return strip({
+        k, s: r.slot_type, n: L(`armory_item_ui_infos_localised_name_${k}`) ?? vName(k) ?? k.replace(pre, ''),
+        d: L(`armory_item_ui_infos_description_${k}`) ?? undefined, g: cats.find((c) => ['khorne', 'nurgle', 'slaanesh', 'tzeentch'].includes(c)) ?? 'generic', st: armUi.get(k)?.type ?? null,
+        c: cats.length ? cats : null, bs: (armSlotBl.get(k) ?? []).map((x) => x.slot).filter(Boolean),
+        e: effRows(armItemEff.get(k) ?? []),
+      });
+    });
+    out.forEach((x) => { if (!x.bs?.length) delete x.bs; });
+    const setKeysFor = [...armSetItems.keys()].filter((sk) => (armSetItems.get(sk) ?? []).every((x) => keys.has(x.armory_item)));
+    const sets = setKeysFor
+      .filter((sk) => (armSetEff.get(sk) ?? []).length)
+      .map((sk) => strip({
+        k: sk, n: L(`armory_item_set_ui_infos_name_${sk}`) ?? sk, d: L(`armory_item_set_ui_infos_description_${sk}`) ?? undefined,
+        items: (armSetItems.get(sk) ?? []).map((x) => x.armory_item), e: effRows(armSetEff.get(sk) ?? []),
+      }));
+    // Equipo inicial (forma base)
+    const defSet = [...armSetItems.keys()].find((sk) => sk === subtype + '_default');
+    const def = (defSet ? armSetItems.get(defSet) ?? [] : []).map((x) => x.armory_item).filter((k) => keys.has(k));
+    const black: Record<string, string[]> = {};
+    for (const b of T['armory_item_category_blacklists_tables']) (black[b.source_category] ??= []).push(b.blacklisted_category);
+    return { slots, items: out, sets, def, black };
+  };
+
+  // ---------------- Espacios de hechizo (Kairos) ----------------
+  // Una habilidad da "+1 iniciativa activa" a un conjunto (common_1...rare_2); en cada espacio se elige uno de los saberes
+  const slotByEffect = new Map<string, string>();
+  for (const r of T['effect_bonus_value_initiative_set_junctions_tables']) if (r.bonus_value_id === 'active_initiative_count_mod') slotByEffect.set(r.effect, r.initiative_set);
+  const iniBy = by('initiatives_tables', 'key');
+  const iniSetItems = group('initiative_set_items_tables', 'set');
+  const iniEff = group('campaign_effect_list_effect_junctions_tables', 'effect_list');
+  const LORE_ES: Record<string, string> = {
+    beast: 'Bestias', death: 'Muerte', fire: 'Fuego', heavens: 'Cielos', life: 'Vida', light: 'Luz', metal: 'Metal', shadows: 'Sombras', tzeentch: 'Tzeentch',
+  };
+  const RARITY_ES: Record<string, string> = {
+    common: L('campaign_localised_strings_string_wh3_kairos_fragments_of_sorcery_rarity_ability_common') ?? 'Hechizos comunes',
+    uncommon: L('campaign_localised_strings_string_wh3_kairos_fragments_of_sorcery_rarity_ability_uncommon') ?? 'Hechizos poco comunes',
+    rare: L('campaign_localised_strings_string_wh3_kairos_fragments_of_sorcery_rarity_ability_rare') ?? 'Hechizos raros',
+  };
+  const spellSlotsFor = (nodeSkills: string[]): Row[] | null => {
+    const out: Row[] = [];
+    for (const sk of nodeSkills) {
+      for (const lv of skillsOut[sk]?.lv ?? []) for (const e of lv.e ?? []) {
+        const set = slotByEffect.get(e.k);
+        if (!set || out.some((x) => x.k === set)) continue;
+        const m = /_(common|uncommon|rare)_(\d+)$/.exec(set);
+        const opts = (iniSetItems.get(set) ?? []).map((it) => {
+          const ini = iniBy.get(it.item);
+          if (!ini) return null;
+          const lore = /_([a-z]+)$/.exec(it.item)?.[1] ?? '';
+          const name = clean(resolve(L(`initiatives_localised_name_${it.item}`) ?? '')) || it.item;
+          return strip({ k: it.item, lore: LORE_ES[lore] ?? lore, lk: lore, n: name, e: effRows(iniEff.get(ini.effects) ?? [], 'effect') });
+        }).filter(Boolean);
+        out.push({ k: set, n: m ? `${RARITY_ES[m[1]] ?? m[1]} ${m[2]}` : set, r: m?.[1] ?? '', o: (['common', 'uncommon', 'rare'].indexOf(m?.[1] ?? '') * 10) + Number(m?.[2] ?? 0), by: sk, ef: e.k, opts });
+      }
+    }
+    return out.length ? out.sort((a, b) => a.o - b.o) : null;
+  };
+
+  // ---------------- Iniciativas de personaje (Senda a la Gloria) ----------------
+  // background_character_initiative_sets.campaign_group -> miembros del grupo -> subtipos de agente
+  const memberSubs = group('campaign_group_member_criteria_agent_subtypes_tables', 'member');
+  const groupMembers = group('campaign_group_members_tables', 'group');
+  const iniSetBy = by('initiative_sets_tables', 'key');
+  const CAT_ES: Record<string, string> = {
+    PATH_TO_GLORY_BOON: 'Regalos del Caos (Senda a la Gloria)', PATH_TO_GLORY_MARK: 'Devoción y ascenso (Senda a la Gloria)',
+  };
+  const charInitBySub = new Map<string, Row[]>();
+  for (const b of T['background_character_initiative_sets_tables']) {
+    const set = iniSetBy.get(b.initiative_set);
+    if (!set || set.category === 'KAIROS_FRAGMENTS_OF_SORCERY') continue;
+    const subs = new Set((groupMembers.get(b.campaign_group) ?? []).flatMap((m) => (memberSubs.get(m.id) ?? []).map((x) => x.agent_subtype as string)));
+    if (!subs.size) continue;
+    const items = (iniSetItems.get(b.initiative_set) ?? []).map((it) => {
+      const ini = iniBy.get(it.item);
+      if (!ini) return null;
+      return strip({
+        k: it.item, n: L(`initiatives_localised_name_${it.item}`) ?? it.item, req: L(`initiatives_localised_description_${it.item}`) ?? undefined,
+        locked: it.initially_locked || null, e: effRows(iniEff.get(ini.effects) ?? [], 'effect'),
+      });
+    }).filter(Boolean);
+    if (!items.length) continue;
+    const row = strip({ k: b.initiative_set, cat: set.category, n: CAT_ES[set.category] ?? set.category, max: b.amount_to_select || null, items });
+    for (const sub of subs) charInitBySub.set(sub, [...(charInitBySub.get(sub) ?? []), row]);
+  }
+
   const characters: Row[] = [];
   for (const s of T['character_skill_node_sets_tables']) {
     if (s.for_navy || s.for_army || !ag.has(s.agent_subtype_key)) continue;
     const a = ag.get(s.agent_subtype_key)!;
     const unit: string | undefined = a.associated_unit_override;
     if (!unit) continue;
-    let scs = unitSc.get(unit) ?? [];
+    let scs = unitSc.get(unit)?.length ? unitSc.get(unit)! : setPieceSc.get(unit) ?? [];
     if (s.subculture) scs = scs.includes(s.subculture) ? [s.subculture] : [s.subculture];
     if (s.faction_key && fac.has(s.faction_key)) scs = [fac.get(s.faction_key)!.subculture];
     if (!scs.length) continue;
@@ -424,13 +572,19 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       }
     }
     if (!outNodes.length) continue;
-    let name = charName(s.agent_subtype_key, unit, !a.auto_generate);
+    // Marcados como no generados en el juego pero no son legendarios: los Príncipes Demonio que reclutan los Guerreros
+    // del Caos y el del episodio de la Fortaleza Oscura
+    const legendary = !a.auto_generate && !/^wh3_dlc20_chs_daemon_prince_|^wh3_dlc29_episode_/.test(s.agent_subtype_key);
+    let name = s.agent_subtype_key === 'wh3_main_dae_daemon_prince' ? 'Daniel, el Príncipe Demonio' : charName(s.agent_subtype_key, unit, legendary);
     if (s.faction_key) name += ` (${L(`factions_screen_name_${s.faction_key}`) ?? s.faction_key})`;
     characters.push(strip({
       key: s.key, subtype: s.agent_subtype_key, name, nameEn: a.key, unit,
-      type: s.agent_key === 'general' ? 'lord' : 'hero', agent: s.agent_key, legendary: !a.auto_generate,
+      type: s.agent_key === 'general' ? 'lord' : 'hero', agent: s.agent_key, legendary,
       subcultures: scs, home: homeSc(unit, scs), nodes: outNodes, bg, stats: charStats(unit), mounts: Object.keys(mounts).length ? mounts : null,
-      items: !a.auto_generate && itemsFor(s.agent_subtype_key).length ? itemsFor(s.agent_subtype_key) : null,
+      items: legendary && itemsFor(s.agent_subtype_key).length ? itemsFor(s.agent_subtype_key) : null,
+      armory: armoryFor(s.agent_subtype_key),
+      spellSlots: spellSlotsFor([...outNodes, ...bg].map((n) => n.s)),
+      initiatives: charInitBySub.get(s.agent_subtype_key) ?? null,
     }));
   }
   const nodeSet = new Set(characters.flatMap((c) => c.nodes.map((n: Row) => n.k)));
@@ -506,10 +660,64 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     });
   }
 
+  // ---------------- grafos de iniciativas (Pirámide Negra) ----------------
+  // Cada nodo del grafo es una iniciativa con una lista de efectos; se guarda en techs para que el motor la aplique igual.
+  const graphs: Row[] = [];
+  const initTbl = by('initiatives_tables', 'key');
+  const initOfNode = new Map<string, string>(T['initiative_to_ui_graph_node_junctions_tables'].map((r) => [r.ui_graph_node, r.initiative]));
+  const effList = group('campaign_effect_list_effect_junctions_tables', 'effect_list');
+  const setOfInit = new Map<string, string>(T['initiative_set_items_tables'].map((r) => [r.item, r.set]));
+  const lookupsOfSet = group('faction_initiative_sets_tables', 'initiative_set');
+  const graphLinks = group('ui_graph_node_links_tables', 'child_node');
+  const thresholds = new Map<string, number>(T['ui_graph_node_unlock_thresholds_tables'].map((r) => [r.ui_graph_node, r.unlock_threshold]));
+  const clusterTbl = by('ui_graph_node_clusters_tables', 'key');
+  for (const g of T['ui_graphs_tables']) {
+    const gnodes = T['ui_graph_nodes_tables'].filter((n) => n.graph === g.key && initOfNode.has(n.key));
+    if (!gnodes.length) continue;
+    const sets = [...new Set(gnodes.map((n) => setOfInit.get(initOfNode.get(n.key)!)).filter(Boolean))] as string[];
+    // Subculturas: la búsqueda de campaña del set menciona el código de la facción (p. ej. "_nag_")
+    const lookups = sets.flatMap((st) => (lookupsOfSet.get(st) ?? []).map((r) => String(r.campaign_lookup)));
+    const scs = [...playable].filter((sc) => {
+      const code = sc.split('_sc_')[1]?.split('_')[0];
+      return !!code && lookups.some((l) => l.includes(`_${code}_`));
+    });
+    if (!scs.length) continue;
+    const present = new Set(gnodes.map((n) => n.key));
+    const clusters: Record<string, Row> = {};
+    const nodesOut = gnodes.map((n) => {
+      const ik = initOfNode.get(n.key)!;
+      if (!techs[ik]) {
+        const it = initTbl.get(ik) ?? {};
+        const e: Row[] = [];
+        for (const r of effList.get(it.effects ?? ik) ?? []) {
+          const text = effectText(r.effect, r.value, r.scope);
+          parts(r.effect, r.value, r.scope).forEach((pp, j) => e.push({ k: r.effect, d: j === 0 ? text : '', s: pp }));
+        }
+        techs[ik] = strip({
+          n: L(`initiatives_localised_name_${ik}`) ?? ik, d: L(`initiatives_localised_description_${ik}`) ?? undefined,
+          img: it.image_path ? String(it.image_path).split(/[\\/]/).pop()!.replace(/\.png$/i, '') : undefined, e, cost: it.point_cost ?? 1,
+        });
+      }
+      if (n.cluster && !clusters[n.cluster]) {
+        const c = clusterTbl.get(n.cluster) ?? {};
+        clusters[n.cluster] = strip({
+          n: L(`ui_graph_node_clusters_localised_title_${n.cluster}`) ?? n.cluster,
+          d: L(`ui_graph_node_clusters_localised_description_${n.cluster}`) ?? undefined, sc: c.supercluster ?? undefined, order: c.sort_order ?? 0,
+        });
+      }
+      const pr = (graphLinks.get(n.key) ?? []).map((l) => l.parent_node).filter((k) => present.has(k));
+      return strip({ k: n.key, tech: ik, x: n.x_pos, y: n.y_pos, type: n.type, cl: n.cluster ?? undefined, pr: pr.length ? pr : null, th: thresholds.get(n.key) ?? null });
+    });
+    graphs.push({
+      key: g.key, name: L(`initiative_sets_localised_name_${sets[0]}`) ?? g.key, subcultures: scs, origin: g.origin_node,
+      originActive: !!g.origin_active_by_default, nodes: nodesOut, clusters,
+    });
+  }
+
   const subs = [...new Set(characters.flatMap((c) => c.subcultures as string[]))].sort()
     .map((k) => ({ key: k, name: L(`cultures_subcultures_name_${k}`) ?? k }));
   return {
     source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', format: 2,
-    subcultures: subs, characters, skills: skillsOut, abilities, unitLists, locks, techTrees, techs, ancillaries, itemSets,
+    subcultures: subs, characters, skills: skillsOut, abilities, unitLists, locks, techTrees, techs, ancillaries, itemSets, graphs,
   };
 }

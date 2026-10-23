@@ -150,6 +150,14 @@ export interface UnitData {
   missile?: { dmg: number; ap: number; range: number; reload: number; shots: number; ammo: number; bvl: number; bvi: number };
   res: { physical: number; missile: number; magic: number; flame: number; ward: number };
   attrs: string[];
+  /** Límite de unidades en campaña (los Regimientos de Renombre son 1) */
+  cap?: number;
+  /** Solo estas facciones de campaña la pueden tener */
+  excl?: string[];
+  /** Descripción corta del juego */
+  desc?: string;
+  /** Puntos fuertes/débiles de la carta del juego (claves de ui_unit_bullet_point_enums) */
+  bullets?: string[];
 }
 
 export interface UnitsFile {
@@ -262,6 +270,46 @@ export interface CharacterTree extends CharacterSummary {
   items?: ItemInfo[];
   /** Conjuntos de esos objetos: bonificación extra con todas las piezas */
   itemSets?: { key: string; name: string; items: string[]; effects: ParsedEffect[] }[];
+  /** Dones del Príncipe Demonio (Daniel): piezas intercambiables por ranura */
+  armory?: ArmoryInfo;
+  /** Espacios de hechizo elegibles (Kairos: Fragmentos de hechicería) */
+  spellSlots?: SpellSlot[];
+  /** Iniciativas del personaje (Senda a la Gloria, Ofrenda a las Fauces, Libros de Nagash...) */
+  initiativeSets?: InitiativeSet[];
+}
+
+export interface InitiativeSet {
+  key: string; category: string; name: string;
+  /** Cuántas se pueden tener activas a la vez (0 = sin límite indicado) */
+  max: number;
+  /** false = solo informativo (devociones / ascenso a Príncipe Demonio) */
+  selectable: boolean;
+  items: { key: string; name: string; requirement?: string; locked: boolean; effects: ParsedEffect[] }[];
+}
+
+export interface SpellSlot {
+  key: string; name: string; rarity: string;
+  /** Habilidad del árbol que abre el espacio */
+  unlockSkill: string; unlockSkillName: string; unlockEffect: string;
+  options: { key: string; lore: string; loreKey: string; name: string; effects: ParsedEffect[] }[];
+}
+
+export interface ArmoryItem {
+  key: string; slot: string; name: string; description?: string;
+  /** Dios (khorne, nurgle, slaanesh, tzeentch) o generic */
+  god: string; style?: string; cats: string[];
+  /** Ranuras que deja vacías (p. ej. brazos con guadaña: sin escudo ni arma de dos manos) */
+  blocksSlots: string[];
+  effects: ParsedEffect[];
+}
+export interface ArmoryInfo {
+  slots: { key: string; name: string; order: number; mandatory: boolean }[];
+  items: ArmoryItem[];
+  sets: { key: string; name: string; description?: string; items: string[]; effects: ParsedEffect[] }[];
+  /** Equipo inicial (forma base) */
+  defaults: string[];
+  /** Categoría -> categorías que no se pueden combinar con ella */
+  blacklist: Record<string, string[]>;
 }
 
 export interface ItemInfo {

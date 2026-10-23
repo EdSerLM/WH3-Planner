@@ -267,3 +267,302 @@ footer { margin-top: 16px; }
 .item-chip.on { background: #3a2e12; border-color: var(--gold); box-shadow: inset 3px 0 0 var(--gold); }
 .item-icon { font-size: 16px; width: 18px; text-align: center; }
 .set-ok { color: #8fd18f; font-size: 13px; }
+
+/* Habilidades: activables junto al ejército, pasivas arriba; iconos de a quién y qué afectan */
+.active-abilities { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #3a3326; }
+.active-abilities ul { max-height: 220px; overflow-y: auto; }
+.ab-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.ab-head h3 { margin: 0 0 6px; }
+.ab-meta { display: block; margin-left: 22px; }
+.ab-icons { display: inline-flex; gap: 3px; vertical-align: middle; flex-wrap: wrap; }
+.ab-icons span { font-size: 12px; line-height: 1; padding: 1px 3px; border-radius: 4px; cursor: help; }
+.ab-target { background: #2b2b38; }
+.ab-target.enemies { background: #3a2222; }
+.ab-stat.up { background: #1f3322; color: #8fd694; }
+.ab-stat.down { background: #3a2222; color: #f08a7e; }
+.ab-stat.mixed { background: #33301f; color: #e0c36a; }
+
+.self-abilities { margin-top: 6px; padding-top: 6px; border-top: 1px solid #3a3326; display: flex; flex-direction: column; gap: 3px; }
+.self-ab { font-size: 13px; padding: 2px 4px; border-radius: 6px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.self-ab.on { background: #2c2416; }
+
+/* Pirámide Negra */
+.pyr-canvas { position: relative; margin: 8px auto; }
+.pyr-links { position: absolute; left: 0; top: 0; pointer-events: none; }
+.pyr-links line { stroke: #4a4436; stroke-width: 1.5; }
+.pyr-links line.on { stroke: #e0c36a; stroke-width: 2.5; }
+.pyr-node { position: absolute; padding: 0; border-radius: 50%; border: 2px solid var(--c); background: #1b1913; color: #fff; font-size: 10px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.pyr-node.minor { border-radius: 30%; transform: scale(0.8); }
+.pyr-node.key, .pyr-node.gate { box-shadow: 0 0 0 2px #00000080, 0 0 6px var(--c); }
+.pyr-node.got { background: var(--c); color: #111; }
+.pyr-node.avail { background: #2c2a20; box-shadow: 0 0 0 2px #e0c36a; }
+.pyr-node.locked { opacity: 0.55; }
+.pyr-node.dim { opacity: 0.18; }
+.pyr-node.origin { background: #e0c36a; }
+.pyr-node:hover { outline: 2px solid #fff; z-index: 2; }
+.pyr-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 6px 0; }
+.pyr-leg i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 3px; vertical-align: middle; }
+section.left { min-width: 0; }
+.pyramid, .pyramid .tech-scroll { min-width: 0; max-width: 100%; }
+.pyramid .tech-scroll { overflow: auto; }
+
+/* Líneas de requisitos en los árboles de tecnologías */
+.tech-grid { position: relative; }
+.tech-links { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 0; }
+.tech-links line { stroke: #4a4436; stroke-width: 1.5; }
+.tech-links line.avail { stroke: #8a7a4a; stroke-dasharray: 4 3; }
+.tech-links line.on { stroke: #e0c36a; stroke-width: 2.5; }
+.tech-grid .tech { position: relative; z-index: 1; }
+/* Efectos acumulados de tecnologías */
+.tech-summary h4 { margin: 10px 0 4px; }
+.tech-sum { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+.tech-sum li { padding: 3px 6px; border-radius: 6px; background: #221f18; }
+.tech-sum.battle li { border-left: 3px solid #c9a24a; }
+.tech-sum.magic li { border-left: 3px solid #9a6fd1; }
+.tech-sum.campaign li { border-left: 3px solid #4aa8a0; }
+
+/* Rasgo innato: efectos del elegido y lista para comparar */
+.trait-info { margin: 4px 0; padding: 4px 8px; border-left: 3px solid #c9a24a; background: #221f18; border-radius: 4px; }
+.trait-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; margin: 6px 0; max-height: 320px; overflow-y: auto; }
+.trait-card { text-align: left; padding: 6px 8px; border-radius: 6px; border: 1px solid #3a3326; background: #1b1913; color: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 3px; }
+.trait-card:hover { border-color: #8a7a4a; }
+.trait-card.on { border-color: #e0c36a; background: #2c2416; }
+.trait-card ul { margin: 0; padding-left: 16px; font-size: 12px; }
+.trait-card li.battle, .trait-card li.attribute { color: #e6d6a8; }
+.trait-card li.campaign { color: #9fb8b4; }
+.trait-desc { font-style: italic; }
+
+/* ---------- Tabla de DPS: orden, grupos, iconos y fichas ---------- */
+table.dps-table th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+table.dps-table th.sortable:hover { color: var(--gold); }
+table.dps-table .th-sub { margin-left: 8px; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 0 5px; cursor: pointer; }
+table.dps-table .th-sub:hover { color: var(--gold); border-color: var(--gold-dim); }
+tr.dps-group td { background: var(--panel-2); border-top: 1px solid var(--line); padding: 6px; }
+td.dps-name { cursor: pointer; }
+td.dps-name:hover { color: var(--gold); }
+td.dps-name .caret { display: inline-block; width: 12px; color: var(--muted); font-size: 11px; }
+.grp-icon { display: inline-block; width: 20px; text-align: center; font-size: 13px; }
+.dps-name .tag { font-size: 10px; margin-left: 6px; padding: 0 5px; border-radius: 6px; background: #2c2416; color: var(--gold); border: 1px solid var(--gold-dim); }
+.bp-dot { display: inline-block; width: 14px; height: 14px; line-height: 14px; margin-left: 3px; text-align: center; border-radius: 50%; font-size: 11px; font-weight: 700; cursor: help; }
+.bp-dot.good { background: #1f3322; color: var(--green); }
+.bp-dot.bad { background: #3a1f1c; color: #e08070; }
+.chip.bp-good { background: #1f3322; color: var(--green); cursor: help; }
+.chip.bp-bad { background: #3a1f1c; color: #e08070; cursor: help; }
+td.dps-cell { min-width: 70px; }
+.dps-bar { display: block; height: 3px; background: #2c2630; border-radius: 2px; margin-top: 2px; }
+.dps-bar > span { display: block; height: 100%; background: var(--gold); border-radius: 2px; }
+.ttk.best { color: var(--green); font-weight: 600; }
+.ttk.worst { color: #e08070; }
+tr.dps-row.open td { border-bottom-color: transparent; }
+tr.dps-detail td { background: #19161c; padding: 8px 12px 10px 30px; }
+.target-sheet .trait-desc { margin: 0 0 6px; color: #cfc6b8; }
+.ts-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; margin-bottom: 6px; }
+.ts-stats .up { color: var(--green); }
+.ts-stats .down { color: #e08070; }
+.ts-bullets { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.ts-bullets .chip { margin-left: 0; }
+.ts-calc { margin: 0; padding-left: 18px; font-size: 12px; color: #cfc6b8; }
+.dps-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.duel { font-size: 12px; white-space: nowrap; padding: 1px 6px; border-radius: 8px; cursor: help; }
+.duel.win { background: #1f3322; color: var(--green); }
+.duel.even { background: #2c2a1f; color: var(--gold); }
+.duel.lose { background: #3a1f1c; color: #e08070; }
+.ts-sub { margin: 8px 0 2px; font-size: 12px; color: var(--muted); }
+.sp-tag { font-size: 10px; margin-left: 5px; padding: 0 5px; border-radius: 6px; white-space: nowrap; cursor: help; }
+.sp-tag.ror { background: #2c2416; color: var(--gold); border: 1px solid var(--gold-dim); }
+.sp-tag.camp { background: #1f2a33; color: var(--blue); }
+.sp-tag.excl { background: #2d2140; color: var(--magic); }
+.sp-tag.cap { background: #2d2832; color: var(--muted); }
+.roster-group .grp-icon, .army-name .grp-icon { margin-right: 2px; }
+
+/* ---------- Páginas: personajes/tecnologías y ejército/DPS ---------- */
+.page-tabs { display: flex; gap: 8px; margin: 12px 0 0; position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 6px 0 0; border-bottom: 1px solid var(--line); }
+.page-tabs button { flex: 0 1 auto; min-width: 0; text-align: left; }
+.page-tabs button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 16px; font-size: 15px; border-radius: 10px 10px 0 0; border-bottom: none; }
+.page-tabs button.active { border-color: var(--gold); color: var(--gold); background: var(--panel); }
+.page-tabs .pt-sub { font-size: 11px; color: var(--muted); font-weight: 400; }
+.page-tabs + main, .page-tabs + .bottom { margin-top: 12px; }
+@media (min-width: 1101px) {
+  .page-tabs ~ .bottom .army-col, .page-tabs ~ main aside.right { top: 64px; max-height: calc(100vh - 72px); }
+  .page-tabs ~ .bottom .army-col .roster { max-height: calc(100vh - 360px); }
+}
+@media (max-width: 1100px) {
+  .page-tabs { position: static; }
+  .page-tabs button { flex: 1 1 0; font-size: 13px; padding: 6px 10px; }
+}
+
+/* ---------- Sin barras de desplazamiento anidadas: una sola barra (la de la página) ---------- */
+.army-col, .page-tabs ~ .bottom .army-col, aside.right, .page-tabs ~ main aside.right { position: static; max-height: none; overflow: visible; }
+.add-units { width: 100%; margin: 8px 0 4px; padding: 8px; border-color: var(--gold-dim); color: var(--gold); }
+.add-units:hover:not(:disabled) { background: #2c2416; }
+/* Ventana del roster */
+.roster-modal { position: fixed; inset: 0; z-index: 50; background: rgba(8, 6, 10, 0.72); display: flex; justify-content: center; align-items: flex-start; padding: 4vh 16px; }
+.roster-box { background: var(--panel); border: 1px solid var(--gold-dim); border-radius: 12px; width: min(1400px, 100%); max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+.roster-box-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.roster-box-head h3 { margin: 0; }
+.roster-box-head input:not([type]) { flex: 1 1 220px; }
+.roster-legend { padding: 6px 14px; border-bottom: 1px solid var(--line); }
+.roster-modal .roster { max-height: none; overflow-y: auto; border-top: none; padding: 6px 14px 14px; columns: 3 320px; column-gap: 18px; }
+.roster-modal .roster-group { break-after: avoid; }
+.roster-modal .roster-item { break-inside: avoid; }
+.roster-item.in-army { background: #221d14; }
+.in-count { color: var(--gold); margin-right: 2px; }
+
+/* ---------- Preparar ejército (estilo batalla personalizada) ---------- */
+.setup-page { display: flex; flex-direction: column; gap: 12px; grid-template-columns: none; }
+.setup, .setup-abilities { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.setup-head { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-bottom: 8px; }
+.setup-head h3 { margin: 0; }
+.setup-head .slots { font-weight: 700; color: var(--gold); }
+.setup-head button { margin-left: auto; }
+/* cartas */
+.utile { position: relative; width: 76px; height: 108px; padding: 3px 3px 4px; border-radius: 6px; border: 1px solid #4a3a46;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; background: linear-gradient(180deg, #2b2330, #191519);
+  font-size: 10px; line-height: 1.15; color: var(--text); text-align: center; overflow: hidden; cursor: pointer; flex: 0 0 auto; }
+.utile:hover:not(:disabled) { border-color: var(--gold); transform: translateY(-1px); }
+.utile:disabled { opacity: .45; cursor: default; }
+.utile.sel { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold-dim); }
+.utile .ut-cost { font-size: 10px; color: #e6d6a8; background: rgba(0,0,0,.45); border-radius: 3px; padding: 0 4px; align-self: stretch; }
+.utile .ut-icon { font-size: 22px; line-height: 1.1; margin-top: 2px; }
+.utile .ut-name { flex: 1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-word; }
+.utile .ut-marks { display: flex; gap: 2px; justify-content: center; flex-wrap: wrap; font-size: 9px; min-height: 12px; }
+.utile .ut-marks .buff-mark span { font-size: 9px; padding: 0 2px; }
+.utile .ut-rank { background: #33283a; color: #d9c7ef; border-radius: 3px; padding: 0 3px; }
+.utile .ut-count { position: absolute; top: 18px; right: 3px; background: var(--gold); color: #1a1410; font-weight: 700; border-radius: 8px; padding: 0 4px; font-size: 10px; }
+.utile.buffed { border-color: #6a5426; }
+.utile.in-army { background: linear-gradient(180deg, #3a2e1c, #1d1812); }
+.utile.empty { background: repeating-linear-gradient(135deg, #1a161c, #1a161c 6px, #1e1920 6px, #1e1920 12px); border-style: dashed; cursor: default; }
+.utile.g-lord { background: linear-gradient(180deg, #4a3618, #1d150c); }
+.utile.g-hero { background: linear-gradient(180deg, #3b3016, #1b160c); }
+.utile.g-cav, .utile.g-mcav { background-image: linear-gradient(180deg, #2a2a36, #17161c); }
+.utile.g-mon, .utile.g-mmon { background-image: linear-gradient(180deg, #33232a, #1a1316); }
+.utile.g-art { background-image: linear-gradient(180deg, #2c2a22, #171611); }
+.utile.g-mis, .utile.g-mcav, .utile.g-mmon { box-shadow: inset 0 -3px 0 #3d5a7a; }
+.army-strip { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; background: #140f14; border: 1px solid #3a2430; border-radius: 8px; }
+.strip-tools { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 8px; font-size: 13px; }
+/* cuerpo: ficha + roster */
+.setup-body { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 12px; margin-top: 10px; align-items: start; }
+.infopanel { position: sticky; top: 70px; background: #17131a; border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 12px; }
+.ip-name { font-family: inherit; font-size: 15px; color: var(--gold); font-weight: 700; }
+.ip-caste { color: var(--muted); margin: 2px 0 6px; }
+.ip-bullets { list-style: none; margin: 0 0 6px; padding: 0; }
+.ip-bullets li { cursor: help; }
+.ip-bullets li.good { color: var(--green); }
+.ip-bullets li.bad { color: #e08070; }
+.ip-hp { display: flex; align-items: center; gap: 6px; }
+.ip-hpbar { flex: 1; height: 8px; background: #2c2630; border-radius: 4px; overflow: hidden; }
+.ip-hpbar > span { display: block; height: 100%; background: linear-gradient(90deg, #6fbf73, #a6d96a); }
+.ip-models { color: var(--muted); margin: 2px 0 6px; }
+table.ip-stats { width: 100%; border-collapse: collapse; }
+table.ip-stats td { padding: 2px 2px; white-space: nowrap; }
+table.ip-stats td.num { text-align: right; width: 70px; }
+td.ip-bar { width: 80px; position: relative; }
+td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
+.bar-base { background: #c9a14a; border-radius: 3px 0 0 3px; }
+.bar-buff { background: var(--green); border-radius: 0 3px 3px 0; }
+.ip-sub { margin-top: 8px; color: var(--gold); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.ip-attrs, .ip-buffs { margin: 2px 0 0; padding-left: 16px; }
+.ip-attrs li.buff { color: var(--gold); }
+.ip-attrs li.bad { color: #e08070; }
+.ip-buffs li { color: #e6d6a8; }
+.ip-buffs li.r7 { color: #9fb8b4; }
+.ip-desc { margin-top: 8px; font-style: italic; color: #bdb3a6; }
+.roster-area .roster-tools { margin-bottom: 8px; }
+.roster-panels { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 10px; }
+.rpanel { border: 1px solid #4a2a32; border-radius: 8px; background: #161116; }
+.rpanel-head { background: linear-gradient(90deg, #5a1f24, #2a1418); color: #f0e2c8; padding: 4px 10px; border-radius: 8px 8px 0 0; font-size: 13px; }
+.rpanel-tiles { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; }
+.roster-legend { margin-top: 8px; }
+.setup-abilities .active-abilities ul { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.setup-abilities .active-abilities li { flex: 0 1 320px; }
+@media (max-width: 900px) {
+  .setup-body { grid-template-columns: 1fr; }
+  .infopanel { position: static; }
+  .roster-panels { grid-template-columns: 1fr; }
+}
+/* Franja: siempre 20 espacios en una fila (se encogen para caber) */
+.app { max-width: 1880px; }
+.army-strip { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); }
+.army-strip .utile { width: auto; height: auto; aspect-ratio: 76 / 108; min-height: 90px; }
+@media (max-width: 1100px) { .army-strip { grid-template-columns: repeat(10, minmax(0, 1fr)); } }
+.unit-icon { display: inline-block; vertical-align: middle; color: #e6c77a; }
+.utile .ut-icon { display: flex; justify-content: center; }
+.utile .ut-icon .unit-icon { width: 36px; height: 36px; filter: drop-shadow(0 1px 1px #000); }
+.army-strip .utile .ut-icon .unit-icon { width: 30px; height: 30px; }
+.utile.g-lord .unit-icon, .utile.g-hero .unit-icon { color: #ffd76a; }
+.utile.g-mis .unit-icon, .utile.g-mcav .unit-icon, .utile.g-mmon .unit-icon { color: #9cc3e8; }
+.utile.g-mon .unit-icon { color: #e89a8c; }
+.utile.g-art .unit-icon { color: #c9c2ae; }
+.grp-icon .unit-icon { color: var(--gold); }
+/* Nivel (tier) */
+.utile .ut-cost { display: flex; justify-content: space-between; align-items: center; gap: 2px; }
+.ut-tier { font-family: Georgia, serif; font-weight: 700; font-size: 9px; padding: 0 3px; border-radius: 3px; background: #2b2430; color: #cfc6b8; cursor: help; }
+.utile .ut-cost:not(:has(.ut-tier)) { justify-content: center; }
+.ut-tier.t1 { color: #b9b2a6; }
+.ut-tier.t2 { color: #9fd18f; }
+.ut-tier.t3 { color: #8fbfe8; }
+.ut-tier.t4 { color: #c9a0f0; }
+.ut-tier.t5 { color: #f0c060; background: #3a2c12; }
+
+/* ---------- Dones del Príncipe Demonio ---------- */
+.armory-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.armory-head h3 { margin: 0; }
+.armory-head button { margin-left: auto; }
+.armory-gods { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 10px; }
+.god-chip { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #2d2832; }
+.god-chip.khorne, .aslot.khorne { --god: #c0392b; }
+.god-chip.nurgle, .aslot.nurgle { --god: #7fae3a; }
+.god-chip.slaanesh, .aslot.slaanesh { --god: #c46fc9; }
+.god-chip.tzeentch, .aslot.tzeentch { --god: #3f8fd6; }
+.god-chip.khorne, .god-chip.nurgle, .god-chip.slaanesh, .god-chip.tzeentch { border: 1px solid var(--god); color: var(--god); }
+.armory-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.aslot { border: 1px solid var(--line); border-left: 4px solid var(--god, #6a5a70); border-radius: 8px; padding: 8px; background: #17131a; }
+.aslot.blocked { opacity: .65; }
+.aslot-head { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
+.aslot select { width: 100%; }
+.aslot-eff { margin: 4px 0 0; padding-left: 16px; font-size: 12px; color: #e6d6a8; }
+.armory-sets { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; }
+.aset { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: #17131a; }
+.aset.done { border-color: var(--green); background: #16201a; }
+.aset-head { display: flex; gap: 8px; align-items: center; }
+.aset-head button { margin-left: auto; }
+.aset .have { color: var(--green); }
+/* Espacios de hechizo (Kairos) */
+.aslot.spell.r-common { --god: #9aa0a6; }
+.aslot.spell.r-uncommon { --god: #3f8fd6; }
+.aslot.spell.r-rare { --god: #d4a72c; }
+/* Cartas más grandes + naturaleza (demonio / no muerto / constructo / mortal) */
+.utile { width: 96px; height: 136px; font-size: 11px; }
+.utile .ut-icon { position: relative; width: 100%; height: 46px; align-items: center; }
+.utile .ut-icon .unit-icon { width: 42px; height: 42px; }
+.army-strip .utile { aspect-ratio: 96 / 136; min-height: 110px; }
+.army-strip .utile .ut-icon { height: 38px; }
+.army-strip .utile .ut-icon .unit-icon { width: 34px; height: 34px; }
+.ut-nature { position: absolute; top: 0; right: 0; display: flex; flex-direction: column; gap: 2px; }
+.ut-nature .nat { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #120e12; border: 1px solid #3a3040; cursor: help; font-size: 10px; }
+.ut-nature .nat .unit-icon { width: 13px !important; height: 13px !important; filter: none !important; }
+.nat.n_daemon .unit-icon, .ip-nature.n_daemon .unit-icon { color: #e0567a; }
+.nat.n_undead .unit-icon, .ip-nature.n_undead .unit-icon { color: #9fd6c2; }
+.nat.n_construct .unit-icon, .ip-nature.n_construct .unit-icon { color: #c9b27a; }
+.nat.n_mortal .unit-icon, .ip-nature.n_mortal .unit-icon { color: #cfc6b8; }
+.nat.n_daemon { border-color: #7a2a3e; }
+.nat.n_undead { border-color: #2f5a4c; }
+.nat.n_construct { border-color: #6a5a30; }
+.nat.mark.khorne { border-color: #c0392b; } .nat.mark.nurgle { border-color: #7fae3a; }
+.nat.mark.slaanesh { border-color: #c46fc9; } .nat.mark.tzeentch { border-color: #3f8fd6; }
+.ip-nature { white-space: nowrap; }
+.utile .ut-count { right: auto; left: 3px; top: 20px; }
+/* Iconitos de atributos */
+.utile .ut-attrs { display: flex; flex-wrap: wrap; justify-content: center; gap: 1px; font-size: 10px; line-height: 1; min-height: 12px; }
+.utile .ut-attrs span { cursor: help; filter: saturate(.85); }
+.utile .ut-attrs span.buff { filter: drop-shadow(0 0 2px var(--gold)); }
+.utile .ut-attrs .more { font-size: 9px; color: var(--muted); padding: 0 2px; }
+.utile .ut-name { -webkit-line-clamp: 2; }
+.ip-ai, .chip-ai { font-size: 10px; margin-right: 3px; }
+/* Iniciativas del personaje (Senda a la Gloria...) */
+.ini-set { margin-bottom: 14px; }
+.ini-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.ini-item { display: flex; gap: 8px; align-items: flex-start; border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: #17131a; cursor: pointer; }
+.ini-item.on { border-color: var(--gold); background: #221d14; }
+.ini-item.info { cursor: default; }
+.ini-item input { margin-top: 3px; }

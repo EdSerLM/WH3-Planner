@@ -19,19 +19,22 @@ interface Props {
 /** Objetos propios del legendario: se equipan con un clic y sus bufos entran en la tarjeta. */
 export function ItemsPanel({ tree, selection, onChange }: Props) {
   const [hover, setHover] = useState<{ item: ItemInfo; rect: DOMRect } | null>(null);
-  const items = tree.items ?? [];
+  // Los dones de Daniel (armería) tienen su propio panel
+  const items = (tree.items ?? []).filter((i) => i.category !== 'armory' && i.category !== 'spell_slot' && i.category !== 'char_initiative');
   if (!items.length) return null;
+  const armoryKeys = new Set([...(tree.armory?.items ?? []).map((i) => i.key), ...(tree.spellSlots ?? []).flatMap((s) => s.options.map((o) => o.key)), ...(tree.initiativeSets ?? []).flatMap((s) => s.items.map((i) => i.key))]);
+  const keepArmory = (selection.items ?? []).filter((k) => armoryKeys.has(k) || k.startsWith('empty:'));
   const worn = new Set(selection.items ?? []);
   const rank = rankOf(selection);
 
   const apply = (next: string[]) => {
     // La misión del objeto se desbloquea en un rango: el rango sube hasta ahí
     const need = Math.max(1, ...items.filter((i) => next.includes(i.key)).map((i) => i.rank ?? 1));
-    const sel = { ...selection, items: next };
+    const sel = { ...selection, items: [...keepArmory, ...next.filter((k) => !armoryKeys.has(k))] };
     onChange(need > rank ? setRank(sel, tree, need) : sel);
   };
   const toggle = (k: string) => apply(worn.has(k) ? [...worn].filter((x) => x !== k) : [...worn, k]);
-  const sets = (tree.itemSets ?? []).filter((s) => s.items.every((k) => worn.has(k)));
+  const sets = (tree.itemSets ?? []).filter((s) => !s.items.some((k) => armoryKeys.has(k)) && s.items.every((k) => worn.has(k)));
 
   return (
     <div className="items">

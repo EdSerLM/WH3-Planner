@@ -2,15 +2,29 @@ import { getTarget } from './data.js';
 import type { ComputedCard, DpsTarget, StatKey, UnitData } from './types.js';
 
 /**
- * Fórmula del proyecto (melee):
- *  Acierto = 35 + Ataque melee (+ bonus vs tipo) − Defensa melee del objetivo, entre 8% y 90%.
- *  Daño por golpe = Daño base × (1 − 0.75 × Armadura/100) + Daño perforante (armadura máx. 100),
- *                   sin superar la vida por modelo del objetivo.
- *  DPS = Modelos × Acierto × Daño por golpe ÷ Intervalo de ataque.
+ * Cálculo melee como lo hace el juego (constantes de _kv_rules en db.pack; ver claude/formulas-dano-wh3.md):
+ *  Acierto = 35 + Ataque + bonus vs tipo − Defensa (×0.6 por el flanco, ×0.3 por la espalda), entre 8% y 90%.
+ *  El bonus vs grandes/infantería también se suma al daño, repartido como el arma entre base y perforante.
+ *  Armadura: reduce solo el daño base con una tirada entre 50% y 100% de su valor (tope 100%); se usa la media,
+ *            así que la armadura de más de 100 sigue contando hasta 200.
+ *  Resistencias: se suman (salvación + física + fuego si es flamígero), tope 90%. Los ataques mágicos
+ *            ignoran la física; la resistencia a hechizos no aplica a ataques normales.
+ *  Daño por golpe sin superar la vida por modelo. DPS = Modelos × Acierto × Daño por golpe ÷ Intervalo.
  *  Tiempo para matar = Vida total ÷ DPS.  Eficiencia = DPS por cada 1000 de coste.
- * Extra: se aplica la resistencia más alta que corresponda (física, fuego si es flamígero,
- * mágica si es mágico, o salvación), como hace el juego.
  */
+
+/** Dirección del ataque: de frente, por el flanco o por la espalda (multiplica la defensa del objetivo) */
+export type AttackDir = 'front' | 'flank' | 'rear';
+export const DIR_MD: Record<AttackDir, number> = { front: 1, flank: 0.6, rear: 0.3 };
+
+/** Reducción media de la armadura (0..1): tirada uniforme entre A/2 y A, cada punto = 1%, tope 100% */
+export function armourReduction(a: number): number {
+  if (a <= 0) return 0;
+  const lo = a / 2;
+  if (a <= 100) return (0.75 * a) / 100;
+  if (lo >= 100) return 1;
+  return (((100 - lo) * (lo + 100)) / 2 + (a - 100) * 100) / (a - lo) / 100;
+}
 
 export interface DpsRow {
   target: string;
@@ -21,12 +35,22 @@ export interface DpsRow {
   dps: number;
   timeToKill: number;
   efficiency: number | null;
+  /** Números usados en el cálculo (para explicar la fila) */
+  detail: {
+    ma: number; bonus: number; md: number; mdBase: number; dir: AttackDir; armour: number; armourRed: number;
+    dmg: number; ap: number; bonusBase: number; bonusAp: number; models: number; interval: number; hpTotal: number;
+    res: { ward: number; physical: number; flame: number; magicalIgnoresPhysical: boolean };
+  };
 }
+
+const SMALL = new Set(['small', 'very_small', '']);
 
 export function unitAsTarget(u: UnitData): DpsTarget {
   return {
     id: u.card, name: u.name, models: u.models, hpPerModel: u.hpPerModel, md: u.md, armour: u.armour,
-    isLarge: u.size === 'large' || u.size === 'very_large', isInfantry: /infantry|infanter/i.test(u.caste), cost: u.cost,
+    // En el juego "grande" es todo lo que no es pequeño (caballería, carros, monstruos...); la bonificación contra
+    // infantería se aplica a lo pequeño
+    isLarge: !SMALL.has(u.size), isInfantry: SMALL.has(u.size), cost: u.cost,
     res: { physical: u.res.physical, magic: u.res.magic, flame: u.res.flame, ward: u.res.ward },
   };
 }
@@ -47,23 +71,27 @@ export function applyDebuffs(t: DpsTarget, debuffs: { stats: { stat: StatKey; ho
   return out;
 }
 
-export function meleeDps(att: ComputedCard, t: DpsTarget): DpsRow {
-  const s = (k: StatKey) => att.stats[k].final;
+export function meleeDps(att: ComputedCard, t: DpsTarget, dir: AttackDir = 'front'): DpsRow {
+  const s = (k: StatKey) => att.stats[k]?.final ?? 0;
   const bonus = (t.isLarge ? s('bvl') : 0) + (t.isInfantry ? s('bvi') : 0);
-  const hit = Math.min(90, Math.max(8, 35 + s('ma') + bonus - t.md)) / 100;
-  const armour = Math.min(100, t.armour);
-  let perHit = s('dmg') * (1 - (0.75 * armour) / 100) + s('ap');
-  const applicable = [t.res.physical, t.res.ward];
-  if (att.flamingAttacks) applicable.push(t.res.flame);
-  if (att.magicalAttacks) applicable.push(t.res.magic);
-  // Si es flamígero y el objetivo tiene debilidad al fuego (resistencia negativa), esa manda
-  let res = Math.min(90, Math.max(...applicable));
-  if (att.flamingAttacks && t.res.flame < 0 && t.res.flame < res && Math.max(t.res.physical, t.res.ward) <= 0) res = t.res.flame;
+  const md = t.md * DIR_MD[dir];
+  const hit = Math.min(90, Math.max(8, 35 + s('ma') + bonus - md)) / 100;
+  // El bonus vs tipo se reparte entre daño base y perforante con la proporción del arma
+  const dmg = s('dmg'), ap = s('ap');
+  const apRatio = dmg + ap > 0 ? ap / (dmg + ap) : 0;
+  const bonusBase = bonus * (1 - apRatio), bonusAp = bonus * apRatio;
+  const armourRed = armourReduction(t.armour);
+  let perHit = (dmg + bonusBase) * (1 - armourRed) + ap + bonusAp;
+  // Resistencias: se suman, tope 90% (la debilidad al fuego puede hacerlas negativas)
+  const physical = att.magicalAttacks ? 0 : t.res.physical;
+  const flame = att.flamingAttacks ? t.res.flame : 0;
+  const res = Math.max(-100, Math.min(90, t.res.ward + physical + flame));
   perHit = perHit * (1 - res / 100);
   perHit = Math.min(perHit, t.hpPerModel);
   const interval = att.interval || 4;
   const dps = (att.models * hit * perHit) / interval;
   const totalHp = t.models * t.hpPerModel;
+  const r1 = (v: number) => Math.round(v * 10) / 10;
   return {
     target: t.id,
     targetName: t.name,
@@ -73,6 +101,50 @@ export function meleeDps(att: ComputedCard, t: DpsTarget): DpsRow {
     dps: Math.round(dps * 10) / 10,
     timeToKill: dps > 0 ? Math.round((totalHp / dps) * 10) / 10 : Infinity,
     efficiency: att.cost ? Math.round((dps / att.cost) * 1000 * 10) / 10 : null,
+    detail: {
+      ma: s('ma'), bonus, md: r1(md), mdBase: t.md, dir, armour: t.armour, armourRed: r1(armourRed * 100),
+      dmg: r1(dmg), ap: r1(ap), bonusBase: r1(bonusBase), bonusAp: r1(bonusAp), models: att.models, interval, hpTotal: totalHp,
+      res: { ward: t.res.ward, physical: t.res.physical, flame, magicalIgnoresPhysical: !!att.magicalAttacks && t.res.physical !== 0 },
+    },
+  };
+}
+
+/** Unidad enemiga como atacante (stats base del juego, con tus debufos de ataque si los hay) */
+export function unitAsAttacker(u: UnitData, debuffs: { stats: { stat: StatKey; how: string; v: number }[] }[] = []): ComputedCard {
+  const vals: Partial<Record<StatKey, number>> = { ma: u.ma, dmg: u.dmg, ap: u.ap, bvl: u.bvl ?? 0, bvi: u.bvi ?? 0 };
+  for (const d of debuffs) for (const s of d.stats) {
+    if (vals[s.stat] === undefined) continue;
+    vals[s.stat] = Math.max(0, s.how === 'mult' ? vals[s.stat]! * s.v : vals[s.stat]! + s.v);
+  }
+  const stats = Object.fromEntries(Object.entries(vals).map(([k, v]) => [k, { stat: k, base: v, final: v, contributions: [] }]));
+  return {
+    id: u.card, name: u.name, kind: 'unit', count: 1, cost: u.cost, models: u.models, size: u.size, interval: u.interval,
+    splash: u.splash, magicalAttacks: !!u.magical, flamingAttacks: !!u.flaming, stats, attributes: [], notes: [],
+  } as unknown as ComputedCard;
+}
+
+/** Tu tarjeta (con bufos) como objetivo del enemigo */
+export function cardAsTarget(c: ComputedCard): DpsTarget {
+  const f = (k: StatKey) => c.stats[k]?.final ?? 0;
+  const large = !SMALL.has(c.size ?? '');
+  return {
+    id: c.id, name: c.name, models: c.models, hpPerModel: f('hp'), md: f('md'), armour: f('armour'),
+    isLarge: large, isInfantry: !large, cost: c.cost,
+    res: { physical: f('resPhysical'), magic: f('resMagic'), flame: f('resFlame'), ward: f('resWard') },
+  };
+}
+
+/**
+ * Quién gana el duelo: compara cuánto tardas en matarlos contra cuánto tardan ellos en matarte.
+ * ratio = su tiempo / tu tiempo (>1 = ganas).
+ */
+export function duel(mine: DpsRow, theirs: DpsRow) {
+  const a = mine.timeToKill, b = theirs.timeToKill;
+  const ratio = !Number.isFinite(a) && !Number.isFinite(b) ? 1 : !Number.isFinite(a) ? 0 : !Number.isFinite(b) ? 99 : b / a;
+  const verdict: 'win' | 'lose' | 'even' = ratio >= 1.2 ? 'win' : ratio <= 1 / 1.2 ? 'lose' : 'even';
+  return {
+    verdict, ratio: Math.round(ratio * 100) / 100,
+    enemy: { hitChance: theirs.hitChance, dmgPerHit: theirs.dmgPerHit, resistanceUsed: theirs.resistanceUsed, dps: theirs.dps, timeToKill: theirs.timeToKill, detail: theirs.detail },
   };
 }
 
@@ -81,5 +153,5 @@ export function targetsFromCards(cards: string[]): DpsTarget[] {
 }
 
 export const DPS_DISCLAIMER =
-  'No cuenta: carga, splash (golpes a varios modelos), colisiones, que no todos los modelos peleen a la vez, ' +
-  'liderazgo/huida ni el daño extra de la bonificación contra tipo. Subestima a monstruos y carros.';
+  'No cuenta: carga, splash (golpes a varios modelos), colisiones, que no todos los modelos peleen a la vez ni ' +
+  'liderazgo/huida. Usa la tirada media de armadura. Subestima a monstruos y carros.';

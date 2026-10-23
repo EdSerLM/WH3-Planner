@@ -153,6 +153,38 @@ export function resolveBuild(sel: BuildSelection): ResolvedBuild | null {
   return { tree, selection: sel, levels, activeNodes, mountNode, pointsUsed, minRank, rank, warnings };
 }
 
+/**
+ * Objetos que lleva puestos. Con los dones de Daniel: lo elegido en cada ranura y, en las ranuras donde no eligió
+ * nada (ni "vacío"), la pieza de su forma base; una pieza que bloquea ranuras (brazos con guadaña) las deja vacías.
+ */
+export function wornItems(b: { tree: CharacterTree; selection: BuildSelection; activeNodes?: { node: SkillNode; level: number }[] }): Set<string> {
+  const sel = new Set(b.selection.items ?? []);
+  // Hechizos de Kairos: solo cuentan los de espacios abiertos por una habilidad comprada (uno por espacio)
+  if (b.tree.spellSlots?.length) {
+    const active = new Set((b.activeNodes ?? []).flatMap(({ node, level }) => node.levels[level - 1]?.effects.map((e) => e.key) ?? []));
+    for (const s of b.tree.spellSlots) {
+      const picked = s.options.filter((o) => sel.has(o.key));
+      picked.forEach((o, i) => { if (!active.has(s.unlockEffect) || i > 0) sel.delete(o.key); });
+    }
+  }
+  const ar = b.tree.armory;
+  if (!ar) return sel;
+  const byKey = new Map(ar.items.map((i) => [i.key, i]));
+  const chosen = [...sel].map((k) => byKey.get(k)).filter((i): i is NonNullable<typeof i> => !!i);
+  const usedSlots = new Set(chosen.map((i) => i.slot));
+  const blocked = new Set(chosen.flatMap((i) => i.blocksSlots));
+  for (const d of ar.defaults) {
+    const it = byKey.get(d);
+    if (!it || usedSlots.has(it.slot) || blocked.has(it.slot) || sel.has(`empty:${it.slot}`)) continue;
+    sel.add(d);
+  }
+  for (const k of [...sel]) {
+    const it = byKey.get(k);
+    if (it && blocked.has(it.slot) && !chosen.includes(it)) sel.delete(k);
+  }
+  return sel;
+}
+
 /** Efectos del nivel comprado (en el juego cada nivel ya trae el total, no se suman). */
 function effectsOf(b: ResolvedBuild): { effect: ParsedEffect; skill: string }[] {
   const out: { effect: ParsedEffect; skill: string }[] = [];
@@ -163,7 +195,7 @@ function effectsOf(b: ResolvedBuild): { effect: ParsedEffect; skill: string }[] 
     for (const e of lv.effects) out.push({ effect: e, skill: skillLabel(node) });
   }
   // Objetos equipados (y su conjunto si lleva todas las piezas)
-  const worn = new Set(b.selection.items ?? []);
+  const worn = wornItems(b);
   for (const it of b.tree.items ?? []) if (worn.has(it.key)) for (const e of it.effects) out.push({ effect: e, skill: it.name });
   for (const st of b.tree.itemSets ?? []) if (st.items.every((k) => worn.has(k))) for (const e of st.effects) out.push({ effect: e, skill: `Conjunto: ${st.name}` });
   return out;
@@ -190,13 +222,22 @@ function abilitiesOf(b: ResolvedBuild): { ability: AbilityInfo; skill: string }[
     for (const k of node.levels[level - 1].abilities) add(k, skillLabel(node));
   }
   // Habilidades que dan los objetos equipados
-  const worn = new Set(b.selection.items ?? []);
+  const worn = wornItems(b);
   for (const it of b.tree.items ?? []) {
     if (!worn.has(it.key)) continue;
     for (const e of it.effects) if (e.kind === 'ability' && e.ability && e.target !== 'chars') add(e.ability, it.name);
   }
+  // Habilidades de los conjuntos completos (p. ej. "Golpe mortal" mejorado del Príncipe Acorazado)
+  for (const st of b.tree.itemSets ?? []) {
+    if (!st.items.every((k) => worn.has(k))) continue;
+    for (const e of st.effects) if (e.kind === 'ability' && e.ability && e.target !== 'chars') add(e.ability, `Conjunto: ${st.name}`);
+  }
   const baseStats = b.mountNode ? b.mountNode.levels[0].mountStats : b.tree.stats;
-  for (const k of baseStats?.abilities ?? b.tree.stats?.abilities ?? []) add(k, 'Innata');
+  // Las habilidades que activan los dones de Daniel vienen "dormidas" en su unidad: solo cuentan si lleva la pieza
+  const gated = new Set<string>();
+  for (const it of b.tree.armory?.items ?? []) for (const e of it.effects) if (e.ability) gated.add(e.ability);
+  for (const st of b.tree.armory?.sets ?? []) for (const e of st.effects) if (e.ability) gated.add(e.ability);
+  for (const k of baseStats?.abilities ?? b.tree.stats?.abilities ?? []) if (!gated.has(k)) add(k, 'Innata');
 
   // Reemplazos: si un efecto dice Replaces: "X", quitamos la habilidad X
   const replaced = new Set<string>();
@@ -267,6 +308,10 @@ function finalize(lines: Record<StatKey, StatLine>) {
 
 export interface AbilityState {
   key: string;
+  /** Id para encenderla: "habilidad@personaje" (la misma habilidad puede estar en varios árboles) */
+  id: string;
+  /** Personaje que la tiene (id de su tarjeta) */
+  ownerKey: string;
   name: string;
   nameEn?: string;
   owner: string;
@@ -282,6 +327,11 @@ export interface AbilityState {
   attributes: string[];
   hasBattleStats: boolean;
   active: boolean; // se está aplicando en este cálculo
+  /** Stats que toca (clave del juego, cómo y cuánto): para los iconos de la interfaz */
+  effects: { stat: string; how: string; v: number }[];
+  spell?: boolean;
+  magical?: boolean;
+  flaming?: boolean;
 }
 
 export interface SummaryLine {
@@ -342,29 +392,40 @@ export function compute(req: ComputeRequest): ComputeResult {
     const unit = (b.mountNode?.levels[0].mountStats ?? b.tree.stats)?.unit ?? b.tree.stats?.unit;
     return effect.unitList === undefined || (!!unit && unitInList(effect.unitList, unit));
   };
+  /** Efecto al ejército limitado a una lista de unidades del juego que incluye a este personaje (p. ej. "Horrores Iridiscentes") */
+  const armyListMatch = (effect: ParsedEffect, b: ResolvedBuild) => {
+    if (effect.target !== 'army' || effect.unitList === undefined || effect.rank7) return false;
+    const units = [(b.mountNode?.levels[0].mountStats ?? b.tree.stats)?.unit, b.tree.stats?.unit].filter((x): x is string => !!x);
+    return units.some((u) => unitInList(effect.unitList!, u));
+  };
 
   // Habilidades
   const abilityStates: AbilityState[] = [];
   const enemyDebuffs: ComputeResult['enemyDebuffs'] = [];
   const allyAbilities: { ability: AbilityInfo; owner: string; build: ResolvedBuild; selfOnly: boolean; cond: string }[] = [];
+  // Encendidas por personaje ("habilidad@personaje"); la clave sola (ejércitos viejos) enciende la de todos
+  const isActive = (key: string, b: ResolvedBuild) => active.has(`${key}@${b.tree.key}`) || active.has(key);
   for (const b of builds) {
     for (const { ability, skill } of abilitiesOf(b)) {
       const statLines = ability.stats.filter((s) => ABILITY_STAT_MAP[s.stat]);
       const hasBattleStats = statLines.length > 0 || ability.magicalAttacks || ability.flamingAttacks || ability.attributes.length > 0;
       let isOn = false;
       if (ability.mode === 'enemies') {
-        isOn = active.has(ability.key);
+        isOn = isActive(ability.key, b);
         if (isOn) enemyDebuffs.push({ ability: ability.name, owner: b.tree.name, stats: statLines.map((s) => ({ stat: ABILITY_STAT_MAP[s.stat], how: s.how, v: s.v })) });
       } else if (ability.mode === 'allies' || ability.mode === 'self') {
-        isOn = ability.passive ? (ability.mode === 'self' || inAura) : active.has(ability.key);
+        isOn = ability.passive ? (ability.mode === 'self' || inAura) : isActive(ability.key, b);
         if (isOn && hasBattleStats) {
           allyAbilities.push({ ability, owner: b.tree.name, build: b, selfOnly: ability.mode === 'self', cond: ability.passive ? (ability.mode === 'self' ? 'pasiva' : 'aura') : 'activa' });
         }
       }
       abilityStates.push({
-        key: ability.key, name: ability.name, nameEn: ability.nameEn, owner: b.tree.name, skill, mode: ability.mode, passive: ability.passive,
+        key: ability.key, id: `${ability.key}@${b.tree.key}`, ownerKey: b.tree.key,
+        name: ability.name, nameEn: ability.nameEn, owner: b.tree.name, skill, mode: ability.mode, passive: ability.passive,
         duration: ability.duration, cooldown: ability.cooldown, range: ability.range, mana: ability.mana, type: ability.type,
         stats: ability.stats.map((s) => s.d), attributes: ability.attributes, hasBattleStats, active: isOn,
+        effects: ability.stats.map((s) => ({ stat: s.stat, how: s.how, v: s.v })),
+        spell: ability.spell || undefined, magical: ability.magicalAttacks || undefined, flaming: ability.flamingAttacks || undefined,
       });
     }
   }
@@ -382,7 +443,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     const isLord = b === lordBuild;
     for (const { effect, skill, owner, build } of effects) {
       if (effect.kind === 'attribute' && effect.attribute) {
-        if ((effect.target === 'self' && build === b) || (effect.target === 'army' && !effect.units && effect.unitList === undefined) || charMatch(effect, b, isLord)) {
+        if ((effect.target === 'self' && build === b) || (effect.target === 'army' && !effect.units && effect.unitList === undefined) || charMatch(effect, b, isLord) || armyListMatch(effect, b)) {
           attributes.push({ name: effect.attribute, from: `${skill} (${owner})` });
           if (/flam/i.test(effect.attribute)) flaming = true;
           if (/mágic/i.test(effect.attribute)) magical = true;
@@ -394,7 +455,7 @@ export function compute(req: ComputeRequest): ComputeResult {
         (effect.target === 'self' && build === b) ||
         (effect.target === 'lord' && isLord) ||
         (effect.target === 'army' && !effect.units && effect.unitList === undefined && !effect.rank7) ||
-        charMatch(effect, b, isLord);
+        charMatch(effect, b, isLord) || armyListMatch(effect, b);
       if (!applies) continue;
       contribute(lines, effect.stat, { source: skill, from: owner, value: effect.value, how: effect.pct ? 'pct' : 'add' }, effect.exact);
     }

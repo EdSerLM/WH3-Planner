@@ -2,16 +2,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api';
 import { CharacterPicker } from './components/CharacterPicker';
 import { SkillTree } from './components/SkillTree';
-import { ArmyPanel } from './components/ArmyPanel';
+import { ArmySetup } from './components/ArmySetup';
+import { ArmoryPanel } from './components/ArmoryPanel';
+import { SpellSlotsPanel } from './components/SpellSlotsPanel';
+import { InitiativesPanel } from './components/InitiativesPanel';
 import { AbilitiesPanel } from './components/AbilitiesPanel';
+import { ActiveAbilities } from './components/ActiveAbilities';
 import { UnitCard } from './components/UnitCard';
 import { DpsPanel } from './components/DpsPanel';
 import { BuildSummary } from './components/BuildSummary';
 import { TechTree } from './components/TechTree';
+import { PyramidGraph } from './components/PyramidGraph';
+import { TechSummary } from './components/TechSummary';
 import { UnitBuffSummary } from './components/UnitBuffSummary';
 import { emptyBuild } from './treeLogic';
 import { campaignForLord } from './campaign';
-import type { ArmyState, BuildSelection, CampaignFaction, CharacterSummary, CharacterTree, ComputeResult, Meta, SavedBuild, UnitData } from './types';
+import type { AbilityState, ArmyState, BuildSelection, CampaignFaction, CharacterSummary, CharacterTree, ComputedCard, ComputeResult, Meta, SavedBuild, UnitData } from './types';
 
 const STORAGE_KEY = 'wh3-planner:army';
 const FACTION_KEY = 'wh3-planner:faction';
@@ -87,6 +93,8 @@ function loadFaction(): string {
 
 type Tab = 'lord' | 'techs' | number; // número = índice de héroe
 
+const PAGE_KEY = 'wh3-planner:page';
+
 export default function App() {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [characters, setCharacters] = useState<CharacterSummary[]>([]);
@@ -103,7 +111,24 @@ export default function App() {
   const [currentId, setCurrentId] = useState<string | undefined>();
   const [buildName, setBuildName] = useState('');
   const [view, setView] = useState<'cards' | 'dps' | 'campaign'>('cards');
-  const [leftView, setLeftView] = useState<'tree' | 'summary'>('tree');
+  // Página: personajes y tecnologías, o ejército y DPS (se recuerda)
+  const [page, setPageState] = useState<'chars' | 'army'>(() => {
+    try {
+      return localStorage.getItem(PAGE_KEY) === 'army' ? 'army' : 'chars';
+    } catch {
+      return 'chars';
+    }
+  });
+  const setPage = (p: 'chars' | 'army') => {
+    setPageState(p);
+    try {
+      localStorage.setItem(PAGE_KEY, p);
+    } catch {
+      /* sin almacenamiento */
+    }
+    window.scrollTo({ top: 0 });
+  };
+  const [leftView, setLeftView] = useState<'tree' | 'summary' | 'gifts' | 'spells' | 'initiatives'>('tree');
   // Tarjeta elegida abajo para ver sus bufos acumulados ("kind:id")
   const [picked, setPicked] = useState<string | null>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -140,6 +165,8 @@ export default function App() {
         // Ejércitos guardados con las cartas viejas (twwstats): se cambian por la clave de la unidad del juego
         const ids = new Set(u.map((x) => x.card));
         const byArt = new Map(u.filter((x) => x.cardArt).map((x) => [x.cardArt!, x.card]));
+        // Exaltados agregados a mano antes de usar los datos del juego (id con "_exalted")
+        for (const x of u) if (/_1$/.test(x.card)) byArt.set(`${x.card}_exalted`, x.card);
         setArmy((a) =>
           a.units.some((x) => !ids.has(x.card) && byArt.has(x.card))
             ? { ...a, units: a.units.map((x) => (!ids.has(x.card) && byArt.has(x.card) ? { ...x, card: byArt.get(x.card)! } : x)) }
@@ -197,9 +224,12 @@ export default function App() {
   // Vista previa: qué unidades del roster reciben bufos permanentes del señor, héroes y tecnologías.
   // Se calcula con todo el roster (1 de cada) y sin habilidades activas; una pasada en rango 0 y otra en rango 9.
   const [rosterBuffs, setRosterBuffs] = useState<RosterBuffs>({});
+  // Tarjetas del roster con tus bufos (rango 0), para la ficha de cada unidad
+  const [rosterCards, setRosterCards] = useState<Record<string, ComputedCard>>({});
   useEffect(() => {
     if (!units.length || (!army.lord && !army.heroes.length && !army.techs?.length)) {
       setRosterBuffs({});
+      setRosterCards({});
       return;
     }
     const base: ArmyState = { ...army, activeAbilities: [], units: [] };
@@ -208,8 +238,14 @@ export default function App() {
         api.compute({ ...base, units: units.map((u) => ({ card: u.card, count: 1, rank: 0 })) }),
         api.compute({ ...base, units: units.map((u) => ({ card: u.card, count: 1, rank: 9 })) }),
       ])
-        .then(([now, r7]) => setRosterBuffs(buffSources(now, r7, meta?.statLabels ?? {})))
-        .catch(() => setRosterBuffs({}));
+        .then(([now, r7]) => {
+          setRosterBuffs(buffSources(now, r7, meta?.statLabels ?? {}));
+          setRosterCards(Object.fromEntries(now.cards.filter((c) => c.kind === 'unit').map((c) => [c.id, c])));
+        })
+        .catch(() => {
+          setRosterBuffs({});
+          setRosterCards({});
+        });
     }, 300);
     return () => clearTimeout(t);
     // Solo cambia con lo que da bufos, no al agregar o quitar unidades
@@ -258,11 +294,17 @@ export default function App() {
   const currentTree = currentSel ? trees[currentSel.character] : undefined;
   const currentInfo = result?.builds.find((b) => b.character === currentSel?.character);
 
-  const toggleAbility = (key: string) =>
+  // Se enciende por personaje ("habilidad@personaje"): la misma habilidad puede estar en el árbol del señor y de un héroe
+  const toggleAbility = (ab: AbilityState) =>
     setArmy((a) => ({
       ...a,
-      activeAbilities: a.activeAbilities.includes(key) ? a.activeAbilities.filter((k) => k !== key) : [...a.activeAbilities, key],
+      activeAbilities: ab.active
+        ? a.activeAbilities.filter((k) => k !== ab.id && k !== ab.key)
+        : [...a.activeAbilities.filter((k) => k !== ab.key), ab.id],
     }));
+  /** Activables que solo afectan al propio personaje: van dentro de su tarjeta */
+  const selfAbilities = (c: { id: string; kind: string }) =>
+    c.kind === 'unit' ? [] : (result?.abilities ?? []).filter((a) => !a.passive && a.mode === 'self' && a.hasBattleStats && a.ownerKey === c.id);
 
   const save = async () => {
     const name = buildName.trim() || 'Ejército sin nombre';
@@ -366,6 +408,22 @@ export default function App() {
         </div>
       )}
 
+      <nav className="page-tabs">
+        <button className={page === 'chars' ? 'active' : ''} onClick={() => setPage('chars')}>
+          👑 Señor, héroes y tecnologías
+          <span className="pt-sub">
+            {army.lord ? characters.find((c) => c.key === army.lord!.character)?.name ?? 'Señor' : 'sin señor'}
+            {army.heroes.length ? ` · ${army.heroes.length} héroe${army.heroes.length === 1 ? '' : 's'}` : ''}
+            {army.techs?.length ? ` · ${army.techs.length} tecnologías` : ''}
+          </span>
+        </button>
+        <button className={page === 'army' ? 'active' : ''} onClick={() => setPage('army')}>
+          ⚔️ Ejército, tarjetas y DPS
+          <span className="pt-sub">{usedSlots} / 20 · {army.units.reduce((n, u) => n + u.count, 0)} unidades</span>
+        </button>
+      </nav>
+
+      {page === 'chars' && (
       <main>
         <section className="left">
           <nav className="tabs">
@@ -384,13 +442,17 @@ export default function App() {
           </nav>
 
           {tab === 'techs' ? (
-            <TechTree
-              faction={faction}
-              treeKey={army.techTree}
-              variant={army.techVariant}
-              researched={army.techs ?? []}
-              onChange={(p) => setArmy((a) => ({ ...a, ...p }))}
-            />
+            <>
+              <TechTree
+                faction={faction}
+                treeKey={army.techTree}
+                variant={army.techVariant}
+                researched={army.techs ?? []}
+                onChange={(p) => setArmy((a) => ({ ...a, ...p }))}
+              />
+              {/* Pirámide Negra (Legiones No Muertas) y otros grafos del juego: se investigan como tecnologías */}
+              <PyramidGraph faction={faction} researched={army.techs ?? []} onChange={(p) => setArmy((a) => ({ ...a, ...p }))} />
+            </>
           ) : (
           <>
           <div className="char-bar">
@@ -408,9 +470,30 @@ export default function App() {
             <>
               <nav className="tabs sub">
                 <button className={leftView === 'tree' ? 'active' : ''} onClick={() => setLeftView('tree')}>Árbol de habilidades</button>
+                {currentTree.armory && (
+                  <button className={leftView === 'gifts' ? 'active' : ''} onClick={() => setLeftView('gifts')} title="Piezas del Príncipe Demonio: cabeza, torso, brazos, alas, armas...">
+                    ✴️ Dones (piezas)
+                  </button>
+                )}
+                {currentTree.spellSlots?.length ? (
+                  <button className={leftView === 'spells' ? 'active' : ''} onClick={() => setLeftView('spells')} title="Elige el saber de cada espacio de hechizo">
+                    🔮 Hechizos (fragmentos)
+                  </button>
+                ) : null}
+                {currentTree.initiativeSets?.length ? (
+                  <button className={leftView === 'initiatives' ? 'active' : ''} onClick={() => setLeftView('initiatives')} title="Regalos del Caos, devociones y otras mecánicas del personaje">
+                    🌟 {currentTree.initiativeSets.some((s) => s.category.startsWith('PATH_TO_GLORY')) ? 'Senda a la Gloria' : 'Mecánicas'}
+                  </button>
+                ) : null}
                 <button className={leftView === 'summary' ? 'active' : ''} onClick={() => setLeftView('summary')}>Efectos acumulados</button>
               </nav>
-              {leftView === 'tree' ? (
+              {leftView === 'gifts' && currentTree.armory ? (
+                <ArmoryPanel tree={currentTree} selection={currentSel} onChange={updateSelection} />
+              ) : leftView === 'initiatives' && currentTree.initiativeSets?.length ? (
+                <InitiativesPanel tree={currentTree} selection={currentSel} onChange={updateSelection} />
+              ) : leftView === 'spells' && currentTree.spellSlots?.length ? (
+                <SpellSlotsPanel tree={currentTree} selection={currentSel} onChange={updateSelection} />
+              ) : leftView !== 'summary' ? (
                 <SkillTree tree={currentTree} selection={currentSel} onChange={updateSelection} info={currentInfo} />
               ) : (
                 <BuildSummary
@@ -431,29 +514,51 @@ export default function App() {
         </section>
 
         <aside className="right">
-          <div className="char-card-box">
-            {sideCard ? (
-              <UnitCard card={sideCard} labels={labels} />
-            ) : (
-              <p className="muted small">
-                {sideSel ? 'Calculando tarjeta…' : `Elige un ${sideKind === 'lord' ? 'señor' : 'héroe'} para ver su tarjeta aquí.`}
-              </p>
-            )}
-          </div>
-          <AbilitiesPanel
+          {tab === 'techs' ? (
+            // En Tecnologías: lo que suman las tecnologías / nodos investigados
+            <TechSummary researched={army.techs ?? []} />
+          ) : (
+            <>
+              <div className="char-card-box">
+                {sideCard ? (
+                  <UnitCard card={sideCard} labels={labels} selfAbilities={selfAbilities(sideCard)} onToggleAbility={toggleAbility} />
+                ) : (
+                  <p className="muted small">
+                    {sideSel ? 'Calculando tarjeta…' : `Elige un ${sideKind === 'lord' ? 'señor' : 'héroe'} para ver su tarjeta aquí.`}
+                  </p>
+                )}
+              </div>
+              <AbilitiesPanel abilities={result?.abilities ?? []} inAura={army.inAura} />
+            </>
+          )}
+        </aside>
+      </main>
+      )}
+
+      {page === 'army' && (
+      <section className="bottom setup-page">
+        <ArmySetup
+          units={units}
+          army={army.units}
+          usedSlots={usedSlots}
+          buffs={rosterBuffs}
+          rosterCards={rosterCards}
+          cards={cards}
+          campaign={campaigns.find((c) => c.key === army.campaign)}
+          compact={view === 'dps'}
+          onChange={(u) => setArmy((a) => ({ ...a, units: u }))}
+          onEditChar={(t) => { setTab(t); setPage('chars'); }}
+        />
+        <div className="setup-abilities">
+          <ActiveAbilities
             abilities={result?.abilities ?? []}
             active={army.activeAbilities}
             inAura={army.inAura}
             onToggle={toggleAbility}
             onAura={(v) => setArmy((a) => ({ ...a, inAura: v }))}
+            showEnemies={view === 'dps'}
           />
-        </aside>
-      </main>
-
-      <section className="bottom">
-        <aside className="army-col">
-          <ArmyPanel units={units} army={army.units} usedSlots={usedSlots} buffs={rosterBuffs} campaign={campaigns.find((c) => c.key === army.campaign)} onChange={(u) => setArmy((a) => ({ ...a, units: u }))} />
-        </aside>
+        </div>
         <div className="bottom-main">
         <nav className="tabs">
           <button className={view === 'cards' ? 'active' : ''} onClick={() => setView('cards')}>Tarjetas ({cards.length})</button>
@@ -469,13 +574,13 @@ export default function App() {
             {charCards.length > 0 && (
               <div className="cards">
                 {charCards.map((c) => (
-                  <UnitCard key={cardKey(c)} card={c} labels={labels} selected={picked === cardKey(c)} onSelect={() => togglePick(c)} />
+                  <UnitCard key={cardKey(c)} card={c} labels={labels} selected={picked === cardKey(c)} onSelect={() => togglePick(c)} selfAbilities={selfAbilities(c)} onToggleAbility={toggleAbility} />
                 ))}
               </div>
             )}
             <div className="cards">
               {unitCards.map((c) => (
-                <UnitCard key={cardKey(c)} card={c} labels={labels} selected={picked === cardKey(c)} onSelect={() => togglePick(c)} />
+                <UnitCard key={cardKey(c)} card={c} labels={labels} selected={picked === cardKey(c)} onSelect={() => togglePick(c)} selfAbilities={selfAbilities(c)} onToggleAbility={toggleAbility} />
               ))}
             </div>
             {!cards.length && <p className="muted">Elige un señor y agrega unidades en el panel de la izquierda para ver sus tarjetas con bufos.</p>}
@@ -513,6 +618,7 @@ export default function App() {
         )}
         </div>
       </section>
+      )}
 
       <footer className="small muted">
         Datos: {meta?.sources.skills} · {meta?.sources.units}

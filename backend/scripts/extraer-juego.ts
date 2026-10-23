@@ -172,6 +172,27 @@ const CASTE_ES: Record<string, string> = {
   war_beast: 'Bestia de guerra', monstrous_cavalry: 'Caballería monstruosa', missile_cavalry: 'Caballería de proyectiles', generic: 'Genérico',
 };
 
+/** Icono genérico de la unidad (mientras no tengamos el arte de las cartas): según tipo, arma, proyectil y si vuela */
+function unitIcon(caste: string, grp: string, size: string, L: any, w: any, pj: any, ent: any, ment: any, engine: boolean): string {
+  if (caste === 'lord') return 'lord';
+  if (caste === 'hero') return 'hero';
+  const flies = (ment?.fly_speed ?? 0) > 0 || (ent?.fly_speed ?? 0) > 0;
+  if (caste === 'chariot' || L.articulated_record) return 'chariot';
+  if (/artillery|war_machine/.test(grp) || caste === 'warmachine' || (engine && !L.articulated_record)) return flies ? 'flyer' : 'artillery';
+  if (/monster/.test(grp) || caste === 'monster' || caste === 'war_beast') {
+    if (flies) return 'flyer';
+    return size === 'large' || size === 'very_large' ? 'monster' : 'beast';
+  }
+  if (flies) return 'flyer';
+  const cav = /cavalry/.test(caste) || /cavalry/.test(grp);
+  if (cav) return caste === 'missile_cavalry' || pj ? 'cav_missile' : w?.melee_weapon_type === 'lance' || w?.melee_weapon_type === 'spear' ? 'cav_lance' : 'cav';
+  if (pj) return pj.category === 'musket' ? 'gun' : pj.category === 'javelin' || pj.category === 'axe' ? 'throw' : pj.category === 'grenade' || pj.category === 'misc' ? 'blast' : 'bow';
+  const t = w?.melee_weapon_type ?? '';
+  if (/spear|pike/.test(t)) return 'spear';
+  if (t === 'axe') return 'axe';
+  return 'sword';
+}
+
 /** Stats de todas las unidades de todas las facciones (mismo cálculo que twwstats; verificado con las 176 del Caos). */
 function buildAllUnits(p: Pack, sp: Map<string, string>) {
   const T = loadTables(p, [
@@ -181,6 +202,12 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     // Campaña: qué puede reclutar cada facción (grupo militar + exclusivas) y quién la lidera
     'units_to_groupings_military_permissions_tables', 'units_to_exclusive_faction_permissions_tables',
     'frontend_factions_tables', 'frontend_faction_leaders_tables', 'ui_unit_groupings_tables',
+    // Artillería: el arma de proyectil está en la pieza (cañón, mortero, batería), no en la tripulación
+    'battlefield_engines_tables', 'land_unit_articulated_vehicles_tables',
+    // Puntos fuertes / débiles que el juego muestra en la carta de la unidad ("Blindada y con escudo", "Anti-grandes"...)
+    'ui_unit_bullet_point_enums_tables', 'ui_unit_bullet_point_unit_overrides_tables',
+    // Unidades que solo salen de un grupo de mercenarios/renombre con facción requerida (p. ej. el Carnosaurio de los Embaucadores)
+    'building_units_allowed_tables', 'mercenary_unit_groups_tables', 'mercenary_pool_to_groups_junctions_tables',
     // Mejoras de Banda (Guerreros del Caos): grupo base -> grupo destino, con tecnología requerida
     'unit_to_unit_group_junctions_tables', 'unit_upgrade_to_unit_groups_tables', 'unit_upgrade_to_tech_requirements_tables',
     'technology_node_sets_tables', 'technology_nodes_tables',
@@ -189,6 +216,18 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
   const lu = idx('land_units_tables', 'key'), mw = idx('melee_weapons_tables', 'key'), be = idx('battle_entities_tables', 'key');
   const arm = idx('unit_armour_types_tables', 'key'), shd = idx('unit_shield_types_tables', 'key'), msw = idx('missile_weapons_tables', 'key');
   const prj = idx('projectiles_tables', 'key'), mnt = idx('mounts_tables', 'key'), fac = idx('factions_tables', 'key');
+  const engines = idx('battlefield_engines_tables', 'key');
+  const artic = idx('land_unit_articulated_vehicles_tables', 'key');
+  // Tamaño de la unidad = el mayor entre el jinete/tripulación, la montura y el carro (la caballería y los carros son "grandes")
+  const SIZES = ['very_small', 'small', 'medium', 'large', 'very_large'];
+  const biggest = (...xs: (string | undefined)[]) => xs.filter((x): x is string => !!x).sort((a, b) => SIZES.indexOf(b) - SIZES.indexOf(a))[0];
+  const bulletsOf = new Map<string, string[]>();
+  for (const r of T['ui_unit_bullet_point_unit_overrides_tables']) bulletsOf.set(r.unit_key, [...(bulletsOf.get(r.unit_key) ?? []), r.bullet_point]);
+  const bulletDefs: Record<string, { n: string; t?: string; s: string; o: number }> = {};
+  for (const b of T['ui_unit_bullet_point_enums_tables']) {
+    const n = sp.get(`ui_unit_bullet_point_enums_onscreen_name_${b.key}`);
+    if (n) bulletDefs[b.key] = { n, t: sp.get(`ui_unit_bullet_point_enums_tooltip_${b.key}`) || undefined, s: b.state, o: b.sort_order ?? 0 };
+  }
   const card = new Map<string, string>();
   for (const v of T['unit_variants_tables']) if (!card.has(v.unit) && v.unit_card) card.set(v.unit, v.unit_card);
   const attrs = new Map<string, string[]>();
@@ -202,6 +241,26 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
   // Unidades exclusivas: solo las tienen las facciones listadas con allowed = true
   const exclusive = new Map<string, Map<string, boolean>>();
   for (const r of T['units_to_exclusive_faction_permissions_tables']) exclusive.set(r.key, (exclusive.get(r.key) ?? new Map()).set(r.faction, r.allowed));
+  // allowed = true puede significar dos cosas: si alguna facción permitida ya tiene la unidad por su grupo militar, la unidad
+  // es EXCLUSIVA de esas facciones (p. ej. Regimientos de Renombre de los Elfos Oscuros); si todas son de fuera, solo se la
+  // CONCEDE a ellas y el resto de su grupo la sigue teniendo (p. ej. el Señor de la Transformación concedido a Sayl).
+  const unitGroups = new Map<string, Set<string>>();
+  for (const r of T['units_to_groupings_military_permissions_tables']) unitGroups.set(r.unit, (unitGroups.get(r.unit) ?? new Set()).add(r.military_group));
+  const exclusiveOnly = (ex: Map<string, boolean>, unit?: string) =>
+    [...ex].some(([f, v]) => v && !!unit && !!unitGroups.get(unit)?.has(fac.get(f)?.military_group));
+  // Unidades sin edificio que las reclute y que solo están en grupos de mercenarios con facción requerida: solo esas facciones
+  const builtSomewhere = new Set(T['building_units_allowed_tables'].map((r) => r.unit as string));
+  const groupUnit = new Map(T['mercenary_unit_groups_tables'].map((r) => [r.key as string, r.unit_record as string]));
+  const poolFac = new Map<string, { any: boolean; facs: Set<string> }>();
+  for (const r of T['mercenary_pool_to_groups_junctions_tables']) {
+    const u = groupUnit.get(r.group);
+    if (!u) continue;
+    const x = poolFac.get(u) ?? { any: false, facs: new Set<string>() };
+    if (r.faction_requirement) x.facs.add(r.faction_requirement); else x.any = true;
+    poolFac.set(u, x);
+  }
+  const poolOnly = new Map<string, Set<string>>();
+  for (const [u, x] of poolFac) if (!x.any && x.facs.size && !builtSomewhere.has(u)) poolOnly.set(u, x.facs);
   const leaders = new Map<string, string[]>();
   for (const r of T['frontend_faction_leaders_tables']) if (r.faction && r.agent_subtype_record) leaders.set(r.faction, [...(leaders.get(r.faction) ?? []), r.agent_subtype_record]);
   // Mejoras de unidad: qué grupos suben a cuáles, desde qué rango y con qué tecnología
@@ -223,7 +282,14 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     const f = fac.get(ff.faction);
     if (!f || f.is_quest_faction || f.is_rebel) continue;
     const list = new Set<string>();
-    for (const u of byGroup.get(f.military_group) ?? []) { const ex = exclusive.get(u); if (!ex || ex.get(f.key)) list.add(u); }
+    const poolOnlyOk = (u: string) => { const fs = poolOnly.get(u); return !fs || fs.has(f.key); };
+    // Exclusivas: si la unidad tiene facciones con allowed = true, solo esas la tienen; allowed = false la prohíbe
+    // a esa facción (p. ej. la Guardia Eterna está prohibida solo para los Espíritus de Shanlin)
+    for (const u of byGroup.get(f.military_group) ?? []) {
+      const ex = exclusive.get(u);
+      if (!poolOnlyOk(u)) continue;
+      if (!ex || (exclusiveOnly(ex, u) ? ex.get(f.key) === true : ex.get(f.key) !== false)) list.add(u);
+    }
     for (const [u, ex] of exclusive) if (ex.get(f.key)) list.add(u);
     // Lo que se consigue mejorando unidades que ya tiene (p. ej. Bloodletters -> Exaltados): unidad -> rango requerido
     const techs = techsOf(f);
@@ -263,13 +329,15 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     const mount = L.mount ? mnt.get(L.mount) : undefined;
     const ment = mount ? be.get(mount.entity) ?? {} : undefined;
     const w = mw.get(L.primary_melee_weapon ?? '') ?? {};
-    const mis = L.primary_missile_weapon ? msw.get(L.primary_missile_weapon) : undefined;
+    const engine = L.engine ? engines.get(L.engine) : undefined;
+    const mis = L.primary_missile_weapon ? msw.get(L.primary_missile_weapon) : engine?.missile_weapon ? msw.get(engine.missile_weapon) : undefined;
     const pj = mis ? prj.get(mis.default_projectile) : undefined;
     const u: any = {
       key: mu.unit, card: card.get(mu.unit) ?? mu.unit, name: sp.get(`land_units_onscreen_name_${L.key}`) ?? mu.unit,
       caste: CASTE_ES[mu.caste] ?? mu.caste, casteKey: mu.caste, cost: mu.multiplayer_cost, models: mu.num_men,
       tier: mu.tier ?? 0, mounts: L.num_mounts ?? 0, uiGroup: uiParent.get(mu.ui_unit_group_land ?? '')?.parent_group ?? undefined,
-      size: ent.size, hpPerModel: (ent.hit_points ?? 0) + (L.bonus_hit_points ?? 0),
+      size: biggest(ent.size, ment?.size, L.articulated_record ? be.get(artic.get(L.articulated_record)?.articulated_entity ?? '')?.size : undefined),
+      hpPerModel: (ent.hit_points ?? 0) + (L.bonus_hit_points ?? 0),
       speed: Math.round(((ment ? ment.run_speed : ent.run_speed) ?? 0) * 10), leadership: L.morale,
       ma: L.melee_attack, md: L.melee_defence, charge: L.charge_bonus,
       armour: arm.get(L.armour ?? '')?.armour_value ?? 0, shield: shd.get(L.shield ?? '')?.missile_block_chance ?? 0,
@@ -279,6 +347,17 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
       attrs: (attrs.get(L.attribute_group ?? '') ?? []).map((a) => (sp.get(`unit_attributes_bullet_text_${a}`) ?? a).split('||')[0].trim()),
       subcultures,
     };
+    // Unidades especiales: solo de campaña (sin permiso de batalla personalizada), límite en campaña, exclusivas de facción
+    if (!perms.has(mu.unit)) u.campOnly = true;
+    if ((mu.campaign_cap ?? -1) > 0) u.cap = mu.campaign_cap;
+    const ex = exclusive.get(mu.unit);
+    if (poolOnly.has(mu.unit)) u.excl = [...poolOnly.get(mu.unit)!].map((k) => sp.get(`factions_screen_name_${k}`) ?? k).sort((a, b) => a.localeCompare(b, 'es'));
+    else if (ex && exclusiveOnly(ex, mu.unit)) u.excl = [...ex].filter(([, v]) => v).map(([k]) => sp.get(`factions_screen_name_${k}`) ?? k).sort((a, b) => a.localeCompare(b, 'es'));
+    u.icon = unitIcon(mu.caste, u.uiGroup ?? '', u.size ?? '', L, w, pj, ent, ment, !!engine);
+    const desc = L.short_description_text ? sp.get(`unit_description_short_texts_text_${L.short_description_text}`) : undefined;
+    if (desc) u.desc = desc;
+    const bl = [...new Set(bulletsOf.get(mu.unit) ?? [])].filter((k) => bulletDefs[k]).sort((a, b) => bulletDefs[a].o - bulletDefs[b].o);
+    if (bl.length) u.bullets = bl;
     if (w.is_magical) u.magical = true;
     if (w.ignition_amount) u.flaming = true;
     if (pj) u.missile = { dmg: pj.damage, ap: pj.ap_damage, range: pj.effective_range, reload: pj.base_reload_time, shots: pj.projectile_number, ammo: L.primary_ammo, bvl: pj.bonus_v_large, bvi: pj.bonus_v_infantry };
@@ -286,7 +365,7 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
   }
   const subs = [...new Set(units.flatMap((u) => u.subcultures))].map((k) => ({ key: k, name: sp.get(`cultures_subcultures_name_${k}`) ?? k }))
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
-  return { source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', subcultures: subs, units, campaign };
+  return { source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', subcultures: subs, units, campaign, bulletDefs };
 }
 
 // ---------------------------------------------------------------- principal

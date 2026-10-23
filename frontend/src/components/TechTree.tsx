@@ -32,6 +32,13 @@ export function TechTree({ faction, treeKey, variant, researched, onChange }: Pr
   const [onlyBattle, setOnlyBattle] = useState(false);
   const [hover, setHover] = useState<{ node: TechNode; rect: DOMRect } | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  // Puntos de investigación por turno (los da tu campaña: edificios, señores…); se recuerda en este navegador
+  const [rate, setRate] = useState<number>(() => {
+    try { return Number(localStorage.getItem('wh3-planner:research-rate')) || 0; } catch { return 0; }
+  });
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [lines, setLines] = useState<{ k: string; x1: number; y1: number; x2: number; y2: number; on: boolean; avail: boolean }[]>([]);
+  const [box, setBox] = useState({ w: 0, h: 0 });
 
   useEffect(() => {
     api.techTrees(faction).then(setTrees).catch((e) => setErr(e.message));
@@ -48,9 +55,37 @@ export function TechTree({ faction, treeKey, variant, researched, onChange }: Pr
   const have = useMemo(() => new Set(researched), [researched]);
   const inTree = useMemo(() => (tree?.nodes ?? []).filter((n) => have.has(n.tech)), [tree, have]);
 
+  // Líneas de requisitos (padre -> hijo), medidas sobre los botones ya dibujados
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid || !tree) { setLines([]); return; }
+    const el = new Map<string, HTMLElement>();
+    grid.querySelectorAll<HTMLElement>('[data-key]').forEach((b) => el.set(b.dataset.key!, b));
+    const out: typeof lines = [];
+    for (const n of tree.nodes) {
+      const c = el.get(n.key);
+      if (!c) continue;
+      for (const pk of [...n.parents, ...n.requires]) {
+        const p = el.get(pk);
+        const pn = byKey.get(pk);
+        if (!p || !pn) continue;
+        const pRight = p.offsetLeft + p.offsetWidth, cLeft = c.offsetLeft;
+        const forward = pRight <= cLeft;
+        out.push({
+          k: pk + '>' + n.key,
+          x1: forward ? pRight : p.offsetLeft + p.offsetWidth / 2, y1: forward ? p.offsetTop + p.offsetHeight / 2 : p.offsetTop + p.offsetHeight,
+          x2: forward ? cLeft : c.offsetLeft + c.offsetWidth / 2, y2: forward ? c.offsetTop + c.offsetHeight / 2 : c.offsetTop,
+          on: have.has(pn.tech) && have.has(n.tech), avail: have.has(pn.tech) && !have.has(n.tech),
+        });
+      }
+    }
+    setLines(out);
+    setBox({ w: grid.scrollWidth, h: grid.scrollHeight });
+  }, [tree, have, onlyBattle, byKey]);
+
   if (err) return <div className="warn">{err}</div>;
   if (!trees.length) {
-    return <p className="muted">Esta facción no tiene árbol de tecnologías en el juego (o falta correr <code>npm run extraer</code>).</p>;
+    return <p className="muted small">Esta facción no tiene árbol de tecnologías normal en el juego.</p>;
   }
   if (!tree) return <p className="muted">Cargando tecnologías…</p>;
 
@@ -99,6 +134,12 @@ export function TechTree({ faction, treeKey, variant, researched, onChange }: Pr
   };
   const clear = () => onChange({ techs: researched.filter((t) => !tree.nodes.some((n) => n.tech === t)) });
   const cost = inTree.reduce((s, n) => s + (n.cost ?? 0), 0);
+  const totalCost = tree.nodes.reduce((s, n) => s + (n.cost ?? 0), 0);
+  const turns = (pts: number) => (rate > 0 ? Math.ceil(pts / rate) : null);
+  const saveRate = (v: number) => {
+    setRate(v);
+    try { localStorage.setItem('wh3-planner:research-rate', String(v)); } catch { /* sin almacenamiento */ }
+  };
 
   return (
     <div className="techs">
@@ -121,14 +162,25 @@ export function TechTree({ faction, treeKey, variant, researched, onChange }: Pr
           </label>
         )}
         <span>Investigadas: <b>{inTree.length}</b> / {tree.nodes.length}</span>
-        <span className="muted">Coste: {cost.toLocaleString('es-MX')} puntos</span>
+        <span title="Puntos de investigación que piden las tecnologías marcadas (dato del juego)">
+          Investigación: <b>{cost.toLocaleString('es-MX')}</b> / {totalCost.toLocaleString('es-MX')} pts
+          {turns(cost) !== null && <> · ≈ <b>{turns(cost)}</b> turnos{cost < totalCost ? ` (todo el árbol ≈ ${turns(totalCost)})` : ''}</>}
+        </span>
+        <label className="small" title="Cuántos puntos de investigación generas por turno en tu campaña (lo ves en el panel de tecnologías del juego)">
+          Pts/turno <input type="number" min={0} step={10} value={rate || ''} placeholder="?" style={{ width: 64 }} onChange={(e) => saveRate(Number(e.target.value) || 0)} />
+        </label>
         <label><input type="checkbox" checked={onlyBattle} onChange={(e) => setOnlyBattle(e.target.checked)} /> Resaltar las de batalla</label>
         <button className="ghost" onClick={() => all(true)} title="Investiga todas las que dan bufos de batalla (y sus requisitos)">+ Todas las de batalla</button>
         <button className="ghost" onClick={() => all(false)}>+ Todas</button>
         <button className="ghost" onClick={clear}>Limpiar</button>
       </div>
       <div className="tech-scroll">
-        <div className="tech-grid" style={{ gridTemplateColumns: `repeat(${cols}, 128px)`, gridTemplateRows: `repeat(${rows}, auto)` }}>
+        <div className="tech-grid" ref={gridRef} style={{ gridTemplateColumns: `repeat(${cols}, 128px)`, gridTemplateRows: `repeat(${rows}, auto)` }}>
+          <svg className="tech-links" width={box.w} height={box.h}>
+            {lines.map((l) => (
+              <line key={l.k} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} className={l.on ? 'on' : l.avail ? 'avail' : ''} />
+            ))}
+          </svg>
           {tree.nodes.map((n) => {
             const got = have.has(n.tech);
             const avail = !got && isAvailable(n, byKey, have);
@@ -136,6 +188,7 @@ export function TechTree({ faction, treeKey, variant, researched, onChange }: Pr
             return (
               <button
                 key={n.key}
+                data-key={n.key}
                 className={cls}
                 style={{ gridColumn: n.col + 1, gridRow: n.row - tree.minRow + 1 }}
                 onClick={() => (got ? undefined : research(n))}

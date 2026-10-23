@@ -84,6 +84,38 @@ export interface CharacterTree extends CharacterSummary {
   abilityInfo: Record<string, AbilityInfo>;
   items?: ItemInfo[];
   itemSets?: { key: string; name: string; items: string[]; effects: ParsedEffect[] }[];
+  /** Dones del Príncipe Demonio (Daniel): piezas intercambiables por ranura */
+  armory?: ArmoryInfo;
+  /** Espacios de hechizo elegibles (Kairos: Fragmentos de hechicería) */
+  spellSlots?: SpellSlot[];
+  /** Iniciativas del personaje (Senda a la Gloria, Ofrenda a las Fauces, Libros de Nagash...) */
+  initiativeSets?: InitiativeSet[];
+}
+
+export interface InitiativeSet {
+  key: string; category: string; name: string; max: number; selectable: boolean;
+  items: { key: string; name: string; requirement?: string; locked: boolean; effects: ParsedEffect[] }[];
+}
+
+export interface SpellSlot {
+  key: string; name: string; rarity: string;
+  unlockSkill: string; unlockSkillName: string; unlockEffect: string;
+  options: { key: string; lore: string; loreKey: string; name: string; effects: ParsedEffect[] }[];
+}
+
+export interface ArmoryItem {
+  key: string; slot: string; name: string; description?: string;
+  /** khorne, nurgle, slaanesh, tzeentch o generic */
+  god: string; style?: string; cats: string[];
+  blocksSlots: string[];
+  effects: ParsedEffect[];
+}
+export interface ArmoryInfo {
+  slots: { key: string; name: string; order: number; mandatory: boolean }[];
+  items: ArmoryItem[];
+  sets: { key: string; name: string; description?: string; items: string[]; effects: ParsedEffect[] }[];
+  defaults: string[];
+  blacklist: Record<string, string[]>;
 }
 
 export interface ItemInfo {
@@ -111,6 +143,21 @@ export interface UnitData {
   models: number;
   size: string;
   campaignOnly: boolean;
+  /** Límite de unidades en campaña (Regimientos de Renombre = 1) */
+  cap?: number;
+  /** Solo estas facciones de campaña la pueden tener */
+  excl?: string[];
+  // Stats base del juego (vienen del roster) para la ficha
+  hpPerModel?: number; leadership?: number; speed?: number; ma?: number; md?: number; charge?: number;
+  armour?: number; dmg?: number; ap?: number; bvl?: number; bvi?: number;
+  res?: { physical: number; missile: number; magic: number; flame: number; ward: number };
+  missile?: { dmg: number; ap: number; range: number; reload: number; shots: number; ammo: number };
+  attrs?: string[];
+  desc?: string;
+  /** Icono genérico (tipo de arma/montura) */
+  icon?: string;
+  /** Puntos fuertes/débiles de la carta del juego */
+  bp?: { name: string; tip?: string; good: boolean }[];
 }
 
 export interface BuildSelection {
@@ -152,6 +199,19 @@ export interface ArmyState {
   techTree?: string;
   techVariant?: string;
 }
+
+/** Grafo de iniciativas (Pirámide Negra): cada nodo se investiga como una tecnología (clave en `tech`) */
+export interface GraphNode {
+  key: string; tech: string; name: string; description?: string; icon?: string; x: number; y: number; type?: string;
+  cluster?: string; parents: string[]; threshold?: number; cost: number; battle: boolean; effects: ParsedEffect[];
+}
+export interface GraphData {
+  key: string; name: string; origin: string; originActive: boolean; nodes: GraphNode[];
+  clusters: Record<string, { n: string; d?: string; sc?: string; order?: number }>;
+}
+
+export interface TechSummaryLine { text: string; kind: string; count: number }
+export interface TechSummaryData { battle: TechSummaryLine[]; magic: TechSummaryLine[]; campaign: TechSummaryLine[]; count: number }
 
 export interface TechNode {
   key: string; tech: string; name: string; description?: string; icon?: string; col: number; row: number;
@@ -197,6 +257,10 @@ export interface ComputedCard {
 
 export interface AbilityState {
   key: string;
+  /** Id para encenderla: "habilidad@personaje" */
+  id: string;
+  /** Personaje que la tiene (id de su tarjeta) */
+  ownerKey: string;
   name: string;
   owner: string;
   skill: string;
@@ -210,6 +274,11 @@ export interface AbilityState {
   stats: string[];
   attributes: string[];
   hasBattleStats: boolean;
+  /** Stats que toca (clave del juego, cómo y cuánto) para los iconos */
+  effects?: { stat: string; how: string; v: number }[];
+  spell?: boolean;
+  magical?: boolean;
+  flaming?: boolean;
   active: boolean;
 }
 
@@ -252,6 +321,40 @@ export interface DpsRow {
   dps: number;
   timeToKill: number;
   efficiency: number | null;
+  /** Números usados en el cálculo */
+  detail?: {
+    ma: number; bonus: number; md: number; mdBase: number; dir: 'front' | 'flank' | 'rear'; armour: number; armourRed: number;
+    dmg: number; ap: number; bonusBase: number; bonusAp: number; models: number; interval: number; hpTotal: number;
+    res: { ward: number; physical: number; flame: number; magicalIgnoresPhysical: boolean };
+  };
+  /** Ficha del objetivo (datos del juego) */
+  info?: DpsTargetInfo;
+  /** El duelo al revés: el enemigo pegándole a tu unidad */
+  duel?: {
+    verdict: 'win' | 'lose' | 'even';
+    /** su tiempo para matarte ÷ tu tiempo para matarlos (>1 = ganas) */
+    ratio: number;
+    enemy: { hitChance: number; dmgPerHit: number; resistanceUsed: number; dps: number; timeToKill: number; detail?: DpsRow['detail'] };
+  };
+}
+
+export interface DpsTargetInfo {
+  group: string;
+  caste: string;
+  size: string;
+  large: boolean;
+  cost: number;
+  models: number;
+  hpPerModel: number;
+  md: number;
+  armour: number;
+  ld: number;
+  speed: number;
+  res: { physical: number; missile: number; magic: number; flame: number; ward: number };
+  desc?: string;
+  attrs: string[];
+  bullets: { name: string; tip?: string; good: boolean }[];
+  icon?: string;
 }
 
 export interface Meta {

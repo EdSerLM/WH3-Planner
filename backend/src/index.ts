@@ -1,8 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import { abilities, DEFAULT_FACTION, getCharacter, getTechTree, listTechTrees, getUnit, listCampaign, listCharacterFactions, listCharacters, listRoster, listSubcultures, listTargets, sources } from './data.js';
+import { abilities, DEFAULT_FACTION, getCharacter, getGraph, getTechTree, listGraphs, techSummary, listTechTrees, getUnit, listCampaign, listCharacterFactions, listCharacters, listRoster, listSubcultures, listTargets, sources, targetInfo, getTarget, bulletsInfo } from './data.js';
 import { compute } from './engine.js';
-import { applyDebuffs, DPS_DISCLAIMER, meleeDps, targetsFromCards } from './dps.js';
+import { type AttackDir, applyDebuffs, cardAsTarget, DPS_DISCLAIMER, duel, meleeDps, targetsFromCards, unitAsAttacker } from './dps.js';
 import { deleteBuild, getBuild, listBuilds, upsertBuild } from './builds.js';
 import { STAT_LABELS_ES } from './effects.js';
 import type { ComputeRequest } from './types.js';
@@ -39,6 +39,17 @@ app.get('/api/characters/:key', (req, res) => {
 
 // ---------- Tecnologías ----------
 app.get('/api/techs', (req, res) => res.json(listTechTrees(String(req.query.faction ?? DEFAULT_FACTION))));
+// Efectos acumulados de lo investigado (tecnologías y nodos de la Pirámide)
+app.post('/api/tech-summary', (req, res) => res.json(techSummary(Array.isArray(req.body?.techs) ? req.body.techs.map(String) : [])));
+
+// Grafos de iniciativas (Pirámide Negra): se investigan como tecnologías
+app.get('/api/graphs', (req, res) => res.json(listGraphs(String(req.query.faction ?? DEFAULT_FACTION))));
+app.get('/api/graphs/:key', (req, res) => {
+  const g = getGraph(req.params.key);
+  if (!g) return res.status(404).json({ error: 'Grafo no encontrado' });
+  res.json(g);
+});
+
 app.get('/api/techs/:key', (req, res) => {
   const t = getTechTree(req.params.key, String(req.query.variant ?? '') || undefined);
   if (!t) return res.status(404).json({ error: 'Árbol de tecnologías no encontrado' });
@@ -49,7 +60,7 @@ app.get('/api/techs/:key', (req, res) => {
 app.get('/api/units', (req, res) => {
   const q = String(req.query.q ?? '').toLowerCase();
   const list = listRoster(String(req.query.faction ?? '') || undefined).filter((u) => !q || u.name.toLowerCase().includes(q) || u.card.includes(q));
-  res.json(list);
+  res.json(list.map((u) => ({ ...u, bp: bulletsInfo(u.bullets) })));
 });
 
 // Facciones de campaña de una subcultura: señores, unidades que recluta y las que consigue con mejoras
@@ -65,7 +76,7 @@ app.get('/api/units/:card', (req, res) => {
 app.get('/api/factions', (_req, res) => res.json(listSubcultures()));
 app.get('/api/targets', (req, res) => {
   const sc = String(req.query.faction ?? '');
-  res.json(listTargets(sc).map((u) => ({ key: u.key, name: u.name, caste: u.casteEs ?? u.caste, cost: u.cost, models: u.models })));
+  res.json(listTargets(sc).map((u) => ({ key: u.key, name: u.name, caste: u.casteEs ?? u.caste, group: u.group, cost: u.cost, models: u.models })));
 });
 
 // ---------- Cálculo de bufos ----------
@@ -82,13 +93,20 @@ app.post('/api/compute', (req, res) => {
 // body: { army: ComputeRequest, attacker: id de tarjeta, targets: [unit cards] }
 app.post('/api/dps', (req, res) => {
   try {
-    const { army, attacker, targets } = req.body as { army: ComputeRequest; attacker: string; targets: string[] };
+    const { army, attacker, targets, dir } = req.body as { army: ComputeRequest; attacker: string; targets: string[]; dir?: AttackDir };
+    const d: AttackDir = dir === 'flank' || dir === 'rear' ? dir : 'front';
     const result = compute({ ...army, units: army.units ?? [] });
     const att = result.cards.find((c) => c.id === attacker);
     if (!att) return res.status(404).json({ error: 'Atacante no está en el ejército' });
     const rows = targetsFromCards(targets ?? [])
       .map((t) => applyDebuffs(t, result.enemyDebuffs))
-      .map((t) => meleeDps(att, t));
+      .map((t) => {
+        const mine = meleeDps(att, t, d);
+        // Al revés: el enemigo (stats base, con tus debufos) contra tu unidad (con sus bufos)
+        const u = getTarget(t.id);
+        const back = u ? duel(mine, meleeDps(unitAsAttacker(u, result.enemyDebuffs), cardAsTarget(att))) : undefined;
+        return { ...mine, info: targetInfo(t.id), duel: back };
+      });
     res.json({ attacker: att.name, rows, disclaimer: DPS_DISCLAIMER, debuffs: result.enemyDebuffs.map((d) => d.ability) });
   } catch (e) {
     res.status(400).json({ error: (e as Error).message });

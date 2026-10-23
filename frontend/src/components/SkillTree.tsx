@@ -55,6 +55,17 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info }: Pro
   const mountRank = (n: SkillNode) => n.levels[0]?.autoRank ?? n.levels[0]?.requiredRank;
   const innates = tree.background.filter((b) => !b.autoActive);
   const innateValue = selection.innate === undefined ? tree.defaultInnate : selection.innate;
+  const [showInnates, setShowInnates] = useState(false);
+  // Textos de efecto de un rasgo (y uno corto para el desplegable)
+  const traitLines = (b: SkillNode) => b.levels.flatMap((l) => l.effects).filter((e) => e.text).map((e) => ({ text: e.text, kind: e.kind }));
+  const traitShort = (b: SkillNode) => {
+    const ls = traitLines(b);
+    const main = ls.find((l) => l.kind === 'battle' || l.kind === 'attribute') ?? ls[0];
+    if (!main) return '';
+    const t = main.text.replace(/\s*\([^)]*\)\s*$/, '');
+    return (t.length > 58 ? t.slice(0, 56) + '…' : t) + (ls.length > 1 ? ` (+${ls.length - 1})` : '');
+  };
+  const innateSel = innates.find((b) => b.key === innateValue);
 
   const show = (n: SkillNode, el: HTMLElement) => setHover({ node: n, rect: el.getBoundingClientRect() });
   // La ventanita va pegada al nodo: al hacer scroll se cierra
@@ -103,15 +114,46 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info }: Pro
               <select value={innateValue ?? ''} onChange={(e) => onChange({ ...selection, innate: e.target.value || null })}>
                 <option value="">Ninguno / no sé</option>
                 {innates.map((b) => (
-                  <option key={b.key} value={b.key}>{b.name || b.skillKey}</option>
+                  <option key={b.key} value={b.key} title={traitLines(b).map((l) => l.text).join('\n')}>
+                    {b.name || b.skillKey}{traitShort(b) ? ` — ${traitShort(b)}` : ''}
+                  </option>
                 ))}
-              </select>
+              </select>{' '}
+              <button type="button" className="ghost small" onClick={(e) => { e.preventDefault(); setShowInnates((v) => !v); }}>
+                {showInnates ? 'Ocultar' : `Ver todos (${innates.length})`}
+              </button>
             </label>
           )}
           <span className="muted small legend">
             <i className="lg bought" /> comprada <i className="lg auto" /> por rango (gratis) <i className="lg rank" /> requiere rango <i className="lg blocked" /> excluida
           </span>
         </div>
+        {innates.length > 0 && !showInnates && innateSel && (
+          <div className="trait-info small">
+            <b>{innateSel.name}:</b> {traitLines(innateSel).map((l) => l.text).join(' · ') || 'sin efectos de juego'}
+          </div>
+        )}
+        {showInnates && (
+          <div className="trait-list">
+            {innates.map((b) => (
+              <button
+                key={b.key}
+                type="button"
+                className={'trait-card' + (b.key === innateValue ? ' on' : '')}
+                onClick={() => onChange({ ...selection, innate: b.key })}
+                title="Elegir este rasgo"
+              >
+                <b>{b.name || b.skillKey}</b>
+                {b.description && <span className="muted small trait-desc">{b.description}</span>}
+                <ul>
+                  {traitLines(b).map((l, i) => (
+                    <li key={i} className={l.kind}>{l.text}</li>
+                  ))}
+                </ul>
+              </button>
+            ))}
+          </div>
+        )}
         <ItemsPanel tree={tree} selection={selection} onChange={onChange} />
         {info?.warnings.length ? <div className="warn">{info.warnings.join(' · ')}</div> : null}
       </div>

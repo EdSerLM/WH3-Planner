@@ -1,4 +1,4 @@
-import type { TechTreeData, TechTreeSummary, ArmyState, CampaignFaction, CharacterSummary, CharacterTree, ComputeResult, DpsRow, Meta, SavedBuild, UnitData } from './types';
+import type { TechTreeData, TechTreeSummary, ArmyState, CampaignFaction, GraphData, TechSummaryData, CharacterSummary, CharacterTree, ComputeResult, DpsRow, Meta, SavedBuild, UnitData } from './types';
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(path, { headers: { 'content-type': 'application/json' }, ...init });
@@ -17,14 +17,17 @@ export const api = {
   units: (faction?: string) => req<UnitData[]>(`/api/units${faction ? `?faction=${encodeURIComponent(faction)}` : ''}`),
   campaign: (faction: string) => req<CampaignFaction[]>(`/api/campaign?faction=${encodeURIComponent(faction)}`),
   compute: (army: ArmyState) => req<ComputeResult>('/api/compute', { method: 'POST', body: JSON.stringify(army) }),
-  dps: (army: ArmyState, attacker: string, targets: string[]) =>
+  dps: (army: ArmyState, attacker: string, targets: string[], dir: 'front' | 'flank' | 'rear' = 'front') =>
     req<{ attacker: string; rows: DpsRow[]; disclaimer: string; debuffs: string[] }>('/api/dps', {
       method: 'POST',
-      body: JSON.stringify({ army, attacker, targets }),
+      body: JSON.stringify({ army, attacker, targets, dir }),
     }),
   factions: () => req<{ key: string; name: string }[]>('/api/factions'),
   targets: (faction: string) =>
-    req<{ key: string; name: string; caste: string; cost?: number; models?: number }[]>(`/api/targets?faction=${encodeURIComponent(faction)}`),
+    req<{ key: string; name: string; caste: string; group?: string; cost?: number; models?: number }[]>(`/api/targets?faction=${encodeURIComponent(faction)}`),
+  graphs: (faction: string) => req<{ key: string; name: string }[]>(`/api/graphs?faction=${encodeURIComponent(faction)}`),
+  graph: (key: string) => req<GraphData>(`/api/graphs/${encodeURIComponent(key)}`),
+  techSummary: (techs: string[]) => req<TechSummaryData>('/api/tech-summary', { method: 'POST', body: JSON.stringify({ techs }) }),
   techTrees: (faction: string) => req<TechTreeSummary[]>(`/api/techs?faction=${encodeURIComponent(faction)}`),
   techTree: (key: string, variant?: string) =>
     req<TechTreeData>(`/api/techs/${encodeURIComponent(key)}${variant ? `?variant=${encodeURIComponent(variant)}` : ''}`),

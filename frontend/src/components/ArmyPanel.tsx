@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { unitRank, type ArmyUnitSelection, type CampaignFaction, type UnitData } from '../types';
 import type { RosterBuffs } from '../App';
 import { campaignUnits } from '../campaign';
+import { groupInfo } from '../unitGroups';
 
 const RANKS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -18,7 +19,7 @@ interface Props {
 
 
 /** Icono: ▲ dorado si recibe bufos con rango 0; "R+" si gana más al subir de rango (rango 7+ o "por rango") */
-function BuffMark({ b }: { b?: RosterBuffs[string] }) {
+export function BuffMark({ b }: { b?: RosterBuffs[string] }) {
   if (!b) return null;
   const lines = [
     ...(b.now.length ? ['Recibe bufos de:', ...b.now.map((s) => `• ${s}`)] : []),
@@ -29,6 +30,31 @@ function BuffMark({ b }: { b?: RosterBuffs[string] }) {
       {b.now.length > 0 && <span className="bm-now">▲{b.now.length}</span>}
       {b.r7.length > 0 && <span className="bm-r7">R+</span>}
     </span>
+  );
+}
+
+/** Etiquetas de unidades especiales (datos del juego): Renombre, solo campaña, exclusivas, límite, mejora */
+export function SpecialTags({ u, upgradeRank }: { u: UnitData; upgradeRank?: number }) {
+  const ror = /_ror/.test(u.key + u.card);
+  const excl = u.excl ?? [];
+  return (
+    <>
+      {ror && <span className="sp-tag ror" title="Regimiento de Renombre: versión única y mejorada de una unidad, con rasgos propios. En campaña solo puedes tener 1.">🏅 Renombre</span>}
+      {upgradeRank !== undefined && (
+        <span className="exalted-tag" title={`En campaña se consigue mejorando otra unidad (Mejoras de Banda) desde rango ${upgradeRank}`}>Mejora R{upgradeRank}</span>
+      )}
+      {u.campaignOnly && !ror && (
+        <span className="sp-tag camp" title="Solo existe en campaña (no aparece en batallas personalizadas): mecánicas de facción, eventos, rituales, recompensas...">🗺️ Solo campaña</span>
+      )}
+      {excl.length > 0 && (
+        <span className="sp-tag excl" title={`Solo la pueden tener: ${excl.join(', ')}`}>
+          🔒 {excl.length <= 2 ? excl.join(', ') : `${excl.length} facciones`}
+        </span>
+      )}
+      {!ror && u.cap !== undefined && u.cap > 0 && (
+        <span className="sp-tag cap" title={`Límite en campaña: máximo ${u.cap} de esta unidad`}>Máx. {u.cap}</span>
+      )}
+    </>
   );
 }
 
@@ -53,6 +79,14 @@ export function ArmyPanel({ units, army, usedSlots, buffs = {}, campaign, onChan
   const [q, setQ] = useState('');
   const [showRoR, setShowRoR] = useState(false);
   const [onlyBuffed, setOnlyBuffed] = useState(false);
+  // El roster se abre en una ventana encima (así no ocupa la columna ni tiene su propia barra de desplazamiento)
+  const [picking, setPicking] = useState(false);
+  useEffect(() => {
+    if (!picking) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setPicking(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [picking]);
   const anyBuffs = Object.keys(buffs).length > 0;
   const byCard = useMemo(() => new Map(units.map((u) => [u.card, u])), [units]);
 
@@ -110,7 +144,9 @@ export function ArmyPanel({ units, army, usedSlots, buffs = {}, campaign, onChan
           return (
             <li key={a.card}>
               <span className="army-name">
+                {u && <span className="grp-icon" title={groupInfo(u.group).es}>{groupInfo(u.group).icon}</span>}
                 {u?.name ?? a.card} <BuffMark b={buffs[a.card]} />
+                {u && <SpecialTags u={u} upgradeRank={campaign?.upgrades[u.card]} />}
                 {u && !unitAllowed(u) && (
                   <span className="camp-warn" title={`${campName} no puede tener esta unidad en campaña`}>⚠ no disponible</span>
                 )}
@@ -132,39 +168,53 @@ export function ArmyPanel({ units, army, usedSlots, buffs = {}, campaign, onChan
         {!army.length && <li className="muted">Agrega unidades desde la lista de abajo.</li>}
       </ul>
 
-      <div className="roster-tools">
-        <input placeholder="Buscar unidad…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <label><input type="checkbox" checked={showRoR} onChange={(e) => setShowRoR(e.target.checked)} /> Regimientos de Renombre</label>
-        <label title="Muestra solo las unidades que reciben bufos de tu señor, héroes o tecnologías">
-          <input type="checkbox" checked={onlyBuffed} disabled={!anyBuffs} onChange={(e) => setOnlyBuffed(e.target.checked)} /> Solo con bufos
-        </label>
-      </div>
-      {campName && <div className="small muted buff-legend">Roster de campaña: {campName}</div>}
-      {anyBuffs && (
-        <div className="small muted buff-legend">
-          <span className="bm-now">▲n</span> recibe bufos (n = habilidades) · <span className="bm-r7">R+</span> más bufos al subir de rango (7+ o por rango) · pasa el ratón para ver cuáles
+      <button className="add-units" onClick={() => setPicking(true)} disabled={usedSlots >= 20}>
+        ＋ Agregar unidades {usedSlots >= 20 ? '(ejército lleno)' : ''}
+      </button>
+      {campName && <div className="small muted">Roster de campaña: {campName}</div>}
+
+      {picking && (
+        <div className="roster-modal" onClick={() => setPicking(false)}>
+          <div className="roster-box" onClick={(e) => e.stopPropagation()}>
+            <div className="roster-box-head">
+              <h3>Agregar unidades</h3>
+              <span className={usedSlots > 20 ? 'bad' : ''}>{usedSlots} / 20</span>
+              <input autoFocus placeholder="Buscar unidad…" value={q} onChange={(e) => setQ(e.target.value)} />
+              <label><input type="checkbox" checked={showRoR} onChange={(e) => setShowRoR(e.target.checked)} /> Regimientos de Renombre</label>
+              <label title="Muestra solo las unidades que reciben bufos de tu señor, héroes o tecnologías">
+                <input type="checkbox" checked={onlyBuffed} disabled={!anyBuffs} onChange={(e) => setOnlyBuffed(e.target.checked)} /> Solo con bufos
+              </label>
+              <button className="ghost" onClick={() => setPicking(false)} title="Cerrar (Esc)">✕ Listo</button>
+            </div>
+            <div className="small muted roster-legend">
+              {campName ? `Roster de campaña: ${campName} · ` : ''}
+              🏅 Renombre · 🗺️ solo campaña · 🔒 exclusiva de algunas facciones · Máx. N = límite en campaña
+              {anyBuffs && <> · <span className="bm-now">▲n</span> recibe bufos · <span className="bm-r7">R+</span> más bufos al subir de rango</>}
+              {' '}· pasa el ratón para ver detalles · clic para agregar (puedes agregar varias)
+            </div>
+            <div className="roster">
+              {grouped.map(([g, list]) => (
+                <div key={g} className="roster-col">
+                  <div className="roster-group"><span className="grp-icon">{groupInfo(g).icon}</span> {GROUP_ES[g] ?? groupInfo(g).es} <span className="muted small">({list.length})</span></div>
+                  {list.map((u) => {
+                    const n = army.find((a) => a.card === u.card)?.count ?? 0;
+                    return (
+                      <button key={u.card} className={'roster-item' + (n ? ' in-army' : '')} onClick={() => add(u.card)} disabled={usedSlots >= 20}>
+                        <span>
+                          {n > 0 && <b className="in-count">×{n}</b>} {u.name} <BuffMark b={buffs[u.card]} />
+                          <SpecialTags u={u} upgradeRank={campaign?.upgrades[u.card]} />
+                        </span>
+                        <span className="muted">{u.cost}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+              {!grouped.length && <p className="muted">Ninguna unidad coincide.</p>}
+            </div>
+          </div>
         </div>
       )}
-      <div className="roster">
-        {grouped.map(([g, list]) => (
-          <div key={g}>
-            <div className="roster-group">{GROUP_ES[g] ?? g}</div>
-            {list.map((u) => (
-              <button key={u.card} className="roster-item" onClick={() => add(u.card)} disabled={usedSlots >= 20}>
-                <span>
-                  {u.name} <BuffMark b={buffs[u.card]} />
-                  {campaign?.upgrades[u.card] !== undefined && (
-                    <span className="exalted-tag" title={`En campaña se consigue mejorando otra unidad (Mejoras de Banda) desde rango ${campaign.upgrades[u.card]}`}>
-                      Mejora R{campaign.upgrades[u.card]}
-                    </span>
-                  )}
-                </span>
-                <span className="muted">{u.cost}</span>
-              </button>
-            ))}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
