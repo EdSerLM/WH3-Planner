@@ -8,6 +8,8 @@ import { unitRank } from './types.js';
  * "Units gain +3% weapon and missile strength per rank achieved". Devuelve el % por rango.
  */
 function perRankPct(effect: ParsedEffect): number | undefined {
+  // Los datos del juego ya traen estos bufos desglosados (una entrada por rango, con rankMin): esos se suman aparte
+  if (effect.rankMin !== undefined) return undefined;
   if (!/scaling_experience_benefits/.test(effect.key)) return undefined;
   if (effect.value !== undefined) return effect.value;
   const m = /([\d.]+)\s*%/.exec(`${effect.textEn ?? ''} ${effect.text ?? ''}`);
@@ -411,6 +413,16 @@ export function compute(req: ComputeRequest): ComputeResult {
     });
   }
 
+  // Bufos "por rango" de los datos del juego: la misma habilidad/stat repetida con varios rangos mínimos (1, 2, 3…)
+  const perRankId = (skill: string, owner: string, e: ParsedEffect) => `${skill}|${owner}|${e.key}|${e.stat}`;
+  const rankMins = new Map<string, Set<number>>();
+  for (const { effect, skill, owner } of effects) {
+    if (effect.rankMin === undefined || effect.kind !== 'battle' || !effect.stat) continue;
+    const id = perRankId(skill, owner, effect);
+    rankMins.set(id, (rankMins.get(id) ?? new Set()).add(effect.rankMin));
+  }
+  const isPerRank = (skill: string, owner: string, e: ParsedEffect) => (rankMins.get(perRankId(skill, owner, e))?.size ?? 0) > 1;
+
   // --- Tarjetas de unidades ---
   for (const sel of req.units) {
     const u = getUnit(sel.card);
@@ -421,6 +433,8 @@ export function compute(req: ComputeRequest): ComputeResult {
     let flaming = !!u.flaming;
     const notes: string[] = [];
     const rank = unitRank(sel);
+    // Copias por rango que sí aplican (se juntan en una sola línea al final)
+    const perRankAcc = new Map<string, { stat: StatKey; c: Contribution; n: number; exact?: boolean }>();
     for (const { effect, skill, owner } of effects) {
       // Bufos que crecen con cada rango de la unidad (Vessel de Archaón)
       const per = perRankPct(effect);
@@ -445,10 +459,23 @@ export function compute(req: ComputeRequest): ComputeResult {
         continue;
       }
       if (effect.kind !== 'battle' || !effect.stat || effect.value === undefined) continue;
+      // Bufos de proyectiles a unidades que no disparan: no cambian nada y confunden en los resúmenes
+      if (effect.stat === 'missileDmg' && !u.missile) continue;
+      if (isPerRank(skill, owner, effect)) {
+        const k = `${effect.stat}|${skill}|${owner}|${effect.pct ? 'pct' : 'add'}|${effect.value}`;
+        const acc = perRankAcc.get(k);
+        if (acc) acc.n++;
+        else perRankAcc.set(k, { stat: effect.stat, n: 1, exact: effect.exact, c: { source: skill, from: owner, value: effect.value, how: effect.pct ? 'pct' : 'add' } });
+        continue;
+      }
       contribute(lines, effect.stat, {
         source: skill, from: owner, value: effect.value, how: effect.pct ? 'pct' : 'add',
         conditional: effect.rank7 ? `rango ${effect.rankMin ?? 7}+` : undefined,
       }, effect.exact);
+    }
+    for (const { stat, c, n, exact } of perRankAcc.values()) {
+      const unit = c.how === 'pct' ? '%' : '';
+      contribute(lines, stat, { ...c, value: Math.round(c.value * n * 100) / 100, conditional: `${c.value}${unit} × rango ${n}` }, exact);
     }
     for (const x of allyAbilities) {
       if (x.selfOnly) continue;

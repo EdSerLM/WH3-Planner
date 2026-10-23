@@ -178,6 +178,12 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     'main_units_tables', 'land_units_tables', 'melee_weapons_tables', 'battle_entities_tables', 'unit_armour_types_tables',
     'unit_shield_types_tables', 'missile_weapons_tables', 'projectiles_tables', 'mounts_tables',
     'units_custom_battle_permissions_tables', 'unit_attributes_to_groups_junctions_tables', 'factions_tables', 'unit_variants_tables',
+    // Campaña: qué puede reclutar cada facción (grupo militar + exclusivas) y quién la lidera
+    'units_to_groupings_military_permissions_tables', 'units_to_exclusive_faction_permissions_tables',
+    'frontend_factions_tables', 'frontend_faction_leaders_tables', 'ui_unit_groupings_tables',
+    // Mejoras de Banda (Guerreros del Caos): grupo base -> grupo destino, con tecnología requerida
+    'unit_to_unit_group_junctions_tables', 'unit_upgrade_to_unit_groups_tables', 'unit_upgrade_to_tech_requirements_tables',
+    'technology_node_sets_tables', 'technology_nodes_tables',
   ]);
   const idx = (t: string, k: string) => new Map(T[t].map((r) => [r[k], r]));
   const lu = idx('land_units_tables', 'key'), mw = idx('melee_weapons_tables', 'key'), be = idx('battle_entities_tables', 'key');
@@ -189,12 +195,69 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
   for (const j of T['unit_attributes_to_groups_junctions_tables']) attrs.set(j.attribute_group, [...(attrs.get(j.attribute_group) ?? []), j.attribute]);
   const perms = new Map<string, Set<string>>();
   for (const r of T['units_custom_battle_permissions_tables']) { if (!perms.has(r.unit)) perms.set(r.unit, new Set()); perms.get(r.unit)!.add(r.faction); }
+
+  // ---- Facciones de campaña jugables y su roster (lo que realmente puede reclutar o conseguir cada una)
+  const byGroup = new Map<string, Set<string>>();
+  for (const r of T['units_to_groupings_military_permissions_tables']) byGroup.set(r.military_group, (byGroup.get(r.military_group) ?? new Set()).add(r.unit));
+  // Unidades exclusivas: solo las tienen las facciones listadas con allowed = true
+  const exclusive = new Map<string, Map<string, boolean>>();
+  for (const r of T['units_to_exclusive_faction_permissions_tables']) exclusive.set(r.key, (exclusive.get(r.key) ?? new Map()).set(r.faction, r.allowed));
+  const leaders = new Map<string, string[]>();
+  for (const r of T['frontend_faction_leaders_tables']) if (r.faction && r.agent_subtype_record) leaders.set(r.faction, [...(leaders.get(r.faction) ?? []), r.agent_subtype_record]);
+  // Mejoras de unidad: qué grupos suben a cuáles, desde qué rango y con qué tecnología
+  const groupUnits = new Map<string, string[]>();
+  for (const r of T['unit_to_unit_group_junctions_tables']) groupUnits.set(r.unit_group, [...(groupUnits.get(r.unit_group) ?? []), r.unit]);
+  const upTechs = new Map<string, string[]>();
+  for (const r of T['unit_upgrade_to_tech_requirements_tables']) upTechs.set(r.unit_upgrade, [...(upTechs.get(r.unit_upgrade) ?? []), r.technology]);
+  // Tecnologías de cada facción: su árbol propio o, si no tiene, el general de su subcultura
+  const setTechs = new Map<string, Set<string>>();
+  for (const n of T['technology_nodes_tables']) setTechs.set(n.technology_node_set, (setTechs.get(n.technology_node_set) ?? new Set()).add(n.technology_key));
+  const techsOf = (f: Record<string, any>) => {
+    const sets = T['technology_node_sets_tables'];
+    const own = sets.filter((x) => x.faction_key === f.key);
+    const list = own.length ? own : sets.filter((x) => !x.faction_key && x.subculture === f.subculture);
+    return new Set(list.flatMap((x) => [...(setTechs.get(x.key) ?? [])]));
+  };
+  const campaign: { key: string; name: string; subculture: string; leaders: string[]; units: string[]; upgrades: Record<string, number> }[] = [];
+  for (const ff of T['frontend_factions_tables']) {
+    const f = fac.get(ff.faction);
+    if (!f || f.is_quest_faction || f.is_rebel) continue;
+    const list = new Set<string>();
+    for (const u of byGroup.get(f.military_group) ?? []) { const ex = exclusive.get(u); if (!ex || ex.get(f.key)) list.add(u); }
+    for (const [u, ex] of exclusive) if (ex.get(f.key)) list.add(u);
+    // Lo que se consigue mejorando unidades que ya tiene (p. ej. Bloodletters -> Exaltados): unidad -> rango requerido
+    const techs = techsOf(f);
+    const upgrades: Record<string, number> = {};
+    for (let changed = true; changed;) {
+      changed = false;
+      for (const up of T['unit_upgrade_to_unit_groups_tables']) {
+        const req = upTechs.get(up.upgrade_key);
+        if (req && !req.some((t) => techs.has(t))) continue;
+        if (!(groupUnits.get(up.base_unit_group) ?? []).some((u) => list.has(u) || u in upgrades)) continue;
+        for (const u of groupUnits.get(up.target_unit_group) ?? []) {
+          if (list.has(u) || u in upgrades) continue;
+          upgrades[u] = up.required_rank ?? 0;
+          changed = true;
+        }
+      }
+    }
+    campaign.push({
+      key: f.key, name: sp.get(`factions_screen_name_${f.key}`) ?? f.key, subculture: f.subculture,
+      leaders: [...new Set(leaders.get(f.key) ?? [])], units: [...list].sort(), upgrades,
+    });
+  }
+  campaign.sort((a, b) => a.subculture.localeCompare(b.subculture) || a.name.localeCompare(b.name, 'es'));
+  const campSubcultures = new Map<string, Set<string>>();
+  for (const c of campaign) for (const u of [...c.units, ...Object.keys(c.upgrades)]) campSubcultures.set(u, (campSubcultures.get(u) ?? new Set()).add(c.subculture));
+  const uiParent = idx('ui_unit_groupings_tables', 'key');
+
   const units: any[] = [];
   for (const mu of T['main_units_tables']) {
     if (mu.is_naval) continue;
     const L = lu.get(mu.land_unit);
     if (!L) continue;
-    const subcultures = [...new Set([...(perms.get(mu.unit) ?? [])].map((f) => fac.get(f)?.subculture).filter(Boolean))].sort();
+    // Facciones de batalla personalizada + las de campaña (unidades solo de campaña, como los demonios Exaltados del Caos)
+    const subcultures = [...new Set([...[...(perms.get(mu.unit) ?? [])].map((f) => fac.get(f)?.subculture), ...(campSubcultures.get(mu.unit) ?? [])].filter(Boolean))].sort();
     if (!subcultures.length) continue;
     const ent = be.get(L.man_entity) ?? {};
     const mount = L.mount ? mnt.get(L.mount) : undefined;
@@ -205,6 +268,7 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     const u: any = {
       key: mu.unit, card: card.get(mu.unit) ?? mu.unit, name: sp.get(`land_units_onscreen_name_${L.key}`) ?? mu.unit,
       caste: CASTE_ES[mu.caste] ?? mu.caste, casteKey: mu.caste, cost: mu.multiplayer_cost, models: mu.num_men,
+      tier: mu.tier ?? 0, mounts: L.num_mounts ?? 0, uiGroup: uiParent.get(mu.ui_unit_group_land ?? '')?.parent_group ?? undefined,
       size: ent.size, hpPerModel: (ent.hit_points ?? 0) + (L.bonus_hit_points ?? 0),
       speed: Math.round(((ment ? ment.run_speed : ent.run_speed) ?? 0) * 10), leadership: L.morale,
       ma: L.melee_attack, md: L.melee_defence, charge: L.charge_bonus,
@@ -222,7 +286,7 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
   }
   const subs = [...new Set(units.flatMap((u) => u.subcultures))].map((k) => ({ key: k, name: sp.get(`cultures_subcultures_name_${k}`) ?? k }))
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
-  return { source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', subcultures: subs, units };
+  return { source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', subcultures: subs, units, campaign };
 }
 
 // ---------------------------------------------------------------- principal
@@ -233,8 +297,10 @@ if (!dataDir || !existsSync(dataDir)) {
   process.exit(1);
 }
 
-const skillsFile = JSON.parse(readFileSync(join(BACKEND, 'data/raw/wh3_chs_skills.json'), 'utf8'));
-const unitsFile = JSON.parse(readFileSync(join(BACKEND, 'data/raw/wh3_chs_units.json'), 'utf8'));
+// Datos viejos del planner/twwstats (opcionales): solo para los textos y bloqueos del modo sin datos del juego
+const readOpt = (f: string) => (existsSync(join(BACKEND, f)) ? JSON.parse(readFileSync(join(BACKEND, f), 'utf8')) : null);
+const skillsFile = readOpt('data/raw/wh3_chs_skills.json') ?? { characters: [], skills: {}, abilities: {} };
+const unitsFile = readOpt('data/raw/wh3_chs_units.json') ?? { units: [], roster: [] };
 
 let allSkills: ReturnType<typeof buildAllSkills> | null = null;
 
@@ -339,7 +405,7 @@ if (existsSync(dbPath)) {
   try {
     const all = buildAllUnits(p, spGlobal);
     writeFileSync(join(BACKEND, 'data/raw/wh3_all_units.json'), JSON.stringify(all));
-    console.log(`Unidades de todas las facciones: ${all.units.length} (${all.subcultures.length} facciones)`);
+    console.log(`Unidades de todas las facciones: ${all.units.length} (${all.subcultures.length} facciones, ${all.campaign.length} facciones de campaña jugables)`);
   } catch (err) {
     console.warn(`No pude leer las unidades: ${(err as Error).message}`);
   }

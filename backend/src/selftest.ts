@@ -41,12 +41,12 @@ const hero = byNames('wh2_main_skill_node_set_chs_exalted_hero', {
 const army = {
   lord, heroes: [hero], inAura: true,
   units: [
-    { card: 'wh_main_chs_marauder', count: 5 },
-    { card: 'wh_dlc01_chs_forsaken', count: 4 },
-    { card: 'wh_main_chs_spawn', count: 4 },
-    { card: 'wh_main_chs_giant', count: 1 },
+    { card: 'wh_main_chs_inf_chaos_marauders_0', count: 5 },
+    { card: 'wh_dlc01_chs_inf_forsaken_0', count: 4 },
+    { card: 'wh_main_chs_mon_chaos_spawn', count: 4 },
+    { card: 'wh_main_chs_mon_giant', count: 1 },
     { card: 'wh3_dlc29_chs_mon_giant_spined_chaos_beast', count: 1 },
-    { card: 'wh_dlc06_chs_marauder_horsemasters', count: 3 },
+    { card: 'wh_dlc06_chs_cav_marauder_horsemasters_0', count: 3 },
   ],
 };
 
@@ -65,9 +65,9 @@ const expect = (label: string, got: number, want: number) => {
   console.log(`${ok ? 'OK ' : 'FALLA'} ${label}: ${got} (esperado ${want})`);
   if (!ok) process.exitCode = 1;
 };
-const spawn = r.cards.find((c) => c.id === 'wh_main_chs_spawn')!;
-const forsaken = r.cards.find((c) => c.id === 'wh_dlc01_chs_forsaken')!;
-const marauder = r.cards.find((c) => c.id === 'wh_main_chs_marauder')!;
+const spawn = r.cards.find((c) => c.id === 'wh_main_chs_mon_chaos_spawn')!;
+const forsaken = r.cards.find((c) => c.id === 'wh_dlc01_chs_inf_forsaken_0')!;
+const marauder = r.cards.find((c) => c.id === 'wh_main_chs_inf_chaos_marauders_0')!;
 const lordCard = r.cards.find((c) => c.kind === 'lord')!;
 const heroCard = r.cards.find((c) => c.kind === 'hero')!;
 if (process.env.DEBUG) {
@@ -85,7 +85,7 @@ expect('Héroe: defensa +24', heroCard.stats.md.final - heroCard.stats.md.base, 
 
 expect('Abandonados tienen Perfect Vigour (1 = sí)', forsaken.attributes.some((a) => a.name === 'Vigor perfecto') ? 1 : 0, 1);
 expect('Engendros NO tienen Perfect Vigour (0 = no)', spawn.attributes.some((a) => a.name === 'Vigor perfecto') ? 1 : 0, 0);
-const horse = r.cards.find((c) => c.id === 'wh_dlc06_chs_marauder_horsemasters')!;
+const horse = r.cards.find((c) => c.id === 'wh_dlc06_chs_cav_marauder_horsemasters_0')!;
 expect('Maestros jinetes: Hammer into Anvil no les aplica (defensa +0)', horse.stats.md.final - horse.stats.md.base, 0);
 
 // Excluyentes: el build real (Gladiator + Ruinous Unity) es válido; Gladiator + Commander no
@@ -114,12 +114,12 @@ expect('Rango 5: puntos usados 0', r5b.builds[0].pointsUsed, 0);
 const sod = r.abilities.find((a) => a.key === 'wh_main_character_abilities_stand_or_die')!;
 const fsw = r.abilities.find((a) => a.key === 'wh_main_spell_fire_flaming_sword_of_rhuin')!;
 const r2 = compute({ ...army, activeAbilities: [sod.key, fsw.key], units: army.units.map((u) => ({ ...u, rank7: true })) });
-const f2 = r2.cards.find((c) => c.id === 'wh_dlc01_chs_forsaken')!;
+const f2 = r2.cards.find((c) => c.id === 'wh_dlc01_chs_inf_forsaken_0')!;
 expect('Abandonados R7 + Stand or Die!: defensa +29 (Legion +5, SoD +24)', f2.stats.md.final - f2.stats.md.base, 29);
 expect('Abandonados con Flaming Sword: daño base ×1.3', Math.round((f2.stats.dmg.final / f2.stats.dmg.base) * 100) / 100, 1.3);
 console.log('Flamígero:', f2.flamingAttacks, '| Atributos:', f2.attributes.map((a) => a.name).join(', '));
 
-const targets = targetsFromCards(['wh_main_chs_warriors', 'wh_main_chs_chosen', 'wh_main_chs_spawn']);
+const targets = targetsFromCards(['wh_main_chs_inf_chaos_warriors_0', 'wh_main_chs_inf_chosen_0', 'wh_main_chs_mon_chaos_spawn']);
 console.log('\nDPS Abandonados (R7 + SoD + Flaming Sword):');
 for (const t of targets) console.log(meleeDps(f2, t));
 console.log('\nHabilidades:', r.abilities.filter((a) => a.hasBattleStats).map((a) => `${a.name}[${a.mode}${a.passive ? ',pasiva' : ''}]`).join(', '));

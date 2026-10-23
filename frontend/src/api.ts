@@ -1,4 +1,4 @@
-import type { TechTreeData, TechTreeSummary, ArmyState, CharacterSummary, CharacterTree, ComputeResult, DpsRow, Meta, SavedBuild, UnitData } from './types';
+import type { TechTreeData, TechTreeSummary, ArmyState, CampaignFaction, CharacterSummary, CharacterTree, ComputeResult, DpsRow, Meta, SavedBuild, UnitData } from './types';
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(path, { headers: { 'content-type': 'application/json' }, ...init });
@@ -15,6 +15,7 @@ export const api = {
   characters: (faction?: string) => req<CharacterSummary[]>(`/api/characters${faction ? `?faction=${encodeURIComponent(faction)}` : ''}`),
   character: (key: string) => req<CharacterTree>(`/api/characters/${encodeURIComponent(key)}`),
   units: (faction?: string) => req<UnitData[]>(`/api/units${faction ? `?faction=${encodeURIComponent(faction)}` : ''}`),
+  campaign: (faction: string) => req<CampaignFaction[]>(`/api/campaign?faction=${encodeURIComponent(faction)}`),
   compute: (army: ArmyState) => req<ComputeResult>('/api/compute', { method: 'POST', body: JSON.stringify(army) }),
   dps: (army: ArmyState, attacker: string, targets: string[]) =>
     req<{ attacker: string; rows: DpsRow[]; disclaimer: string; debuffs: string[] }>('/api/dps', {

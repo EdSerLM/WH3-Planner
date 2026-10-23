@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEffect } from './effects.js';
@@ -17,23 +17,12 @@ function readJson<T>(file: string): T {
   return JSON.parse(readFileSync(join(DATA_DIR, file), 'utf8')) as T;
 }
 
-const skillsFile = readJson<SkillsFile>('raw/wh3_chs_skills.json');
-
-// Paquetes de otras facciones con el mismo formato que el Caos (planner + twwstats):
-// data/raw/wh3_<código>_skills.json + wh3_<código>_units.json. Solo se usan si no extrajiste los datos del juego.
-interface PackSkillsFile extends SkillsFile { subculture: string; name: string }
-interface PackUnitsFile extends UnitsFile { subculture: string }
-interface Pack { code: string; subculture: string; name: string; skills: PackSkillsFile; units: UnitData[] }
-const packs: Pack[] = existsSync(join(DATA_DIR, 'raw', 'wh3_all_skills.json'))
-  ? []
-  : readdirSync(join(DATA_DIR, 'raw'))
-      .map((f) => /^wh3_(\w+?)_skills\.json$/.exec(f)?.[1])
-      .filter((code): code is string => !!code && code !== 'chs' && code !== 'all' && existsSync(join(DATA_DIR, 'raw', `wh3_${code}_units.json`)))
-      .map((code) => {
-        const skills = readJson<PackSkillsFile>(`raw/wh3_${code}_skills.json`);
-        const units = readJson<PackUnitsFile>(`raw/wh3_${code}_units.json`).units;
-        return { code, subculture: skills.subculture, name: skills.name, skills, units };
-      });
+// Todo sale de los datos de tu instalación (npm run extraer). Los archivos viejos del planner/twwstats
+// (wh3_chs_skills.json, wh3_chs_units.json) ya no se usan; si siguen ahí solo sirven cuando faltan los datos del juego.
+const EMPTY_SKILLS: SkillsFile = { source: 'sin datos', faction: '', extracted: '', characters: [], skills: {}, abilities: {}, unitLists: [] };
+const skillsFile: SkillsFile = existsSync(join(DATA_DIR, 'raw', 'wh3_chs_skills.json')) && !existsSync(join(DATA_DIR, 'raw', 'wh3_all_skills.json'))
+  ? readJson<SkillsFile>('raw/wh3_chs_skills.json')
+  : EMPTY_SKILLS;
 
 // Árboles de TODAS las facciones sacados de tu instalación (npm run extraer). Si no existen, se usa el planner (solo Caos).
 interface GameNode { k: string; s: string; t: number; i: number; poc?: number; rnp?: number; pr?: string[]; psr?: string[]; sc?: string; ck?: string; fk?: string; bg?: boolean; auto?: boolean }
@@ -69,7 +58,9 @@ export function unitInList(list: number, unitKey: string): boolean {
 export const DEFAULT_FACTION = 'wh_main_sc_chs_chaos';
 // Textos oficiales en español (si existen en data/loc-es)
 loadOfficialLoc(DATA_DIR);
-const unitsFile = readJson<UnitsFile>('raw/wh3_chs_units.json');
+const unitsFile: UnitsFile = skillsFile !== EMPTY_SKILLS && existsSync(join(DATA_DIR, 'raw', 'wh3_chs_units.json'))
+  ? readJson<UnitsFile>('raw/wh3_chs_units.json')
+  : { source: 'sin datos', faction: '', extracted: '', units: [] };
 
 /** Nombres en español opcionales: { "clave o unit card": "Nombre en español" }. */
 const namesEs: Record<string, string> = existsSync(join(DATA_DIR, 'nombres-es.json'))
@@ -135,7 +126,7 @@ function toAbility(a: RawAbility): AbilityInfo {
 
 export const abilities: Record<string, AbilityInfo> = Object.fromEntries(
   Object.entries(
-    gameFile?.abilities ?? (Object.assign({}, ...packs.map((p) => p.skills.abilities), skillsFile.abilities) as Record<string, RawAbility>),
+    gameFile?.abilities ?? skillsFile.abilities,
   ).map(([k, a]) => [k, toAbility(a)]),
 );
 
@@ -373,7 +364,7 @@ const innateCount = new Map<string, number>();
 if (gameFile) {
   for (const c of gameFile.characters) for (const n of c.bg) if (!n.auto) innateCount.set(n.s, (innateCount.get(n.s) ?? 0) + 1);
 } else {
-  for (const f of [skillsFile, ...packs.map((p) => p.skills)]) for (const c of f.characters) for (const n of c.bg) if (n) innateCount.set(n.s, (innateCount.get(n.s) ?? 0) + 1);
+  for (const c of skillsFile.characters) for (const n of c.bg) if (n) innateCount.set(n.s, (innateCount.get(n.s) ?? 0) + 1);
 }
 
 function assemble(
@@ -409,7 +400,6 @@ const gameChars = new Map((gameFile?.characters ?? []).map((c) => [c.key, c]));
 if (!gameFile) {
   const files: { file: SkillsFile; faction: string }[] = [
     { file: skillsFile, faction: DEFAULT_FACTION },
-    ...packs.map((p) => ({ file: p.skills as SkillsFile, faction: p.subculture })),
   ];
   for (const { file, faction } of files) {
     for (const c of file.characters as (SkillsFile['characters'][number] & { legendary?: boolean })[]) {
@@ -465,8 +455,7 @@ function buildGameTree(c: GameCharacter, faction: string): CharacterTree {
 /** Facciones con árboles (las 25 del juego si extrajiste tus datos; si no, solo Guerreros del Caos). */
 export function listCharacterFactions(): { key: string; name: string }[] {
   if (!gameFile) {
-    return [{ key: DEFAULT_FACTION, name: 'Guerreros del Caos' }, ...packs.map((p) => ({ key: p.subculture, name: p.name }))]
-      .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    return skillsFile.characters.length ? [{ key: DEFAULT_FACTION, name: 'Guerreros del Caos' }] : [];
   }
   return [...gameFile.subcultures].sort((a, b) => a.name.localeCompare(b.name, 'es'));
 }
@@ -572,12 +561,8 @@ export function getTechTree(key: string, variant?: string): TechTree | undefined
 }
 
 // ---------- Unidades ----------
+// Roster viejo del Caos (twwstats): solo si no hay datos del juego y el archivo sigue ahí
 const units = new Map<string, UnitData>();
-// Unidades extra del roster del Caos que no vienen en el roster base de twwstats
-// (demonios Exaltados por Mejoras de Banda). Provisional hasta tener las tablas del juego.
-const extraUnits: UnitData[] = existsSync(join(DATA_DIR, 'raw', 'wh3_chs_units_extra.json'))
-  ? readJson<{ units: UnitData[] }>('raw/wh3_chs_units_extra.json').units
-  : [];
 const prepUnit = (u: UnitData): UnitData => ({
   ...u,
   nameEn: u.name,
@@ -585,35 +570,38 @@ const prepUnit = (u: UnitData): UnitData => ({
   casteEs: CASTES[u.caste] ?? u.caste,
   attrs: u.attrs.map(translateAttribute),
 });
-for (const u of [...unitsFile.units, ...extraUnits]) units.set(u.card, prepUnit(u));
+for (const u of unitsFile.units) units.set(u.card, prepUnit(u));
 const chaosUnits = [...units.values()];
-const chaosByKey = new Map(chaosUnits.map((u) => [u.key, u]));
 
-// Unidades de los paquetes: el id es la clave de la unidad (varias variantes comparten carta);
-// la carta original queda en cardArt para cruzarla con las listas de unidades de las habilidades.
-const packRosters = new Map<string, UnitData[]>();
-for (const p of packs) {
-  const list = p.units.map((u) => prepUnit({ ...u, card: u.key, cardArt: u.card }));
-  for (const u of list) if (!units.has(u.card)) units.set(u.card, u);
-  packRosters.set(p.subculture, list);
-}
-
-/** Roster del Caos (twwstats) */
+/** Roster del Caos del modo sin datos del juego */
 export function listUnits(): UnitData[] {
   return chaosUnits;
 }
 
 export function getUnit(card: string): UnitData | undefined {
-  return units.get(card) ?? allByKey.get(card);
+  // Por clave de unidad; las cartas viejas (ejércitos guardados con datos de twwstats) también se reconocen
+  return units.get(card) ?? allByKey.get(card) ?? allByCard.get(card);
 }
 
 // ---------- Unidades de TODAS las facciones (se generan con npm run extraer) ----------
-interface AllUnitsFile { source: string; subcultures: { key: string; name: string }[]; units: (UnitData & { subcultures: string[]; casteKey?: string })[] }
+/** Facción de campaña jugable: quién la lidera, qué recluta y qué consigue con mejoras (unidad -> rango requerido) */
+interface CampaignRow { key: string; name: string; subculture: string; leaders: string[]; units: string[]; upgrades?: Record<string, number> }
+interface AllUnitsFile {
+  source: string; subcultures: { key: string; name: string }[];
+  units: (UnitData & { subcultures: string[]; casteKey?: string; uiGroup?: string })[];
+  campaign?: CampaignRow[];
+}
 const allUnitsFile: AllUnitsFile | null = existsSync(join(DATA_DIR, 'raw', 'wh3_all_units.json'))
   ? readJson<AllUnitsFile>('raw/wh3_all_units.json')
   : null;
 
-// Grupo del panel de ejército según el tipo de unidad del juego
+// Grupo del panel de ejército: el del juego (ui_unit_groupings) o, si no viene, según el tipo de unidad
+const GROUP_BY_UI: Record<string, string> = {
+  infantry: 'Infantry', missile_infantry: 'Missile Infantry', cavalry_chariots: 'Cavalry & Chariots',
+  missile_cavalry_chariots: 'Missile Cavalry & Chariots', monster_beasts: 'Monsters & Beasts',
+  missile_monster_beasts: 'Missile Monsters & Beasts', artillery_war_machines: 'Artillery & War Machines',
+  flying_war_machine: 'Artillery & War Machines',
+};
 const GROUP_BY_CASTE: Record<string, string> = {
   melee_infantry: 'Infantry', monstrous_infantry: 'Infantry', missile_infantry: 'Missile Infantry',
   melee_cavalry: 'Cavalry & Chariots', monstrous_cavalry: 'Cavalry & Chariots', chariot: 'Cavalry & Chariots',
@@ -621,56 +609,68 @@ const GROUP_BY_CASTE: Record<string, string> = {
   warmachine: 'Artillery & War Machines', generic: 'Infantry',
 };
 
-/** Unidad de otra facción con el mismo formato que el roster del Caos (id = clave de unidad). */
+/** Unidad del juego en el formato del roster (id = clave de unidad; la carta queda en cardArt). */
 function asRosterUnit(u: AllUnitsFile['units'][number]): UnitData & { subcultures: string[] } {
   return {
     ...u,
     card: u.key,
+    cardArt: u.card,
     nameEn: u.name,
     casteEs: u.caste,
     caste: u.casteKey ?? u.caste,
     category: u.casteKey ?? '',
-    group: GROUP_BY_CASTE[u.casteKey ?? ''] ?? 'Infantry',
-    tier: 0, campaignOnly: false, mounts: 0, entity: '', barrier: 0,
+    group: GROUP_BY_UI[u.uiGroup ?? ''] ?? GROUP_BY_CASTE[u.casteKey ?? ''] ?? 'Infantry',
+    tier: u.tier ?? 0, campaignOnly: false, mounts: u.mounts ?? 0, entity: '', barrier: 0,
     attrs: u.attrs.map(translateAttribute),
   };
 }
 const allByKey = new Map((allUnitsFile?.units ?? []).map((u) => [u.key, asRosterUnit(u)]));
-const allByCard = new Map((allUnitsFile?.units ?? []).map((u) => [u.card, allByKey.get(u.key)!]));
+const allByCard = new Map<string, UnitData>();
+for (const u of allUnitsFile?.units ?? []) if (!allByCard.has(u.card)) allByCard.set(u.card, allByKey.get(u.key)!);
 
 export function listSubcultures() {
-  if (allUnitsFile) return allUnitsFile.subcultures;
-  // Sin datos del juego: el Caos y los paquetes también sirven como enemigos para el DPS
-  return packs.length ? listCharacterFactions() : [];
+  return allUnitsFile?.subcultures ?? [];
 }
 
 export function listTargets(subculture: string): UnitData[] {
-  if (!allUnitsFile) {
-    if (subculture === DEFAULT_FACTION) return chaosUnits;
-    return packRosters.get(subculture) ?? [];
-  }
+  if (!allUnitsFile) return subculture === DEFAULT_FACTION ? chaosUnits : [];
   return [...allByKey.values()].filter((u) => u.subcultures.includes(subculture));
 }
 
-/** Roster para armar el ejército: el del Caos (twwstats), el de un paquete o el de la facción elegida (datos del juego). */
+/** Roster para armar el ejército: todas las unidades que la facción tiene en el juego (sin señores ni héroes). */
 export function listRoster(faction?: string): UnitData[] {
-  if (faction && packRosters.has(faction)) return packRosters.get(faction)!;
-  if (!faction || faction === DEFAULT_FACTION || !allUnitsFile) return listUnits();
-  return listTargets(faction).filter((u) => u.caste !== 'lord' && u.caste !== 'hero');
+  if (!allUnitsFile) return listUnits();
+  return listTargets(faction || DEFAULT_FACTION).filter((u) => u.caste !== 'lord' && u.caste !== 'hero');
 }
 
-/** Busca un objetivo por clave de unidad (todas las facciones) o por unit card (roster del Caos). */
+/**
+ * Facciones de campaña jugables de una subcultura (datos del juego): sus señores legendarios (ids de personaje),
+ * las unidades que puede reclutar y las que consigue con mejoras de unidad (Mejoras de Banda del Caos).
+ */
+export function listCampaign(subculture: string): { key: string; name: string; leaders: string[]; units: string[]; upgrades: Record<string, number> }[] {
+  return (allUnitsFile?.campaign ?? [])
+    .filter((c) => c.subculture === subculture)
+    .map((c) => ({
+      key: c.key,
+      name: c.name,
+      leaders: (gameFile?.characters ?? []).filter((ch) => c.leaders.includes(ch.subtype) && ch.subcultures.includes(subculture)).map((ch) => charId(ch, subculture)),
+      units: c.units.filter((k) => allByKey.has(k)),
+      upgrades: c.upgrades ?? {},
+    }));
+}
+
+/** Busca un objetivo por clave de unidad (todas las facciones) o por carta. */
 export function getTarget(id: string): UnitData | undefined {
-  return units.get(id) ?? allByKey.get(id) ?? allByCard.get(id) ?? chaosByKey.get(id);
+  return units.get(id) ?? allByKey.get(id) ?? allByCard.get(id);
 }
 
 export const sources = {
   gameTrees: gameFile ? gameFile.characters.length : 0,
   allUnits: allUnitsFile ? allUnitsFile.units.length : 0,
   officialLoc: officialCount(),
-  skills: gameFile
-    ? `${gameFile.source}: ${gameFile.characters.length} señores y héroes`
-    : `${skillsFile.source} (extraído ${skillsFile.extracted})${packs.length ? ` + ${packs.map((p) => p.name).join(', ')} (planner/twwstats)` : ''}`,
-  units: `${unitsFile.source} (extraído ${unitsFile.extracted})`,
+  skills: gameFile ? `${gameFile.source}: ${gameFile.characters.length} señores y héroes` : `${skillsFile.source} (extraído ${skillsFile.extracted})`,
+  units: allUnitsFile ? `${allUnitsFile.source}: ${allUnitsFile.units.length} unidades` : `${unitsFile.source} (extraído ${unitsFile.extracted})`,
   faction: skillsFile.faction,
+  /** Falta correr npm run extraer (o copiar los datos del juego a esta computadora) */
+  missingGameData: !gameFile || !allUnitsFile,
 };

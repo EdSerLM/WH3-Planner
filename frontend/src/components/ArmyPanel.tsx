@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { unitRank, type ArmyUnitSelection, type UnitData } from '../types';
+import { unitRank, type ArmyUnitSelection, type CampaignFaction, type UnitData } from '../types';
 import type { RosterBuffs } from '../App';
-import { CHAOS_CAMPAIGN, unitAllowed } from '../campaign';
+import { campaignUnits } from '../campaign';
 
 const RANKS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -11,12 +11,11 @@ interface Props {
   usedSlots: number;
   /** Qué unidades reciben bufos del señor, héroes y tecnologías */
   buffs?: RosterBuffs;
-  /** Facción de campaña del Caos: oculta las unidades que no puede tener */
-  campaign?: string;
+  /** Facción de campaña (datos del juego): oculta las unidades que no puede tener */
+  campaign?: CampaignFaction;
   onChange: (army: ArmyUnitSelection[]) => void;
 }
 
-const EXALTED = /_(kho_inf_bloodletters|nur_inf_plaguebearers|sla_inf_daemonette|tze_inf_pink_horrors)_1$/;
 
 /** Icono: ▲ dorado si recibe bufos con rango 0; "R+" si gana más al subir de rango (rango 7+ o "por rango") */
 function BuffMark({ b }: { b?: RosterBuffs[string] }) {
@@ -48,7 +47,9 @@ const GROUP_ES: Record<string, string> = {
 };
 
 export function ArmyPanel({ units, army, usedSlots, buffs = {}, campaign, onChange }: Props) {
-  const campName = CHAOS_CAMPAIGN.find((f) => f.key === campaign)?.name;
+  const campName = campaign?.name;
+  const allowed = useMemo(() => campaignUnits(campaign), [campaign]);
+  const unitAllowed = (u: UnitData) => !allowed || allowed.has(u.card);
   const [q, setQ] = useState('');
   const [showRoR, setShowRoR] = useState(false);
   const [onlyBuffed, setOnlyBuffed] = useState(false);
@@ -59,11 +60,11 @@ export function ArmyPanel({ units, army, usedSlots, buffs = {}, campaign, onChan
     const qq = q.trim().toLowerCase();
     return units
       .filter((u) => showRoR || !/_ror/.test(u.key + u.card)) // Regimientos de Renombre
-      .filter((u) => unitAllowed(u, campaign))
+      .filter((u) => unitAllowed(u))
       .filter((u) => !qq || u.name.toLowerCase().includes(qq))
       .filter((u) => !onlyBuffed || !!buffs[u.card])
       .sort((a, b) => (GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group)) || a.cost - b.cost);
-  }, [units, q, showRoR, onlyBuffed, buffs, campaign]);
+  }, [units, q, showRoR, onlyBuffed, buffs, allowed]);
 
   const grouped = useMemo(() => {
     const m = new Map<string, UnitData[]>();
@@ -110,7 +111,7 @@ export function ArmyPanel({ units, army, usedSlots, buffs = {}, campaign, onChan
             <li key={a.card}>
               <span className="army-name">
                 {u?.name ?? a.card} <BuffMark b={buffs[a.card]} />
-                {u && !unitAllowed(u, campaign) && (
+                {u && !unitAllowed(u) && (
                   <span className="camp-warn" title={`${campName} no puede tener esta unidad en campaña`}>⚠ no disponible</span>
                 )}
               </span>
@@ -152,7 +153,11 @@ export function ArmyPanel({ units, army, usedSlots, buffs = {}, campaign, onChan
               <button key={u.card} className="roster-item" onClick={() => add(u.card)} disabled={usedSlots >= 20}>
                 <span>
                   {u.name} <BuffMark b={buffs[u.card]} />
-                  {EXALTED.test(u.key) && <span className="exalted-tag" title="Versión Exaltada: en campaña se obtiene con las Mejoras de Banda">Banda</span>}
+                  {campaign?.upgrades[u.card] !== undefined && (
+                    <span className="exalted-tag" title={`En campaña se consigue mejorando otra unidad (Mejoras de Banda) desde rango ${campaign.upgrades[u.card]}`}>
+                      Mejora R{campaign.upgrades[u.card]}
+                    </span>
+                  )}
                 </span>
                 <span className="muted">{u.cost}</span>
               </button>

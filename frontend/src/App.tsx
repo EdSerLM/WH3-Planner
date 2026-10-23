@@ -10,8 +10,8 @@ import { BuildSummary } from './components/BuildSummary';
 import { TechTree } from './components/TechTree';
 import { UnitBuffSummary } from './components/UnitBuffSummary';
 import { emptyBuild } from './treeLogic';
-import { CHAOS_CAMPAIGN, CHAOS_SUBCULTURE, campaignForLord } from './campaign';
-import type { ArmyState, BuildSelection, CharacterSummary, CharacterTree, ComputeResult, Meta, SavedBuild, UnitData } from './types';
+import { campaignForLord } from './campaign';
+import type { ArmyState, BuildSelection, CampaignFaction, CharacterSummary, CharacterTree, ComputeResult, Meta, SavedBuild, UnitData } from './types';
 
 const STORAGE_KEY = 'wh3-planner:army';
 const FACTION_KEY = 'wh3-planner:faction';
@@ -35,9 +35,9 @@ function buffSources(now: ComputeResult, r7: ComputeResult, labels: Record<strin
     };
     for (const [stat, line] of Object.entries(c.stats))
       for (const x of line.contributions) {
-        const perRank = x.conditional ? /^([\d.]+)% × rango/.exec(x.conditional) : null;
+        const perRank = x.conditional ? /^(-?[\d.]+)(%?) × rango/.exec(x.conditional) : null;
         const eff = perRank
-          ? `+${perRank[1]}% por rango`
+          ? `${Number(perRank[1]) > 0 ? '+' : ''}${perRank[1]}${perRank[2]} por rango`
           : x.how === 'mult'
             ? `×${x.value}`
             : `${x.value > 0 ? '+' : ''}${x.value}${x.how === 'pct' || PCT_STATS.has(stat) ? '%' : ''}`;
@@ -93,6 +93,7 @@ export default function App() {
   const [units, setUnits] = useState<UnitData[]>([]);
   const [trees, setTrees] = useState<Record<string, CharacterTree>>({});
   const [faction, setFaction] = useState<string>(loadFaction);
+  const [campaigns, setCampaigns] = useState<CampaignFaction[]>([]);
   const [factions, setFactions] = useState<{ key: string; name: string }[]>([]);
   const [army, setArmy] = useState<ArmyState>(() => loadLocal(loadFaction()));
   const [result, setResult] = useState<ComputeResult | null>(null);
@@ -131,10 +132,19 @@ export default function App() {
     } catch {
       /* sin almacenamiento */
     }
-    Promise.all([api.characters(faction), api.units(faction)])
-      .then(([c, u]) => {
+    Promise.all([api.characters(faction), api.units(faction), api.campaign(faction).catch(() => [] as CampaignFaction[])])
+      .then(([c, u, camp]) => {
         setCharacters(c);
         setUnits(u);
+        setCampaigns(camp);
+        // Ejércitos guardados con las cartas viejas (twwstats): se cambian por la clave de la unidad del juego
+        const ids = new Set(u.map((x) => x.card));
+        const byArt = new Map(u.filter((x) => x.cardArt).map((x) => [x.cardArt!, x.card]));
+        setArmy((a) =>
+          a.units.some((x) => !ids.has(x.card) && byArt.has(x.card))
+            ? { ...a, units: a.units.map((x) => (!ids.has(x.card) && byArt.has(x.card) ? { ...x, card: byArt.get(x.card)! } : x)) }
+            : a,
+        );
       })
       .catch((e) => setError(e.message));
   }, [faction]);
@@ -210,8 +220,8 @@ export default function App() {
 
   const setLord = async (key: string) => {
     const t = await ensureTree(key);
-    // Un señor legendario fija su facción de campaña (Festus → The Fecundites); los genéricos respetan la elegida
-    const camp = faction === CHAOS_SUBCULTURE ? campaignForLord(key) : undefined;
+    // Un señor legendario fija su facción de campaña (Festus → Los Fecundos); los genéricos respetan la elegida
+    const camp = campaignForLord(campaigns, key);
     setArmy((a) => ({ ...a, lord: emptyBuild(t), ...(camp ? { campaign: camp } : {}) }));
     setTab('lord');
   };
@@ -306,12 +316,12 @@ export default function App() {
             ))}
           </select>
         </label>
-        {faction === CHAOS_SUBCULTURE && (
-          <label className="faction-pick" title="En campaña, las facciones dedicadas a un dios solo tienen unidades de ese dios e indivisas. Se elige sola con el señor legendario.">
+        {campaigns.length > 0 && (
+          <label className="faction-pick" title="Facción de campaña (datos del juego): limita el roster a lo que puede reclutar o conseguir con mejoras. Se elige sola con el señor legendario.">
             Campaña:{' '}
             <select value={army.campaign ?? ''} onChange={(e) => setArmy((a) => ({ ...a, campaign: e.target.value || undefined }))}>
               <option value="">Sin filtro (todo el roster)</option>
-              {CHAOS_CAMPAIGN.map((f) => (
+              {campaigns.map((f) => (
                 <option key={f.key} value={f.key}>{f.name}</option>
               ))}
             </select>
@@ -349,6 +359,12 @@ export default function App() {
       </header>
 
       {error && <div className="error">{error}</div>}
+      {meta?.sources.missingGameData && (
+        <div className="error">
+          Faltan los datos del juego en esta computadora. Corre <code>npm run extraer -- "&lt;carpeta data del juego&gt;"</code> en backend, o copia
+          {' '}<code>backend/data/raw/wh3_all_skills.json</code>, <code>wh3_all_units.json</code> y <code>backend/data/loc-es/</code> desde tu PC.
+        </div>
+      )}
 
       <main>
         <section className="left">
@@ -436,7 +452,7 @@ export default function App() {
 
       <section className="bottom">
         <aside className="army-col">
-          <ArmyPanel units={units} army={army.units} usedSlots={usedSlots} buffs={rosterBuffs} campaign={faction === CHAOS_SUBCULTURE ? army.campaign : undefined} onChange={(u) => setArmy((a) => ({ ...a, units: u }))} />
+          <ArmyPanel units={units} army={army.units} usedSlots={usedSlots} buffs={rosterBuffs} campaign={campaigns.find((c) => c.key === army.campaign)} onChange={(u) => setArmy((a) => ({ ...a, units: u }))} />
         </aside>
         <div className="bottom-main">
         <nav className="tabs">

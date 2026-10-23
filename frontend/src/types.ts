@@ -100,6 +100,8 @@ export interface ItemInfo {
 export interface UnitData {
   key: string;
   card: string;
+  /** Carta original del juego (ejércitos viejos guardados con cartas de twwstats) */
+  cardArt?: string;
   name: string;
   caste: string;
   casteEs?: string;
@@ -253,9 +255,21 @@ export interface DpsRow {
 }
 
 export interface Meta {
-  sources: { skills: string; units: string; faction: string; gameTrees?: number; allUnits?: number };
+  sources: { skills: string; units: string; faction: string; gameTrees?: number; allUnits?: number; missingGameData?: boolean };
   statLabels: Record<StatKey, string>;
   dpsDisclaimer: string;
+}
+
+/** Facción de campaña jugable (datos del juego) */
+export interface CampaignFaction {
+  key: string;
+  name: string;
+  /** Ids de los señores legendarios que la lideran */
+  leaders: string[];
+  /** Unidades que puede reclutar */
+  units: string[];
+  /** Unidades que consigue mejorando otras (Mejoras de Banda): unidad -> rango requerido */
+  upgrades: Record<string, number>;
 }
 
 export interface SavedBuild {

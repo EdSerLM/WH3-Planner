@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { abilities, DEFAULT_FACTION, getCharacter, getTechTree, listTechTrees, getUnit, listCharacterFactions, listCharacters, listRoster, listSubcultures, listTargets, sources } from './data.js';
+import { abilities, DEFAULT_FACTION, getCharacter, getTechTree, listTechTrees, getUnit, listCampaign, listCharacterFactions, listCharacters, listRoster, listSubcultures, listTargets, sources } from './data.js';
 import { compute } from './engine.js';
 import { applyDebuffs, DPS_DISCLAIMER, meleeDps, targetsFromCards } from './dps.js';
 import { deleteBuild, getBuild, listBuilds, upsertBuild } from './builds.js';
@@ -51,6 +51,9 @@ app.get('/api/units', (req, res) => {
   const list = listRoster(String(req.query.faction ?? '') || undefined).filter((u) => !q || u.name.toLowerCase().includes(q) || u.card.includes(q));
   res.json(list);
 });
+
+// Facciones de campaña de una subcultura: señores, unidades que recluta y las que consigue con mejoras
+app.get('/api/campaign', (req, res) => res.json(listCampaign(String(req.query.faction ?? DEFAULT_FACTION))));
 
 app.get('/api/units/:card', (req, res) => {
   const u = getUnit(req.params.card);
