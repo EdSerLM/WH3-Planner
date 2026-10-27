@@ -258,13 +258,14 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
   // Unidades exclusivas: solo las tienen las facciones listadas con allowed = true
   const exclusive = new Map<string, Map<string, boolean>>();
   for (const r of T['units_to_exclusive_faction_permissions_tables']) exclusive.set(r.key, (exclusive.get(r.key) ?? new Map()).set(r.faction, r.allowed));
-  // allowed = true puede significar dos cosas: si alguna facción permitida ya tiene la unidad por su grupo militar, la unidad
-  // es EXCLUSIVA de esas facciones (p. ej. Regimientos de Renombre de los Elfos Oscuros); si todas son de fuera, solo se la
-  // CONCEDE a ellas y el resto de su grupo la sigue teniendo (p. ej. el Señor de la Transformación concedido a Sayl).
+  // allowed = true puede significar dos cosas, y se decide por grupo militar: si una facción permitida comparte el grupo de
+  // esta facción, la unidad es EXCLUSIVA de las permitidas dentro de ese grupo (p. ej. Regimientos de Renombre de los Elfos
+  // Oscuros); si no, solo se la CONCEDE a ellas y los demás grupos la siguen teniendo (p. ej. el Señor de la Transformación
+  // concedido a Sayl, o los Gloriosos Portadores de Plaga: exclusivos de Archaón entre los Guerreros del Caos, pero Nurgle y
+  // el Príncipe Demonio los siguen reclutando por su propio grupo).
   const unitGroups = new Map<string, Set<string>>();
   for (const r of T['units_to_groupings_military_permissions_tables']) unitGroups.set(r.unit, (unitGroups.get(r.unit) ?? new Set()).add(r.military_group));
-  const exclusiveOnly = (ex: Map<string, boolean>, unit?: string) =>
-    [...ex].some(([f, v]) => v && !!unit && !!unitGroups.get(unit)?.has(fac.get(f)?.military_group));
+  const exclusiveIn = (ex: Map<string, boolean>, group: string) => [...ex].some(([f, v]) => v && fac.get(f)?.military_group === group);
   // Unidades sin edificio que las reclute y que solo están en grupos de mercenarios con facción requerida: solo esas facciones
   const builtSomewhere = new Set(T['building_units_allowed_tables'].map((r) => r.unit as string));
   const groupUnit = new Map(T['mercenary_unit_groups_tables'].map((r) => [r.key as string, r.unit_record as string]));
@@ -305,7 +306,7 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     for (const u of byGroup.get(f.military_group) ?? []) {
       const ex = exclusive.get(u);
       if (!poolOnlyOk(u)) continue;
-      if (!ex || (exclusiveOnly(ex, u) ? ex.get(f.key) === true : ex.get(f.key) !== false)) list.add(u);
+      if (!ex || (exclusiveIn(ex, f.military_group) ? ex.get(f.key) === true : ex.get(f.key) !== false)) list.add(u);
     }
     for (const [u, ex] of exclusive) if (ex.get(f.key)) list.add(u);
     // Lo que se consigue mejorando unidades que ya tiene (p. ej. Bloodletters -> Exaltados): unidad -> rango requerido
@@ -369,7 +370,7 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     if ((mu.campaign_cap ?? -1) > 0) u.cap = mu.campaign_cap;
     const ex = exclusive.get(mu.unit);
     if (poolOnly.has(mu.unit)) u.excl = [...poolOnly.get(mu.unit)!].map((k) => sp.get(`factions_screen_name_${k}`) ?? k).sort((a, b) => a.localeCompare(b, 'es'));
-    else if (ex && exclusiveOnly(ex, mu.unit)) u.excl = [...ex].filter(([, v]) => v).map(([k]) => sp.get(`factions_screen_name_${k}`) ?? k).sort((a, b) => a.localeCompare(b, 'es'));
+    else if (ex && [...(unitGroups.get(mu.unit) ?? [])].some((g) => exclusiveIn(ex, g))) u.excl = [...ex].filter(([, v]) => v).map(([k]) => sp.get(`factions_screen_name_${k}`) ?? k).sort((a, b) => a.localeCompare(b, 'es'));
     {
       const alts = [card.get(L.key), cardByLand.get(L.key), baseCard(mu.unit)].filter((c): c is string => !!c && c !== u.card);
       const por = portrait.get(mu.unit);
