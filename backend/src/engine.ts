@@ -65,10 +65,10 @@ export interface ResolvedBuild {
 export function nodeAvailable(node: SkillNode, levels: Map<string, number> | Record<string, number>): boolean {
   const get = (k: string) => (levels instanceof Map ? levels.get(k) : levels[k]) ?? 0;
   if (node.parentsRequired.some((p) => get(p) < 1)) return false;
-  if (node.parentSubset.length) {
-    // Requisito del juego: N puntos gastados en total entre esas habilidades padre
+  // Requisito del juego: N puntos gastados en total entre esas habilidades padre; con N = 0 no pide nada
+  if (node.parentSubset.length && node.parentSubsetCount > 0) {
     const points = node.parentSubset.reduce((s, p) => s + get(p), 0);
-    if (points < Math.max(1, node.parentSubsetCount)) return false;
+    if (points < node.parentSubsetCount) return false;
   }
   return true;
 }

@@ -33,10 +33,10 @@ export function isAvailable(node: SkillNode, sel: BuildSelection, tree: Characte
     return n ? levelOf(sel, n) : 0;
   };
   if (node.parentsRequired.some((p) => lvl(p) < 1)) return false;
-  if (node.parentSubset.length) {
-    // N puntos gastados en total entre esas habilidades padre
+  // N puntos gastados en total entre esas habilidades padre; con N = 0 (especialidades del Orador de la Garra) no pide nada
+  if (node.parentSubset.length && node.parentSubsetCount > 0) {
     const points = node.parentSubset.reduce((s, p) => s + lvl(p), 0);
-    if (points < Math.max(1, node.parentSubsetCount)) return false;
+    if (points < node.parentSubsetCount) return false;
   }
   return true;
 }
