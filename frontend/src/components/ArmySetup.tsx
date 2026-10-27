@@ -359,12 +359,15 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank }: {
       : [];
   const attrs = card ? card.attributes : (unit?.attrs ?? []).map((a) => ({ name: a, from: undefined as string | undefined }));
   const bullets = unit?.bp ?? [];
-  const mis = card ? (card.stats.missileDmg.base || card.stats.missileDmg.final ? card : null) : null;
+  // Las tarjetas de señor y héroe no traen todas las stats (p. ej. bonificaciones contra grandes)
+  const stat = (k: string) => (card?.stats as Record<string, { base: number; final: number } | undefined> | undefined)?.[k] ?? null;
+  const raw = (k: string) => Number((unit as unknown as Record<string, number> | undefined)?.[k] ?? 0);
+  const mis = stat('missileDmg')?.base || stat('missileDmg')?.final ? card : null;
   const missile = unit?.missile;
   const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
   /** Fila sin barra; con bufos muestra la diferencia como las de arriba */
-  const extraRow = (label: string, st: { base: number; final: number } | null, raw: number) => {
-    const v = st ? st.final : raw;
+  const extraRow = (label: string, st: { base: number; final: number } | null, plain: number) => {
+    const v = (st ? st.final : plain) ?? 0;
     const diff = st ? st.final - st.base : 0;
     return (
       <tr key={label}>
@@ -426,17 +429,13 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank }: {
               </tr>
             );
           })}
-          {(card ? card.stats.bvl.final : (unit as unknown as Record<string, number>)?.bvl) > 0 && (
-            extraRow('🐘 Bonif. contra grandes', card ? card.stats.bvl : null, (unit as unknown as Record<string, number>).bvl)
-          )}
-          {(card ? card.stats.bvi.final : (unit as unknown as Record<string, number>)?.bvi) > 0 && (
-            extraRow('🧍 Bonif. contra infantería', card ? card.stats.bvi : null, (unit as unknown as Record<string, number>).bvi)
-          )}
+          {(stat('bvl')?.final ?? raw('bvl')) > 0 && extraRow('🐘 Bonif. contra grandes', stat('bvl'), raw('bvl'))}
+          {(stat('bvi')?.final ?? raw('bvi')) > 0 && extraRow('🧍 Bonif. contra infantería', stat('bvi'), raw('bvi'))}
           {(mis || missile) && (
             <>
-              {extraRow('🏹 Daño de proyectil', mis ? mis.stats.missileDmg : null, mis ? 0 : missile!.dmg + missile!.ap)}
-              {extraRow('📏 Alcance', mis ? mis.stats.range : null, mis ? 0 : missile!.range)}
-              {extraRow('🎯 Munición', mis ? mis.stats.ammo : null, mis ? 0 : missile!.ammo)}
+              {extraRow('🏹 Daño de proyectil', mis ? stat('missileDmg') : null, mis ? 0 : missile!.dmg + missile!.ap)}
+              {extraRow('📏 Alcance', mis ? stat('range') : null, mis ? 0 : missile!.range)}
+              {extraRow('🎯 Munición', mis ? stat('ammo') : null, mis ? 0 : missile!.ammo)}
             </>
           )}
         </tbody>

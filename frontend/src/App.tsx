@@ -16,6 +16,7 @@ import { TechTree } from './components/TechTree';
 import { PyramidGraph } from './components/PyramidGraph';
 import { TechSummary } from './components/TechSummary';
 import { UnitBuffSummary } from './components/UnitBuffSummary';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { emptyBuild } from './treeLogic';
 import { campaignForLord } from './campaign';
 import type { AbilityState, ArmyState, BuildSelection, CampaignFaction, CharacterSummary, CharacterTree, ComputedCard, ComputeResult, Meta, SavedBuild, UnitData } from './types';
@@ -427,6 +428,7 @@ export default function App() {
       </nav>
 
       {page === 'chars' && (
+      <ErrorBoundary label="el personaje" resetKey={`${faction}|${String(tab)}|${leftView}|${currentSel?.character}`}>
       <main>
         <section className="left">
           <nav className="tabs">
@@ -536,10 +538,12 @@ export default function App() {
           )}
         </aside>
       </main>
+      </ErrorBoundary>
       )}
 
       {page === 'army' && (
       <section className="bottom setup-page">
+        <ErrorBoundary label="el roster" resetKey={faction}>
         <ArmySetup
           units={units}
           army={army.units}
@@ -552,9 +556,11 @@ export default function App() {
           onChange={(u) => setArmy((a) => ({ ...a, units: u }))}
           onEditChar={(t) => { setTab(t); setPage('chars'); }}
         />
+        </ErrorBoundary>
         {/* Tarjetas/DPS a la izquierda y activables fijas a la derecha: se encienden sin subir y bajar */}
         <div className="army-results">
         <aside className="setup-abilities">
+          <ErrorBoundary label="las activables" resetKey={faction}>
           <ActiveAbilities
             abilities={result?.abilities ?? []}
             active={army.activeAbilities}
@@ -563,6 +569,7 @@ export default function App() {
             onAura={(v) => setArmy((a) => ({ ...a, inAura: v }))}
             showEnemies={view === 'dps'}
           />
+          </ErrorBoundary>
         </aside>
         <div className="bottom-main">
         <nav className="tabs">
@@ -571,6 +578,7 @@ export default function App() {
           <button className={view === 'campaign' ? 'active' : ''} onClick={() => setView('campaign')}>Campaña y magia</button>
         </nav>
 
+        <ErrorBoundary label={view === 'dps' ? 'el DPS' : view === 'cards' ? 'las tarjetas' : 'la campaña'} resetKey={`${faction}|${view}`}>
         {view === 'cards' && (
           <>
             <div ref={summaryRef}>
@@ -621,6 +629,7 @@ export default function App() {
             </div>
           </div>
         )}
+        </ErrorBoundary>
         </div>
         </div>
       </section>
