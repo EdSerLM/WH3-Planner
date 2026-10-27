@@ -416,7 +416,7 @@ tr.dps-detail td { background: #19161c; padding: 8px 12px 10px 30px; }
 .in-count { color: var(--gold); margin-right: 2px; }
 
 /* ---------- Preparar ejército (estilo batalla personalizada) ---------- */
-.setup-page { display: flex; flex-direction: column; gap: 12px; grid-template-columns: none; }
+.setup-page, .dps-page { display: flex; flex-direction: column; gap: 12px; grid-template-columns: none; }
 .setup, .setup-abilities { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 .setup-head { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-bottom: 8px; }
 .setup-head h3 { margin: 0; }
