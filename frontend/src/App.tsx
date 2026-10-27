@@ -6,7 +6,7 @@ import { ArmySetup } from './components/ArmySetup';
 import { ArmoryPanel } from './components/ArmoryPanel';
 import { SpellSlotsPanel } from './components/SpellSlotsPanel';
 import { InitiativesPanel } from './components/InitiativesPanel';
-import { Flag } from './gameIcons';
+import { Flag, setGroupIcons } from './gameIcons';
 import { AbilitiesPanel } from './components/AbilitiesPanel';
 import { ActiveAbilities } from './components/ActiveAbilities';
 import { UnitCard } from './components/UnitCard';
@@ -144,6 +144,7 @@ export default function App() {
   useEffect(() => {
     Promise.all([api.meta(), api.characterFactions(), api.builds()])
       .then(([m, f, b]) => {
+        setGroupIcons(m.groupIcons);
         setMeta(m);
         setFactions(f.factions);
         setSaved(b);

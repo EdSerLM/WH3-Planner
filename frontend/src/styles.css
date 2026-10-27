@@ -599,6 +599,8 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 
 /* ---------- Iconos oficiales del juego ---------- */
 .ab-img { vertical-align: middle; border-radius: 4px; margin-right: 2px; }
+/* Iconos oficiales de categoría de unidad y de stats */
+.game-icon { vertical-align: middle; object-fit: contain; }
 .flag-img { vertical-align: middle; margin-right: 4px; }
 .attr-img { vertical-align: middle; }
 .spell-pick { display: flex; align-items: center; gap: 6px; margin-top: 6px; }

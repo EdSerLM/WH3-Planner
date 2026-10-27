@@ -3,6 +3,7 @@ import { unitRank, type ArmyUnitSelection, type CampaignFaction, type UnitData }
 import type { RosterBuffs } from '../App';
 import { campaignUnits } from '../campaign';
 import { groupInfo } from '../unitGroups';
+import { GroupIcon } from '../gameIcons';
 
 const RANKS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -144,7 +145,7 @@ export function ArmyPanel({ units, army, usedSlots, buffs = {}, campaign, onChan
           return (
             <li key={a.card}>
               <span className="army-name">
-                {u && <span className="grp-icon" title={groupInfo(u.group).es}>{groupInfo(u.group).icon}</span>}
+                {u && <span className="grp-icon"><GroupIcon g={u.group} /></span>}
                 {u?.name ?? a.card} <BuffMark b={buffs[a.card]} />
                 {u && <SpecialTags u={u} upgradeRank={campaign?.upgrades[u.card]} />}
                 {u && !unitAllowed(u) && (
@@ -195,7 +196,7 @@ export function ArmyPanel({ units, army, usedSlots, buffs = {}, campaign, onChan
             <div className="roster">
               {grouped.map(([g, list]) => (
                 <div key={g} className="roster-col">
-                  <div className="roster-group"><span className="grp-icon">{groupInfo(g).icon}</span> {GROUP_ES[g] ?? groupInfo(g).es} <span className="muted small">({list.length})</span></div>
+                  <div className="roster-group"><span className="grp-icon"><GroupIcon g={g} /></span> {GROUP_ES[g] ?? groupInfo(g).es} <span className="muted small">({list.length})</span></div>
                   {list.map((u) => {
                     const n = army.find((a) => a.card === u.card)?.count ?? 0;
                     return (

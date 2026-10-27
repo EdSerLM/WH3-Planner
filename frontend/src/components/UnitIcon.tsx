@@ -1,4 +1,6 @@
-// Iconos genéricos de unidad (SVG propios) mientras no tengamos el arte de las cartas del juego.
+import { OfficialImg } from '../gameIcons';
+
+// Iconos genéricos de unidad (SVG propios): respaldo cuando falta el icono oficial de categoría del juego.
 // El tipo sale de los datos del juego (extractor): arma cuerpo a cuerpo, proyectil, montura, si vuela, tamaño...
 
 export const ICON_ES: Record<string, string> = {
@@ -60,13 +62,17 @@ function Shape({ k }: { k: string }) {
   }
 }
 
-/** Icono SVG del tipo de unidad; `title` describe el tipo */
-export function UnitIcon({ kind, size = 28, className }: { kind?: string; size?: number; className?: string }) {
+/**
+ * Icono del tipo de unidad. Con `cat` (icono de categoría del juego, de ui_unit_groupings) usa el oficial;
+ * si no lo hay o el archivo aún no se extrajo, el SVG genérico según `kind`.
+ */
+export function UnitIcon({ kind, cat, size = 28, className }: { kind?: string; cat?: string; size?: number; className?: string }) {
   const k = kind ?? '';
-  return (
+  const svg = (
     <svg className={'unit-icon ' + (className ?? '')} width={size} height={size} viewBox="0 0 32 32" aria-label={ICON_ES[k] ?? 'Unidad'}>
       <title>{ICON_ES[k] ?? 'Unidad'}</title>
       <Shape k={k} />
     </svg>
   );
+  return <OfficialImg src={cat ? `/unitcat/${cat}.png` : undefined} size={size} title={ICON_ES[k]} fallback={svg} className={'unit-icon ' + (className ?? '')} />;
 }

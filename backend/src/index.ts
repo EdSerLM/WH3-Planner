@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { abilities, DEFAULT_FACTION, getCharacter, getGraph, getTechTree, listGraphs, techSummary, listTechTrees, getUnit, listCampaign, listCharacterFactions, listCharacters, listRoster, listSubcultures, listTargets, sources, targetInfo, getTarget, bulletsInfo } from './data.js';
+import { abilities, DEFAULT_FACTION, getCharacter, getGraph, getTechTree, listGraphs, techSummary, listTechTrees, getUnit, listCampaign, listCharacterFactions, listCharacters, listRoster, listSubcultures, listTargets, sources, targetInfo, getTarget, bulletsInfo, groupIcons } from './data.js';
 import { compute } from './engine.js';
 import { type AttackDir, applyDebuffs, cardAsTarget, DPS_DISCLAIMER, duel, meleeDps, targetsFromCards, unitAsAttacker } from './dps.js';
 import { deleteBuild, getBuild, listBuilds, upsertBuild } from './builds.js';
@@ -15,7 +15,7 @@ const PORT = Number(process.env.PORT ?? 3001);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, sources }));
 
-app.get('/api/meta', (_req, res) => res.json({ sources, statLabels: STAT_LABELS_ES, dpsDisclaimer: DPS_DISCLAIMER }));
+app.get('/api/meta', (_req, res) => res.json({ sources, statLabels: STAT_LABELS_ES, dpsDisclaimer: DPS_DISCLAIMER, groupIcons }));
 
 // ---------- Personajes ----------
 app.get('/api/character-factions', (_req, res) => res.json({ default: DEFAULT_FACTION, factions: listCharacterFactions() }));

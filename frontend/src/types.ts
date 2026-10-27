@@ -158,6 +158,8 @@ export interface UnitData {
   desc?: string;
   /** Icono genérico (tipo de arma/montura) */
   icon?: string;
+  /** Icono oficial de categoría (/unitcat/<catIcon>.png) */
+  catIcon?: string;
   /** Arte de la carta del juego (/units/<art>.png) */
   art?: string;
   /** Puntos fuertes/débiles de la carta del juego */
@@ -365,6 +367,7 @@ export interface DpsTargetInfo {
   attrs: string[];
   bullets: { name: string; tip?: string; good: boolean }[];
   icon?: string;
+  catIcon?: string;
   art?: string;
 }
 
@@ -372,6 +375,8 @@ export interface Meta {
   sources: { skills: string; units: string; faction: string; gameTrees?: number; allUnits?: number; missingGameData?: boolean };
   statLabels: Record<StatKey, string>;
   dpsDisclaimer: string;
+  /** Grupo del roster -> icono oficial de categoría (vacío hasta re-extraer) */
+  groupIcons?: Record<string, string>;
 }
 
 /** Facción de campaña jugable (datos del juego) */

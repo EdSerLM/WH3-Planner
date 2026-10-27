@@ -334,6 +334,10 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
   const campSubcultures = new Map<string, Set<string>>();
   for (const c of campaign) for (const u of [...c.units, ...Object.keys(c.upgrades)]) campSubcultures.set(u, (campSubcultures.get(u) ?? new Set()).add(c.subculture));
   const uiParent = idx('ui_unit_groupings_tables', 'key');
+  // Icono oficial de categoría (ui/common ui/unit_category_icons/<icono>.png), como en la carta del juego
+  const iconName = (v: unknown) => (v ? String(v).replace(/\\/g, '/').split('/').pop()!.replace(/\.png$/i, '').toLowerCase() : undefined);
+  const groupIcons: Record<string, string> = {};
+  for (const g of T['ui_unit_groupings_tables']) if (!g.parent_group && iconName(g.icon)) groupIcons[g.key] = iconName(g.icon)!;
 
   const units: any[] = [];
   for (const mu of T['main_units_tables']) {
@@ -354,6 +358,7 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
       key: mu.unit, card: card.get(mu.unit) ?? mu.unit, name: sp.get(`land_units_onscreen_name_${L.key}`) ?? mu.unit,
       caste: CASTE_ES[mu.caste] ?? mu.caste, casteKey: mu.caste, cost: mu.multiplayer_cost, models: mu.num_men,
       tier: mu.tier ?? 0, mounts: L.num_mounts ?? 0, uiGroup: uiParent.get(mu.ui_unit_group_land ?? '')?.parent_group ?? undefined,
+      catIcon: iconName(uiParent.get(mu.ui_unit_group_land ?? '')?.icon),
       size: biggest(ent.size, ment?.size, L.articulated_record ? be.get(artic.get(L.articulated_record)?.articulated_entity ?? '')?.size : undefined),
       hpPerModel: (ent.hit_points ?? 0) + (L.bonus_hit_points ?? 0),
       speed: Math.round(((ment ? ment.run_speed : ent.run_speed) ?? 0) * 10), leadership: L.morale,
@@ -394,7 +399,7 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
   }
   const subs = [...new Set(units.flatMap((u) => u.subcultures))].map((k) => ({ key: k, name: sp.get(`cultures_subcultures_name_${k}`) ?? k, flag: (campaign.find((c) => c.key === k.replace('_sc_', '_') && c.flagPath) ?? campaign.find((c) => c.subculture === k && c.flagPath))?.key }))
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
-  return { source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', subcultures: subs, units, campaign, bulletDefs, experience: readExperience(p) };
+  return { source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', subcultures: subs, units, campaign, bulletDefs, groupIcons, experience: readExperience(p) };
 }
 
 /**
@@ -570,7 +575,9 @@ mkdirSync(cardDir, { recursive: true });
 let cards = 0;
 // Iconos de hechizos y habilidades, de atributos y banderas de facción
 const abilityDir = join(FRONTEND, 'public/abilities'), attrDir = join(FRONTEND, 'public/attrs'), flagDir = join(FRONTEND, 'public/flags');
-for (const d of [abilityDir, attrDir, flagDir]) mkdirSync(d, { recursive: true });
+// Iconos oficiales de categoría de unidad y de stats (sustituyen a los SVG y emojis genéricos de la app)
+const unitCatDir = join(FRONTEND, 'public/unitcat'), statDir = join(FRONTEND, 'public/stats');
+for (const d of [abilityDir, attrDir, flagDir, unitCatDir, statDir]) mkdirSync(d, { recursive: true });
 const wantedAbilityIcons = new Set<string>(Object.values<any>(allSkills?.abilities ?? {}).map((a) => String(a.img ?? '').toLowerCase()).filter(Boolean));
 const attrKeys = new Set([...attrKeyByName.values()].map((k) => k.toLowerCase()));
 const attrFound = new Set<string>(), attrFromBundle = new Set<string>();
@@ -596,6 +603,10 @@ for (const f of packs) {
     if (portraitFiles.has(name)) { writeFileSync(join(cardDir, `${portraitFiles.get(name)}.png`), readEntry(p, e)); continue; }
     if (name.startsWith('ui/portraits/') && /\.png$/.test(name)) uiIndex.push(`${f}\t${name}`);
     if (wantedFlags.has(name)) { writeFileSync(join(flagDir, `${wantedFlags.get(name)}.png`), readEntry(p, e)); continue; }
+    const uc = name.match(/^ui\/common ui\/unit_category_icons\/([^/]+)\.png$/);
+    if (uc) { writeFileSync(join(unitCatDir, `${uc[1]}.png`), readEntry(p, e)); uiIndex.push(`${f}\t${name}`); continue; }
+    const st = name.match(/^ui\/skins\/default\/(icon_stat_[^/]+)\.png$/);
+    if (st) { writeFileSync(join(statDir, `${st[1]}.png`), readEntry(p, e)); uiIndex.push(`${f}\t${name}`); continue; }
     const ab = name.match(/^ui\/battle ui\/ability_icons\/([^/]+)\.png$/);
     // Muchas habilidades del árbol (hechizos, habilidades de personaje) usan como imagen el icono de la habilidad de batalla
     if (ab && wantedIcons.has(ab[1]) && !skillIconFromSkills.has(ab[1])) { writeFileSync(join(iconDir, `${ab[1]}.png`), readEntry(p, e)); skillIconFromAbility.add(ab[1]); }
@@ -632,6 +643,7 @@ if (allUnitsOut) {
 }
 writeFileSync(join(attrDir, 'index.json'), JSON.stringify(Object.fromEntries([...attrKeyByName].filter(([, k]) => attrFound.has(k.toLowerCase())).map(([n, k]) => [n, k.toLowerCase()]))));
 console.log(`Iconos de habilidades: ${readdirSync(abilityDir).length} · de atributos: ${attrFound.size} · banderas: ${readdirSync(flagDir).length}`);
+console.log(`Iconos de categoría de unidad: ${readdirSync(unitCatDir).length} · de stats: ${readdirSync(statDir).length}`);
 writeFileSync(join(BACKEND, 'data/raw/ui_icons_index.txt'), [...new Set(uiIndex)].sort().join('\n'));
 console.log(`Cartas de unidad: ${new Set(readdirSync(cardDir)).size} guardadas en frontend/public/units (${wantedCards.size} buscadas)`);
 console.log(`Índice de iconos de interfaz: ${uiIndex.length} rutas en backend/data/raw/ui_icons_index.txt`);

@@ -6,7 +6,7 @@ import { groupIndex, groupInfo } from '../unitGroups';
 import { BuffMark, SpecialTags } from './ArmyPanel';
 import { UnitIcon } from './UnitIcon';
 import { attrIcon } from '../attrIcons';
-import { AttrImg, useAttrIndex } from '../gameIcons';
+import { AttrImg, GroupIcon, StatImg, useAttrIndex } from '../gameIcons';
 
 // Icono genérico: el del juego (extractor) o, si no viene, según el grupo
 const ICON_BY_GROUP: Record<string, string> = {
@@ -176,7 +176,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
             title={`${c.name}\nDoble clic para editar su árbol`}
           >
             <span className="ut-cost">{c.kind === 'lord' ? 'Señor' : 'Héroe'}</span>
-            <span className="ut-icon"><UnitIcon kind={c.kind === 'lord' ? 'lord' : 'hero'} /><NatureBadges attrs={c.attributes.map((a) => a.name)} /></span>
+            <span className="ut-icon"><UnitIcon kind={c.kind === 'lord' ? 'lord' : 'hero'} cat={c.kind === 'lord' ? 'commander' : 'hero'} /><NatureBadges attrs={c.attributes.map((a) => a.name)} /></span>
             <span className="ut-name">{c.name}</span>
             <AttrIcons attrs={c.attributes} />
           </button>
@@ -197,7 +197,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
               title={`${u?.name ?? sel.card}\nClic: ver y cambiar rango · clic derecho: quitar`}
             >
               <span className="ut-cost"><Tier t={u?.tier} />{u?.cost ?? ''}</span>
-              <span className="ut-icon"><UnitIcon kind={iconOf(u)} /><NatureBadges attrs={u?.attrs} /></span>
+              <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u?.catIcon} /><NatureBadges attrs={u?.attrs} /></span>
               <span className="ut-name">{u?.name ?? sel.card}</span>
               <AttrIcons attrs={unitCard(sel.card)?.attributes ?? (u?.attrs ?? []).map((name) => ({ name }))} />
               <span className="ut-marks">
@@ -256,7 +256,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
               {roster.map(([g, list]) => (
                 <div key={g} className="rpanel">
                   <div className="rpanel-head">
-                    <span>{groupInfo(g).icon}</span> {groupInfo(g).es} <span className="muted small">({list.length})</span>
+                    <GroupIcon g={g} /> {groupInfo(g).es} <span className="muted small">({list.length})</span>
                   </div>
                   <div className="rpanel-tiles">
                     {list.map((u) => {
@@ -273,7 +273,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
                           disabled={usedSlots >= 20}
                         >
                           <span className="ut-cost"><Tier t={u.tier} />{u.cost}</span>
-                          <span className="ut-icon"><UnitIcon kind={iconOf(u)} /><NatureBadges attrs={u.attrs} /></span>
+                          <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u.catIcon} /><NatureBadges attrs={u.attrs} /></span>
                           <span className="ut-name">{u.name}</span>
                           <AttrIcons attrs={rosterCards[u.card]?.attributes ?? (u.attrs ?? []).map((name) => ({ name }))} />
                           <span className="ut-marks">
@@ -385,7 +385,7 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank }: {
       {(unit?.art ?? card?.art) && <img className="ip-art" src={`/units/${unit?.art ?? card?.art}.png`} alt="" />}
       <div className="ip-name">{name}</div>
       <div className="ip-caste">
-        <UnitIcon kind={unit ? iconOf(unit) : card?.kind === 'lord' ? 'lord' : 'hero'} size={16} /> {caste}
+        <UnitIcon kind={unit ? iconOf(unit) : card?.kind === 'lord' ? 'lord' : 'hero'} cat={unit ? unit.catIcon : card?.kind === 'lord' ? 'commander' : 'hero'} size={16} /> {caste}
         {' · '}
         {(() => {
           const at = unit?.attrs ?? card?.attributes.map((a) => a.name) ?? [];
@@ -418,7 +418,7 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank }: {
             const diff = v.final - v.base;
             return (
               <tr key={s.k}>
-                <td>{s.icon} {s.label}</td>
+                <td><StatImg stat={s.k} emoji={s.icon} /> {s.label}</td>
                 <td className={'num ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '')}>
                   {fmt(v.final)}{diff ? <span className="small"> ({diff > 0 ? '+' : ''}{fmt(diff)})</span> : null}
                 </td>

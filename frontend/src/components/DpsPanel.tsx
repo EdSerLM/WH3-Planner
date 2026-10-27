@@ -4,6 +4,7 @@ import type { ArmyState, ComputedCard, DpsRow, UnitData } from '../types';
 import { GROUP_ORDER, groupIndex, groupInfo } from '../unitGroups';
 import { UnitIcon } from './UnitIcon';
 import { Tier } from './ArmySetup';
+import { GroupIcon, StatImg } from '../gameIcons';
 
 interface Props {
   army: ArmyState;
@@ -178,7 +179,7 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
   const sectionTitle = (g: string) =>
     groupBy === 'tier'
       ? <><Tier t={Number(g) || undefined} /> <b>{Number(g) ? `Nivel ${ROMAN[Number(g)] ?? g}` : 'Sin nivel'}</b></>
-      : <><span className="grp-icon">{groupInfo(g).icon}</span> <b>{groupInfo(g).es}</b></>;
+      : <><span className="grp-icon"><GroupIcon g={g} /></span> <b>{groupInfo(g).es}</b></>;
 
   const maxDps = Math.max(1, ...rows.map((r) => r.dps));
   const finite = rows.filter((r) => Number.isFinite(r.timeToKill)).map((r) => r.timeToKill);
@@ -206,8 +207,10 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
             <b>{attCard.name}</b>
             <div className="small muted">{attCard.caste}{attCard.models ? ` · ${attCard.models} modelos` : ''} · con tus bufos</div>
             <div className="small">
-              ⚔️ {attCard.stats.ma.final} · 💥 {Math.round((attCard.stats.dmg.final + attCard.stats.ap.final) * 10) / 10} ({Math.round(attCard.stats.ap.final * 10) / 10} perf.)
-              · 🛡️ {attCard.stats.md.final} · ⛓️ {attCard.stats.armour.final}
+              <StatImg stat="ma" emoji="⚔️" title="Ataque cuerpo a cuerpo" /> {attCard.stats.ma.final}
+              {' · '}<StatImg stat="ws" emoji="💥" title="Fuerza del arma" /> {Math.round((attCard.stats.dmg.final + attCard.stats.ap.final) * 10) / 10} ({Math.round(attCard.stats.ap.final * 10) / 10} perf.)
+              {' · '}<StatImg stat="md" emoji="🛡️" title="Defensa cuerpo a cuerpo" /> {attCard.stats.md.final}
+              {' · '}<StatImg stat="armour" emoji="⛓️" title="Armadura" /> {attCard.stats.armour.final}
             </div>
           </div>
           <span className="dps-vs">vs</span>
@@ -346,7 +349,7 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
                         {r.info?.art ? <img className="dps-art" src={`/units/${r.info.art}.png`} alt="" loading="lazy" /> : <span className="dps-art" />}
                         <span className="dps-who">
                           <span>
-                            <span className="grp-icon" title={gi.es}>{r.info?.icon ? <UnitIcon kind={r.info.icon} size={15} /> : gi.icon}</span>
+                            <span className="grp-icon" title={gi.es}>{r.info?.icon || r.info?.catIcon ? <UnitIcon kind={r.info.icon} cat={r.info.catIcon} size={15} /> : <GroupIcon g={r.info?.group} size={15} />}</span>
                             {' '}{r.targetName}
                           </span>
                           <span className="small muted"><Tier t={r.info?.tier} /> {r.info?.caste ?? gi.es}</span>
@@ -389,7 +392,7 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
       {info?.debuffs.length ? <p className="small">Debufos activos sobre el enemigo: {info.debuffs.join(', ')}</p> : null}
       <p className="small muted dps-legend">
         {GROUP_ORDER.map((g) => (
-          <span key={g}>{groupInfo(g).icon} {groupInfo(g).es}</span>
+          <span key={g}><GroupIcon g={g} size={14} /> {groupInfo(g).es}</span>
         ))}
         <span><span className="bp-dot good">+</span> punto fuerte</span>
         <span><span className="bp-dot bad">−</span> punto débil</span>
@@ -427,12 +430,12 @@ function TargetSheet({ r }: { r: DpsRow }) {
       {i?.desc && <p className="trait-desc">{i.desc}</p>}
       {i && (
         <div className="ts-stats">
-          <span>{groupInfo(i.group).icon} {i.caste}</span>
-          <span title="Modelos × vida por modelo">❤️ {i.models} × {i.hpPerModel} = <b>{i.models * i.hpPerModel}</b> vida</span>
-          <span title="Defensa cuerpo a cuerpo">🛡️ Def. melee <b>{i.md}</b></span>
-          <span title="Armadura: reduce el daño base entre la mitad y el total de su valor (tope 100%); por encima de 100 sigue sirviendo hasta 200">⛓️ Armadura <b>{i.armour}</b></span>
-          <span title="Liderazgo">🚩 Liderazgo <b>{i.ld}</b></span>
-          <span title="Velocidad">👟 Velocidad <b>{i.speed}</b></span>
+          <span><GroupIcon g={i.group} size={14} /> {i.caste}</span>
+          <span title="Modelos × vida por modelo"><StatImg stat="hp" emoji="❤️" /> {i.models} × {i.hpPerModel} = <b>{i.models * i.hpPerModel}</b> vida</span>
+          <span title="Defensa cuerpo a cuerpo"><StatImg stat="md" emoji="🛡️" /> Def. melee <b>{i.md}</b></span>
+          <span title="Armadura: reduce el daño base entre la mitad y el total de su valor (tope 100%); por encima de 100 sigue sirviendo hasta 200"><StatImg stat="armour" emoji="⛓️" /> Armadura <b>{i.armour}</b></span>
+          <span title="Liderazgo"><StatImg stat="ld" emoji="🚩" /> Liderazgo <b>{i.ld}</b></span>
+          <span title="Velocidad"><StatImg stat="speed" emoji="👟" /> Velocidad <b>{i.speed}</b></span>
           {res.map(([k, n]) => (
             <span key={k} className={i.res[k] < 0 ? 'down' : 'up'} title={i.res[k] < 0 ? 'Debilidad: recibe más daño' : 'Resistencia'}>
               ✨ {n} {i.res[k] > 0 ? '+' : ''}{i.res[k]}%

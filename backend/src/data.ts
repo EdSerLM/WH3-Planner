@@ -726,6 +726,8 @@ interface AllUnitsFile {
   campaign?: CampaignRow[];
   /** Puntos fuertes/débiles: nombre, ayuda, estado (positive/negative/very_...) y orden */
   bulletDefs?: Record<string, { n: string; t?: string; s: string; o: number }>;
+  /** Grupo de la interfaz (infantry, commander...) -> icono oficial de categoría */
+  groupIcons?: Record<string, string>;
   /** Tablas de veteranía del juego, tal cual (npm run extraer); falta en extracciones viejas */
   experience?: { unit_experience_bonuses?: ExperienceBonus[] } & Record<string, Record<string, unknown>[] | undefined>;
 }
@@ -749,6 +751,9 @@ const GROUP_BY_UI: Record<string, string> = {
   flying_war_machine: 'Artillery & War Machines',
   commander: 'Lords', heroes_agents: 'Heroes',
 };
+/** Icono oficial de cada grupo del roster (Infantry, Lords...), de ui_unit_groupings; vacío en extracciones viejas */
+export const groupIcons: Record<string, string> = {};
+for (const [ui, icon] of Object.entries(allUnitsFile?.groupIcons ?? {})) if (GROUP_BY_UI[ui] && !groupIcons[GROUP_BY_UI[ui]]) groupIcons[GROUP_BY_UI[ui]] = icon;
 const GROUP_BY_CASTE: Record<string, string> = {
   melee_infantry: 'Infantry', monstrous_infantry: 'Infantry', missile_infantry: 'Missile Infantry',
   melee_cavalry: 'Cavalry & Chariots', monstrous_cavalry: 'Cavalry & Chariots', chariot: 'Cavalry & Chariots',
@@ -847,6 +852,7 @@ export function targetInfo(id: string) {
     attrs: u.attrs ?? [],
     bullets: bulletsInfo(u.bullets),
     icon: (u as UnitData & { icon?: string }).icon,
+    catIcon: (u as UnitData & { catIcon?: string }).catIcon,
     art: u.art ?? artOf(u.cardArt ?? u.card),
   };
 }
