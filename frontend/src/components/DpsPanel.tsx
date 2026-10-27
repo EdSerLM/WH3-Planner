@@ -28,6 +28,9 @@ const OWN = '__propia__';
 const DEFAULT_TARGETS = ['wh_main_chs_warriors', 'wh_main_chs_chosen', 'wh_main_chs_marauder', 'wh_main_chs_spawn'];
 const STORE = 'wh3-planner:dps-targets';
 const STORE_VIEW = 'wh3-planner:dps-view';
+// Unidad atacante y dirección elegidas: el panel se desmonta al cambiar de pestaña
+const STORE_PICK = 'wh3-planner:dps-pick';
+type AttackDir = 'front' | 'flank' | 'rear';
 
 // Columnas: qué es cada una y cómo se calcula (se ve al pasar el ratón por el encabezado)
 const COLS: { key: SortKey; label: string; tip: string; firstDir: 1 | -1 }[] = [
@@ -82,7 +85,8 @@ const RES_ES: [ResKey, string][] = [
 const RES_ICON: Record<ResKey, string> = { ward: 'resWard', physical: 'resPhysical', missile: 'resMissile', magic: 'resMagic', flame: 'resFlame' };
 
 export function DpsPanel({ army, cards, units, ownName }: Props) {
-  const [attacker, setAttacker] = useState<string>('');
+  const [pick] = useState(() => loadJson(STORE_PICK, { attacker: '', dir: 'front' as AttackDir }));
+  const [attacker, setAttacker] = useState<string>(pick.attacker);
   const [targets, setTargets] = useState<string[]>(() => loadTargets() ?? DEFAULT_TARGETS);
   const [rows, setRows] = useState<DpsRow[]>([]);
   const [info, setInfo] = useState<{ disclaimer: string; debuffs: string[] } | null>(null);
@@ -98,7 +102,7 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
   );
   const groupBy: GroupBy = view.groupBy ?? (view.grouped ? 'type' : '');
   const [open, setOpen] = useState<Set<string>>(new Set());
-  const [dir, setDir] = useState<'front' | 'flank' | 'rear'>('front');
+  const [dir, setDir] = useState<AttackDir>(pick.dir);
   // Las filas son de este atacante y dirección; si no coinciden con lo elegido, se está recalculando
   const [rowsFor, setRowsFor] = useState('');
 
@@ -129,6 +133,15 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
       /* sin almacenamiento */
     }
   }, [view]);
+
+  useEffect(() => {
+    if (!attacker) return;
+    try {
+      localStorage.setItem(STORE_PICK, JSON.stringify({ attacker, dir }));
+    } catch {
+      /* sin almacenamiento */
+    }
+  }, [attacker, dir]);
 
   useEffect(() => {
     if (!cards.find((c) => c.id === attacker) && cards.length) setAttacker(cards[0].id);
