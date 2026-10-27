@@ -5,7 +5,7 @@ import { compute } from './engine.js';
 import { type AttackDir, applyDebuffs, cardAsTarget, DPS_DISCLAIMER, duel, meleeDps, targetsFromCards, unitAsAttacker } from './dps.js';
 import { deleteBuild, getBuild, listBuilds, upsertBuild } from './builds.js';
 import { STAT_LABELS_ES } from './effects.js';
-import type { ComputeRequest } from './types.js';
+import type { ComputeRequest, ComputedCard } from './types.js';
 
 const app = express();
 app.use(cors());
@@ -98,16 +98,36 @@ app.post('/api/dps', (req, res) => {
     const result = compute({ ...army, units: army.units ?? [] });
     const att = result.cards.find((c) => c.id === attacker);
     if (!att) return res.status(404).json({ error: 'Atacante no está en el ejército' });
-    const rows = targetsFromCards(targets ?? [])
-      .map((t) => applyDebuffs(t, result.enemyDebuffs))
-      .map((t) => {
-        const mine = meleeDps(att, t, d);
-        // Al revés: el enemigo (stats base, con tus debufos) contra tu unidad (con sus bufos)
-        const u = getTarget(t.id);
-        const back = u ? duel(mine, meleeDps(unitAsAttacker(u, result.enemyDebuffs), cardAsTarget(att))) : undefined;
-        return { ...mine, info: targetInfo(t.id), duel: back };
-      });
+    const rows = dpsRows(att, targets, d, result.enemyDebuffs).map((r) => ({ ...r, info: targetInfo(r.target) }));
     res.json({ attacker: att.name, rows, disclaimer: DPS_DISCLAIMER, debuffs: result.enemyDebuffs.map((d) => d.ability) });
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message });
+  }
+});
+
+function dpsRows(att: ComputedCard, targets: string[] | undefined, d: AttackDir, debuffs: ReturnType<typeof compute>['enemyDebuffs']) {
+  return targetsFromCards(targets ?? [])
+    .map((t) => applyDebuffs(t, debuffs))
+    .map((t) => {
+      const mine = meleeDps(att, t, d);
+      // Al revés: el enemigo (stats base, con tus debufos) contra tu unidad (con sus bufos)
+      const u = getTarget(t.id);
+      const back = u ? duel(mine, meleeDps(unitAsAttacker(u, debuffs), cardAsTarget(att))) : undefined;
+      return { ...mine, duel: back };
+    });
+}
+
+// Resultado del duelo de cada tarjeta del ejército contra cada objetivo (para marcar las que mejor se enfrentan)
+// body: { army, targets, dir } → { cards: { [id tarjeta]: { [objetivo]: 'win' | 'even' | 'lose' } } }
+app.post('/api/dps/matchups', (req, res) => {
+  try {
+    const { army, targets, dir } = req.body as { army: ComputeRequest; targets: string[]; dir?: AttackDir };
+    const d: AttackDir = dir === 'flank' || dir === 'rear' ? dir : 'front';
+    const result = compute({ ...army, units: army.units ?? [] });
+    const cards = Object.fromEntries(
+      result.cards.map((c) => [c.id, Object.fromEntries(dpsRows(c, targets, d, result.enemyDebuffs).flatMap((r) => (r.duel ? [[r.target, r.duel.verdict]] : [])))]),
+    );
+    res.json({ cards });
   } catch (e) {
     res.status(400).json({ error: (e as Error).message });
   }

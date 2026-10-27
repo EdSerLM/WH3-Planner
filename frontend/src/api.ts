@@ -22,6 +22,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ army, attacker, targets, dir }),
     }),
+  matchups: (army: ArmyState, targets: string[], dir: 'front' | 'flank' | 'rear' = 'front') =>
+    req<{ cards: Record<string, Record<string, 'win' | 'even' | 'lose'>> }>('/api/dps/matchups', {
+      method: 'POST',
+      body: JSON.stringify({ army, targets, dir }),
+    }),
   factions: () => req<{ key: string; name: string }[]>('/api/factions'),
   targets: (faction: string) =>
     req<{ key: string; name: string; caste: string; group?: string; cost?: number; models?: number; tier?: number }[]>(`/api/targets?faction=${encodeURIComponent(faction)}`),

@@ -450,6 +450,17 @@ tr.dps-detail td { background: #19161c; padding: 8px 12px 10px 30px; }
 .utile.g-art { background-image: linear-gradient(180deg, #2c2a22, #171611); }
 .utile.g-mis, .utile.g-mcav, .utile.g-mmon { box-shadow: inset 0 -3px 0 #3d5a7a; }
 .army-strip { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; background: #140f14; border: 1px solid #3a2430; border-radius: 8px; }
+/* franja para elegir atacante en DPS: duelos ganados·parejos·perdidos y ★ la mejor */
+.pick-strip { margin: 6px 0; }
+.utile .ut-duels { position: absolute; left: 0; right: 0; bottom: 0; font-size: 11px; font-weight: 700; text-align: center; background: rgba(8,6,8,.95); padding: 1px 2px 2px; }
+.pick-strip .utile.has-art .ut-name { bottom: 17px; }
+.pick-strip .utile:not(.has-art) .ut-name { margin-bottom: 16px; }
+.ut-duels .w, .duel-w { color: #7fd17f; }
+.ut-duels .e, .duel-e { color: #e0c46a; }
+.ut-duels .l, .duel-l { color: #e07a6a; }
+.utile .ut-best { position: absolute; top: 34px; left: 3px; color: var(--gold); font-size: 15px; text-shadow: 0 0 3px #000; }
+.utile.best { border-color: #7fd17f; box-shadow: 0 0 0 1px #7fd17f inset; }
+.utile.best.sel { box-shadow: 0 0 0 2px var(--gold-dim), 0 0 0 1px #7fd17f inset; }
 .strip-tools { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 8px; font-size: 13px; }
 /* cuerpo: ficha + roster */
 .setup-body { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 12px; margin-top: 10px; align-items: start; }

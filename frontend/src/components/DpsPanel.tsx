@@ -3,7 +3,7 @@ import { api } from '../api';
 import type { ArmyState, ComputedCard, DpsRow, UnitData } from '../types';
 import { GROUP_ORDER, groupIndex, groupInfo } from '../unitGroups';
 import { UnitIcon } from './UnitIcon';
-import { Tier } from './ArmySetup';
+import { PickStrip, Tier, type MatchupCount } from './ArmySetup';
 import { GroupIcon, StatImg } from '../gameIcons';
 
 interface Props {
@@ -176,6 +176,37 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
   }, [army, attacker, targets, dir]);
   const recalculating = !!rows.length && rowsFor !== `${attacker}|${dir}`;
 
+  // Duelos de todas las tarjetas del ejército contra los mismos objetivos, para marcar en la franja las que mejor salen
+  const [duels, setDuels] = useState<Record<string, Record<string, Verdict>>>({});
+  useEffect(() => {
+    if (!targets.length || !cards.length) {
+      setDuels({});
+      return;
+    }
+    let stale = false;
+    const t = setTimeout(() => {
+      api.matchups(army, targets, dir).then((r) => { if (!stale) setDuels(r.cards); }).catch(() => { if (!stale) setDuels({}); });
+    }, 400);
+    return () => { stale = true; clearTimeout(t); };
+  }, [army, targets, dir, cards.length]);
+  const matchups = useMemo(() => {
+    const out: Record<string, MatchupCount> = {};
+    for (const [id, m] of Object.entries(duels)) {
+      const c = { win: 0, even: 0, lose: 0 };
+      for (const [target, v] of Object.entries(m)) if (!view.noRor || !isRor(target)) c[v]++;
+      out[id] = c;
+    }
+    return out;
+  }, [duels, view.noRor]);
+  // ★ a las de más duelos ganados menos perdidos (empates incluidos), si hay con qué comparar
+  const best = useMemo(() => {
+    const scored = Object.entries(matchups).filter(([, m]) => m.win + m.even + m.lose > 0);
+    if (scored.length < 2) return new Set<string>();
+    const score = (m: MatchupCount) => m.win - m.lose;
+    const top = Math.max(...scored.map(([, m]) => score(m)));
+    return new Set(scored.filter(([, m]) => score(m) === top).map(([id]) => id));
+  }, [matchups]);
+
   const groups = useMemo(
     () => [...new Set(factionUnits.map((u) => u.group ?? ''))].sort((a, b) => groupIndex(a) - groupIndex(b)),
     [factionUnits],
@@ -258,15 +289,11 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
           </span>
         </div>
       )}
+      <PickStrip cards={cards} units={units} selected={attacker} onPick={setAttacker} matchups={matchups} best={best} />
       <div className="dps-tools">
-        <label>
-          Atacante:{' '}
-          <select value={attacker} onChange={(e) => setAttacker(e.target.value)}>
-            {cards.map((c) => (
-              <option key={c.id + c.kind} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </label>
+        <span className="small muted">
+          Clic en una carta para elegir el atacante · <span className="duel-w">ganados</span>·<span className="duel-e">parejos</span>·<span className="duel-l">perdidos</span> contra los objetivos de la tabla · ★ la que mejor sale
+        </span>
         {attCard && (
           <span className="small">
             {attCard.flamingAttacks && <span className="chip fire">Flamígero</span>}

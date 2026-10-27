@@ -303,6 +303,75 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
   );
 }
 
+export interface MatchupCount { win: number; even: number; lose: number }
+
+/**
+ * Franja del ejército para elegir con un clic (p. ej. el atacante del DPS): una carta por tarjeta, como en "Preparar
+ * ejército". Con `matchups` cada carta muestra cuántos duelos gana/empata/pierde y ★ marca las que mejor salen.
+ */
+export function PickStrip({ cards, units, selected, onPick, matchups, best }: {
+  cards: ComputedCard[];
+  units: UnitData[];
+  selected: string;
+  onPick: (id: string) => void;
+  matchups?: Record<string, MatchupCount>;
+  best?: Set<string>;
+}) {
+  const byCard = useMemo(() => new Map(units.map((u) => [u.card, u])), [units]);
+  const chars = cards.filter((c) => c.kind !== 'unit');
+  const list = cards
+    .filter((c) => c.kind === 'unit')
+    .sort((a, b) => groupIndex(byCard.get(a.id)?.group) - groupIndex(byCard.get(b.id)?.group) || (byCard.get(a.id)?.tier ?? 0) - (byCard.get(b.id)?.tier ?? 0));
+  const marks = (id: string) => {
+    const m = matchups?.[id];
+    if (!m) return null;
+    return (
+      <span className="ut-duels" title={`Contra los objetivos de la tabla:\n✅ gana ${m.win} · ⚖️ parejo ${m.even} · ❌ pierde ${m.lose}`}>
+        <span className="w">{m.win}</span>·<span className="e">{m.even}</span>·<span className="l">{m.lose}</span>
+      </span>
+    );
+  };
+  const star = (id: string) => best?.has(id) && <span className="ut-best" title="La que mejor sale contra los objetivos de la tabla (más duelos ganados menos perdidos)">★</span>;
+  return (
+    <div className="army-strip pick-strip">
+      {chars.map((c) => (
+        <button
+          key={c.kind + c.id}
+          className={'utile ' + (c.kind === 'lord' ? 'g-lord' : 'g-hero') + (c.art ? ' has-art' : '') + (selected === c.id ? ' sel' : '') + (best?.has(c.id) ? ' best' : '')}
+          style={c.art ? { backgroundImage: `url(/units/${c.art}.png)` } : undefined}
+          onClick={() => onPick(c.id)}
+          title={c.name}
+        >
+          <span className="ut-cost">{c.kind === 'lord' ? 'Señor' : 'Héroe'}</span>
+          {star(c.id)}
+          <span className="ut-icon"><UnitIcon kind={c.kind === 'lord' ? 'lord' : 'hero'} cat={c.kind === 'lord' ? 'commander' : 'hero'} /><NatureBadges attrs={c.attributes.map((a) => a.name)} /></span>
+          <span className="ut-name">{c.name}</span>
+          {marks(c.id)}
+        </button>
+      ))}
+      {list.map((c) => {
+        const u = byCard.get(c.id);
+        return (
+          <button
+            key={c.id}
+            className={'utile ' + (GROUP_CLASS[u?.group ?? ''] ?? '') + (u?.art ? ' has-art' : '') + (selected === c.id ? ' sel' : '') + (best?.has(c.id) ? ' best' : '')}
+            style={artStyle(u)}
+            onClick={() => onPick(c.id)}
+            title={c.name}
+          >
+            <span className="ut-cost"><Tier t={u?.tier} />{u?.cost ?? ''}</span>
+            {star(c.id)}
+            <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u?.catIcon} /><NatureBadges attrs={u?.attrs} /></span>
+            <span className="ut-name">{c.name}</span>
+            {c.count > 1 && <span className="ut-count">×{c.count}</span>}
+            {marks(c.id)}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
 /** Nivel (tier) de la unidad en números romanos, como en el juego */
 export function Tier({ t }: { t?: number }) {
