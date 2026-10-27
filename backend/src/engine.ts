@@ -535,6 +535,12 @@ export function compute(req: ComputeRequest): ComputeResult {
         }
         continue;
       }
+      const patch = effect.target === 'none' ? FACTIONWIDE_PATCH[effect.key] : undefined;
+      if (patch) {
+        const v = Number(/([+-]?[\d.]+)/.exec(effect.textEn ?? effect.text ?? '')?.[1]);
+        if (patch.units.has(u.key) && Number.isFinite(v)) contribute(lines, patch.stat, { source: skill, from: owner, value: v, how: patch.pct ? 'pct' : 'add' });
+        continue;
+      }
       if (effect.target !== 'army') continue;
       // Las listas del planner usan la carta de la unidad; los Exaltados agregados a mano se buscan también por clave
       if (effect.units && !effect.units.includes(u.card) && !effect.units.includes(u.key) && !(u.cardArt && effect.units.includes(u.cardArt))) continue;
@@ -723,6 +729,22 @@ function summarize(b: ResolvedBuild): BuildSummary {
  * (p. ej. la pasiva Guardián, que solo protege a señores y héroes). Solo se aplican las que están aquí; las claves y su
  * texto salen al correr npm run extraer. Las que falten se avisan en la tarjeta y la habilidad se aplica igual.
  */
+/**
+ * Provisional hasta re-extraer: efectos "a todos los ejércitos de la facción" que la extracción vieja dejó como campaña
+ * (sin stat ni unidades). El valor sale del texto del juego; las unidades las confirmó el usuario en partida.
+ * Solo actúa mientras el efecto siga sin objetivo; con la extracción nueva manda el dato del juego.
+ */
+const ULRIC_UNITS = new Set([
+  'wh3_dlc29_emp_inf_warriors_of_ulric', 'wh3_dlc29_emp_inf_wolf_kin',
+  'wh3_dlc29_emp_inf_teutogen_guard', 'wh3_dlc29_emp_inf_teutogen_guard_ror',
+  'wh3_dlc29_emp_cav_knights_of_the_white_wolf', 'wh3_dlc29_emp_cav_knights_of_the_white_wolf_ror',
+  'wh3_dlc29_emp_inf_hunting_hounds_ror', 'wh2_dlc13_emp_inf_swordsmen_ror_0', 'wh2_dlc13_emp_inf_huntsmen_ror_0',
+]);
+const FACTIONWIDE_PATCH: Record<string, { stat: StatKey; pct: boolean; units: Set<string> }> = {
+  wh3_dlc29_effect_force_stat_melee_attack_ulric_units: { stat: 'ma', pct: false, units: ULRIC_UNITS },
+  wh3_dlc29_effect_force_stat_weapon_strength_ulric_units: { stat: 'dmg', pct: true, units: ULRIC_UNITS },
+};
+
 type AbilityTarget = { kind: 'lord' | 'hero' | 'unit'; unit?: UnitData };
 const TARGET_FLAGS: Record<string, (t: AbilityTarget) => boolean> = {};
 
