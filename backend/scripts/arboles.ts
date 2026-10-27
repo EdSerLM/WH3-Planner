@@ -67,7 +67,9 @@ const BASIC_STATS: Record<string, [string, boolean]> = {
 const BASIC_ATTR: Record<string, string> = { unit_is_magical: 'Ataques mágicos', unit_flaming_attack_mod: 'Ataques flamígeros' };
 
 const SELF_SCOPE = /^character_to_character_own/;
-const ARMY_SCOPE = /^(general_to_force_own|character_to_force_own(?!_factionwide)|agent_to_parent_army_own|faction_to_force_own)/;
+// "character_to_force_own_factionwide" (todos los ejércitos de la facción) también cuenta: incluye el ejército del personaje
+// (p. ej. Estandartes de Middenheim de Boris: +4 ataque a las unidades del Culto de Ulric)
+const ARMY_SCOPE = /^(general_to_force_own|character_to_force_own|agent_to_parent_army_own|faction_to_force_own)/;
 const LORD_SCOPE = /^(agent_to_parent_army_general_own|character_to_army_general_own)/;
 // Tecnologías: "a todos los personajes de la facción" (señores y héroes; a veces solo unos)
 const CHARS_SCOPE = /^faction_to_character_own/;
