@@ -19,6 +19,9 @@ interface Faction { key: string; name: string }
 type SortKey = 'name' | 'group' | 'tier' | 'hit' | 'dmg' | 'res' | 'dps' | 'ttk' | 'eff' | 'cost' | 'back' | 'duel';
 interface SortState { key: SortKey; dir: 1 | -1 }
 type GroupBy = '' | 'type' | 'tier';
+type Verdict = 'win' | 'even' | 'lose';
+/** Regimiento de Renombre: el juego los marca con "_ror" en la clave de la unidad (igual que el roster) */
+const isRor = (key: string) => /_ror/.test(key);
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
 
 const OWN = '__propia__';
@@ -89,12 +92,15 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
   const [factionUnits, setFactionUnits] = useState<Target[]>([]);
   const [groupFilter, setGroupFilter] = useState('');
   // grouped (booleano) es de versiones anteriores: equivale a agrupar por tipo
-  const [view, setView] = useState<{ sort: SortState; grouped: boolean; groupBy?: GroupBy }>(() =>
+  // noRor: sin Regimientos de Renombre; verdict: solo los duelos con ese resultado
+  const [view, setView] = useState<{ sort: SortState; grouped: boolean; groupBy?: GroupBy; noRor?: boolean; verdict?: Verdict | '' }>(() =>
     loadJson(STORE_VIEW, { sort: { key: 'ttk', dir: 1 } as SortState, grouped: false }),
   );
   const groupBy: GroupBy = view.groupBy ?? (view.grouped ? 'type' : '');
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [dir, setDir] = useState<'front' | 'flank' | 'rear'>('front');
+  // Las filas son de este atacante y dirección; si no coinciden con lo elegido, se está recalculando
+  const [rowsFor, setRowsFor] = useState('');
 
   useEffect(() => {
     api.factions().then(setFactions).catch(() => setFactions([]));
@@ -133,18 +139,29 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
       setRows([]);
       return;
     }
+    // Una respuesta que llega tarde (de otro atacante o de un cambio anterior) se descarta
+    let stale = false;
     const t = setTimeout(() => {
       api
         .dps(army, attacker, targets, dir)
         .then((r) => {
-          setRows(r.rows);
+          if (stale) return;
+          // Objetivos guardados con claves viejas y nuevas de la misma unidad: el backend los resuelve a la misma
+          // (r.target) y salían filas repetidas, que dejaban filas viejas en la tabla. Una fila por unidad.
+          const seen = new Set<string>();
+          const uniq = r.rows.filter((x) => !seen.has(x.target) && !!seen.add(x.target));
+          setRows(uniq);
+          // Si el backend resolvió todos (misma cantidad y orden), se guardan con la clave actual y sin repetir
+          if (r.rows.length === targets.length && r.rows.some((x, i) => x.target !== targets[i])) setTargets(uniq.map((x) => x.target));
+          setRowsFor(`${attacker}|${dir}`);
           setInfo({ disclaimer: r.disclaimer, debuffs: r.debuffs });
           setErr(null);
         })
-        .catch((e) => setErr(e.message));
+        .catch((e) => { if (!stale) setErr(e.message); });
     }, 200);
-    return () => clearTimeout(t);
+    return () => { stale = true; clearTimeout(t); };
   }, [army, attacker, targets, dir]);
+  const recalculating = !!rows.length && rowsFor !== `${attacker}|${dir}`;
 
   const groups = useMemo(
     () => [...new Set(factionUnits.map((u) => u.group ?? ''))].sort((a, b) => groupIndex(a) - groupIndex(b)),
@@ -153,21 +170,27 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
   const options = useMemo(
     () => factionUnits
       .filter((u) => !groupFilter || (u.group ?? '') === groupFilter)
+      .filter((u) => !view.noRor || !isRor(u.key))
       .sort((a, b) => groupIndex(a.group) - groupIndex(b.group) || a.name.localeCompare(b.name, 'es')),
-    [factionUnits, groupFilter],
+    [factionUnits, groupFilter, view.noRor],
   );
   const isCharacter = (o: Target) => o.group === 'Lords' || o.group === 'Heroes' || /Señor|Héroe/.test(o.caste);
   const add = (key: string) => key && !targets.includes(key) && setTargets([...targets, key]);
   const addAll = () => setTargets([...new Set([...targets, ...options.filter((o) => !isCharacter(o)).map((o) => o.key)])].slice(0, 60));
 
+  // Filas visibles: sin Regimientos de Renombre si se pide, y solo el resultado elegido
+  const shown = useMemo(
+    () => rows.filter((r) => (!view.noRor || !isRor(r.target)) && (!view.verdict || r.duel?.verdict === view.verdict)),
+    [rows, view.noRor, view.verdict],
+  );
   const sorted = useMemo(() => {
     const { key, dir } = view.sort;
-    return [...rows].sort((a, b) => {
+    return [...shown].sort((a, b) => {
       const va = sortValue(a, key), vb = sortValue(b, key);
       const c = typeof va === 'string' ? va.localeCompare(vb as string, 'es') : va - (vb as number);
       return c * dir || a.targetName.localeCompare(b.targetName, 'es');
     });
-  }, [rows, view.sort]);
+  }, [shown, view.sort]);
 
   const sections = useMemo(() => {
     if (!groupBy) return [{ group: '', rows: sorted }];
@@ -182,8 +205,9 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
       ? <><Tier t={Number(g) || undefined} /> <b>{Number(g) ? `Nivel ${ROMAN[Number(g)] ?? g}` : 'Sin nivel'}</b></>
       : <><span className="grp-icon"><GroupIcon g={g} /></span> <b>{groupInfo(g).es}</b></>;
 
-  const maxDps = Math.max(1, ...rows.map((r) => r.dps));
-  const finite = rows.filter((r) => Number.isFinite(r.timeToKill)).map((r) => r.timeToKill);
+  const maxDps = Math.max(1, ...shown.map((r) => r.dps));
+  const finite = shown.filter((r) => Number.isFinite(r.timeToKill)).map((r) => r.timeToKill);
+  const count = (v: Verdict) => rows.filter((r) => (!view.noRor || !isRor(r.target)) && r.duel?.verdict === v).length;
   const fastest = finite.length > 1 ? Math.min(...finite) : undefined;
   const slowest = finite.length > 1 ? Math.max(...finite) : undefined;
 
@@ -215,7 +239,10 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
             </div>
           </div>
           <span className="dps-vs">vs</span>
-          <span className="small muted">{rows.length} objetivo{rows.length === 1 ? '' : 's'}</span>
+          <span className="small muted">
+            {shown.length} objetivo{shown.length === 1 ? '' : 's'}{shown.length !== rows.length ? ` (de ${rows.length})` : ''}
+            {recalculating && <b className="dps-recalc"> · recalculando…</b>}
+          </span>
         </div>
       )}
       <div className="dps-tools">
@@ -290,7 +317,19 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
             <option value="tier">Por nivel (tier)</option>
           </select>
         </label>
-        <button className="ghost" onClick={() => setOpen(open.size ? new Set() : new Set(rows.map((r) => r.target)))}>
+        <label title="Filtra la tabla por el resultado del duelo uno contra uno (columna Resultado)">
+          Resultado:{' '}
+          <select value={view.verdict ?? ''} onChange={(e) => setView((v) => ({ ...v, verdict: e.target.value as Verdict | '' }))}>
+            <option value="">Todos</option>
+            <option value="win">✅ Ganas ({count('win')})</option>
+            <option value="even">⚖️ Parejo ({count('even')})</option>
+            <option value="lose">❌ Pierdes ({count('lose')})</option>
+          </select>
+        </label>
+        <label title="Oculta los Regimientos de Renombre de la tabla y de la lista para agregar objetivos">
+          <input type="checkbox" checked={!!view.noRor} onChange={(e) => setView((v) => ({ ...v, noRor: e.target.checked }))} /> Sin Regimientos de Renombre
+        </label>
+        <button className="ghost" onClick={() => setOpen(open.size ? new Set() : new Set(shown.map((r) => r.target)))}>
           {open.size ? 'Cerrar fichas' : 'Abrir todas las fichas'}
         </button>
         <span className="small muted">Clic en un encabezado para ordenar · clic en una unidad para ver su ficha y el cálculo</span>
@@ -299,7 +338,8 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
         <p className="small warn">Para enemigos de otras facciones corre <code>npm run extraer</code> con la carpeta data del juego.</p>
       )}
       {err && <div className="warn">{err}</div>}
-      <table className="dps-table">
+      {!!rows.length && !shown.length && <p className="small muted">Ningún objetivo con ese filtro.</p>}
+      <table className={'dps-table' + (recalculating ? ' recalc' : '')}>
         <thead>
           <tr>
             <th className="sortable" onClick={() => sortBy('name', 1)} title="Unidad enemiga. Clic para ordenar por nombre">

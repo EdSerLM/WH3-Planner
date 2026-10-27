@@ -11,6 +11,7 @@ import { AbilitiesPanel } from './components/AbilitiesPanel';
 import { ActiveAbilities } from './components/ActiveAbilities';
 import { UnitCard } from './components/UnitCard';
 import { DpsPanel } from './components/DpsPanel';
+import { ArmyDescription } from './components/ArmyDescription';
 import { BuildSummary } from './components/BuildSummary';
 import { TechTree } from './components/TechTree';
 import { PyramidGraph } from './components/PyramidGraph';
@@ -563,6 +564,9 @@ export default function App() {
           onChange={(u) => setArmy((a) => ({ ...a, units: u }))}
           onEditChar={(t) => { setTab(t); setPage('chars'); }}
         />
+        </ErrorBoundary>
+        <ErrorBoundary label="la descripción del ejército" resetKey={faction}>
+          <ArmyDescription cards={cards} units={units} usedSlots={usedSlots} />
         </ErrorBoundary>
         {/* Tarjetas/DPS a la izquierda y activables fijas a la derecha: se encienden sin subir y bajar */}
         <div className="army-results">

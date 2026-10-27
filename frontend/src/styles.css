@@ -229,7 +229,10 @@ tr.contribs ul { margin: 4px 0; padding-left: 18px; font-size: 12px; }
 
 /* DPS */
 .dps-tools { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; font-size: 14px; }
-table.dps-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.dps-table { width: 100%; border-collapse: collapse; font-size: 13px; transition: opacity .15s; }
+/* Resultados del atacante anterior mientras llega el cálculo nuevo */
+table.dps-table.recalc { opacity: .35; pointer-events: none; }
+.dps-recalc { color: var(--gold, #d4a24c); }
 table.dps-table th { text-align: right; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--line); padding: 4px 6px; }
 table.dps-table th:first-child { text-align: left; }
 table.dps-table td { padding: 4px 6px; border-bottom: 1px solid #2c2630; }
@@ -484,6 +487,12 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .setup-abilities .active-abilities li { flex: 0 1 320px; }
 /* Activables en columna lateral fija junto a las tarjetas/DPS */
 .army-results { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; align-items: start; }
+.army-desc { background: var(--panel, #1b171d); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 10px 0; }
+.army-desc summary { cursor: pointer; font-weight: 600; }
+.army-desc > button { float: right; margin-top: -24px; }
+.army-desc .ad-part { margin-top: 8px; }
+.army-desc ul { margin: 4px 0 0 18px; padding: 0; }
+.army-desc li { margin: 2px 0; }
 .army-results .bottom-main { grid-column: 1; grid-row: 1; }
 .army-results .setup-abilities { grid-column: 2; grid-row: 1; position: sticky; top: 72px; max-height: calc(100vh - 84px); overflow-y: auto; }
 .army-results .active-abilities { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
