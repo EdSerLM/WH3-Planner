@@ -726,7 +726,14 @@ function summarize(b: ResolvedBuild): BuildSummary {
 type AbilityTarget = { kind: 'lord' | 'hero' | 'unit'; unit?: UnitData };
 const TARGET_FLAGS: Record<string, (t: AbilityTarget) => boolean> = {};
 
+/**
+ * Provisional hasta re-extraer: habilidades que en el juego solo afectan a señores y héroes (comprobado por el usuario en partida).
+ * Solo se usa si los datos aún no traen sus restricciones de objetivo; con la extracción nueva manda el dato del juego.
+ */
+const CHARACTERS_ONLY = new Set(['wh2_dlc10_unit_passive_guardian']);
+
 function targetAllowed(a: AbilityInfo, owner: string, t: AbilityTarget, notes: string[]): boolean {
+  if (!a.invalidTargets && CHARACTERS_ONLY.has(a.key) && t.kind === 'unit') return false;
   for (const flag of a.invalidTargets ?? []) {
     const rule = TARGET_FLAGS[flag];
     if (rule) {
