@@ -566,3 +566,37 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .ini-item.on { border-color: var(--gold); background: #221d14; }
 .ini-item.info { cursor: default; }
 .ini-item input { margin-top: 3px; }
+/* Arte de las cartas del juego */
+.utile.has-art { background-size: cover; background-position: center top; background-repeat: no-repeat; }
+.utile.has-art .ut-icon .unit-icon { width: 18px !important; height: 18px !important; position: absolute; left: 2px; top: 0; opacity: .9; }
+.utile.has-art .ut-icon { height: 58px; }
+.utile.has-art .ut-name { background: linear-gradient(180deg, rgba(10,8,10,0), rgba(10,8,10,.85) 35%); padding: 6px 2px 1px; margin: 0 -3px; align-self: stretch; text-shadow: 0 1px 2px #000; }
+.utile.has-art .ut-attrs, .utile.has-art .ut-marks { background: rgba(10,8,10,.85); margin: 0 -3px; align-self: stretch; }
+.utile.has-art .ut-cost { background: rgba(0,0,0,.65); }
+.ip-art { display: block; width: 90px; border-radius: 6px; border: 1px solid var(--line); margin-bottom: 6px; float: right; margin-left: 8px; }
+
+/* ---------- Iconos oficiales del juego ---------- */
+.ab-img { vertical-align: middle; border-radius: 4px; margin-right: 2px; }
+.flag-img { vertical-align: middle; margin-right: 4px; }
+.attr-img { vertical-align: middle; }
+.spell-pick { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.card-head { gap: 8px; }
+.card-art { width: 46px; height: 64px; object-fit: cover; object-position: top; border-radius: 4px; border: 1px solid var(--line); flex: 0 0 auto; }
+.card-head-text { flex: 1; min-width: 0; }
+
+/* ---------- Cartas con arte: diseño tipo juego ---------- */
+.utile { width: 104px; height: 158px; }
+.utile.has-art { padding: 0; justify-content: flex-start; border-width: 2px; background-size: cover; background-position: center 18%; background-repeat: no-repeat; }
+.utile.has-art .ut-cost { position: absolute; top: 0; left: 0; right: 0; padding: 1px 4px; background: linear-gradient(180deg, rgba(0,0,0,.8), rgba(0,0,0,0)); border-radius: 0; font-weight: 700; color: #f2e2b8; text-shadow: 0 1px 2px #000; }
+.utile.has-art .ut-icon { position: absolute; top: 16px; right: 2px; width: auto; height: auto; }
+.utile.has-art .ut-icon > .unit-icon { display: none; }
+.utile.has-art .ut-name { position: absolute; left: 0; right: 0; bottom: 30px; margin: 0; padding: 14px 3px 2px; background: linear-gradient(180deg, rgba(8,6,8,0), rgba(8,6,8,.92) 40%); font-weight: 600; font-size: 11px; color: #f4ead8; -webkit-line-clamp: 2; }
+.utile.has-art .ut-attrs { position: absolute; left: 0; right: 0; bottom: 15px; margin: 0; padding: 1px 2px; background: rgba(8,6,8,.92); min-height: 15px; }
+.utile.has-art .ut-marks { position: absolute; left: 0; right: 0; bottom: 0; margin: 0; padding: 1px 2px 2px; background: rgba(8,6,8,.95); min-height: 15px; }
+.utile.has-art .ut-count { top: 18px; left: 3px; }
+.utile.has-art:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--gold), 0 4px 12px rgba(0,0,0,.6); }
+.utile.has-art.g-inf { border-color: #6a5a40; } .utile.has-art.g-mis, .utile.has-art.g-mcav, .utile.has-art.g-mmon { border-color: #3d5a7a; }
+.utile.has-art.g-cav { border-color: #5a5a72; } .utile.has-art.g-mon { border-color: #7a3a3a; } .utile.has-art.g-art { border-color: #6a6a58; }
+.utile.has-art.g-lord, .utile.has-art.g-hero { border-color: var(--gold); }
+.army-strip .utile { aspect-ratio: 104 / 158; min-height: 120px; }
+.army-strip .utile.has-art .ut-name { font-size: 10px; bottom: 28px; }

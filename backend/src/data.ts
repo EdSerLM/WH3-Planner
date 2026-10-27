@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEffect } from './effects.js';
@@ -12,6 +12,12 @@ import type {
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const DATA_DIR = join(here, '..', 'data');
+
+// Arte de las cartas de unidad copiado del juego por npm run extraer (frontend/public/units/<carta>.png)
+const ART_DIR = join(DATA_DIR, '..', '..', 'frontend', 'public', 'units');
+const artCards = new Set(existsSync(ART_DIR) ? readdirSync(ART_DIR).filter((f) => /\.png$/i.test(f)).map((f) => f.slice(0, -4).toLowerCase()) : []);
+/** Nombre del archivo de la carta (sin .png) si existe */
+export const artOf = (card?: string) => (card && card.toLowerCase() !== 'placeholder' && artCards.has(card.toLowerCase()) ? card.toLowerCase() : undefined);
 
 function readJson<T>(file: string): T {
   return JSON.parse(readFileSync(join(DATA_DIR, file), 'utf8')) as T;
@@ -127,6 +133,7 @@ function toAbility(a: RawAbility): AbilityInfo {
     cooldown: a.cd,
     mana: a.mana,
     overcast: a.over,
+    icon: a.img ? a.img.toLowerCase() : undefined,
     mode: negativeSelf ? 'none' : allies ? 'allies' : enemies ? 'enemies' : self ? 'self' : 'none',
     passive: duration === -1,
     spell: a.spell ?? (a.mana ?? 0) > 0,
@@ -501,11 +508,13 @@ function buildGameTree(c: GameCharacter, faction: string): CharacterTree {
 }
 
 /** Facciones con árboles (las 25 del juego si extrajiste tus datos; si no, solo Guerreros del Caos). */
-export function listCharacterFactions(): { key: string; name: string }[] {
+export function listCharacterFactions(): { key: string; name: string; flag?: string }[] {
   if (!gameFile) {
     return skillsFile.characters.length ? [{ key: DEFAULT_FACTION, name: 'Guerreros del Caos' }] : [];
   }
-  return [...gameFile.subcultures].sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  // Bandera de una facción representativa (copiada del juego por npm run extraer)
+  const flags = new Map((allUnitsFile?.subcultures ?? []).map((s) => [s.key, s.flag]));
+  return [...gameFile.subcultures].map((s) => ({ ...s, flag: flags.get(s.key) })).sort((a, b) => a.name.localeCompare(b.name, 'es'));
 }
 
 /**
@@ -707,7 +716,7 @@ export function getUnit(card: string): UnitData | undefined {
 /** Facción de campaña jugable: quién la lidera, qué recluta y qué consigue con mejoras (unidad -> rango requerido) */
 interface CampaignRow { key: string; name: string; subculture: string; leaders: string[]; units: string[]; upgrades?: Record<string, number> }
 interface AllUnitsFile {
-  source: string; subcultures: { key: string; name: string }[];
+  source: string; subcultures: { key: string; name: string; flag?: string }[];
   units: (UnitData & { subcultures: string[]; casteKey?: string; uiGroup?: string; campOnly?: boolean })[];
   campaign?: CampaignRow[];
   /** Puntos fuertes/débiles: nombre, ayuda, estado (positive/negative/very_...) y orden */
@@ -738,6 +747,8 @@ function asRosterUnit(u: AllUnitsFile['units'][number]): UnitData & { subculture
     ...u,
     card: u.key,
     cardArt: u.card,
+    // "art" lo pone npm run extraer cuando la carta propia no existe (retrato del personaje o carta de la unidad base)
+    art: artOf((u as { art?: string }).art) ?? artOf(u.card),
     nameEn: u.name,
     casteEs: u.caste,
     caste: u.casteKey ?? u.caste,
@@ -755,6 +766,11 @@ export function listSubcultures() {
   return allUnitsFile?.subcultures ?? [];
 }
 
+/** Arte de la carta de la unidad de un personaje (por su clave de unidad) */
+export function artOfUnit(unitKey?: string): string | undefined {
+  return unitKey ? allByKey.get(unitKey)?.art : undefined;
+}
+
 export function listTargets(subculture: string): UnitData[] {
   if (!allUnitsFile) return subculture === DEFAULT_FACTION ? chaosUnits : [];
   return [...allByKey.values()].filter((u) => u.subcultures.includes(subculture));
@@ -770,12 +786,13 @@ export function listRoster(faction?: string): UnitData[] {
  * Facciones de campaña jugables de una subcultura (datos del juego): sus señores legendarios (ids de personaje),
  * las unidades que puede reclutar y las que consigue con mejoras de unidad (Mejoras de Banda del Caos).
  */
-export function listCampaign(subculture: string): { key: string; name: string; leaders: string[]; units: string[]; upgrades: Record<string, number> }[] {
+export function listCampaign(subculture: string): { key: string; name: string; flag?: string; leaders: string[]; units: string[]; upgrades: Record<string, number> }[] {
   return (allUnitsFile?.campaign ?? [])
     .filter((c) => c.subculture === subculture)
     .map((c) => ({
       key: c.key,
       name: c.name,
+      flag: c.key,
       leaders: (gameFile?.characters ?? []).filter((ch) => c.leaders.includes(ch.subtype) && ch.subcultures.includes(subculture)).map((ch) => charId(ch, subculture)),
       units: c.units.filter((k) => allByKey.has(k)),
       upgrades: c.upgrades ?? {},
@@ -814,6 +831,7 @@ export function targetInfo(id: string) {
     attrs: u.attrs ?? [],
     bullets: bulletsInfo(u.bullets),
     icon: (u as UnitData & { icon?: string }).icon,
+    art: u.art ?? artOf(u.cardArt ?? u.card),
   };
 }
 

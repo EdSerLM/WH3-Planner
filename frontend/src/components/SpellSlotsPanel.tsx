@@ -1,4 +1,5 @@
 import type { BuildSelection, CharacterTree, SpellSlot } from '../types';
+import { AbilityImg } from '../gameIcons';
 
 /**
  * Fragmentos de hechicería (Kairos): espacios de hechizo común, poco común y raro. Cada espacio se abre con una
@@ -76,6 +77,7 @@ export function SpellSlotsPanel({ tree, selection, onChange }: Props) {
                   <option key={o.key} value={o.key}>{LORE_ICON[o.loreKey] ?? '✦'} {o.lore}: {o.name}</option>
                 ))}
               </select>
+              {pick && info?.icon && <div className="spell-pick"><AbilityImg icon={info.icon} size={34} title={pick.name} /> <b>{pick.name}</b></div>}
               {pick && (
                 <ul className="aslot-eff">
                   {info && (

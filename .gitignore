@@ -4,7 +4,3 @@ backend/data/builds.json
 *.log
 .vite/
 tsconfig.tsbuildinfo
-frontend/public/skills/*.png
-backend/data/loc-es/*.tsv
-backend/data/raw/wh3_all_units.json
-backend/data/raw/wh3_all_skills.json

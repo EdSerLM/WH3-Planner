@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { AbilityState, ComputedCard, Contribution, StatKey } from '../types';
 import { AbilityIcons } from './AbilityIcons';
+import { AbilityImg } from '../gameIcons';
 import { attrIcon } from '../attrIcons';
 
 interface Props {
@@ -42,7 +43,8 @@ export function UnitCard({ card, labels, onSelect, selected, selfAbilities = [],
         onClick={onSelect}
         title={onSelect ? (selected ? 'Clic para cerrar sus bufos acumulados' : 'Clic para ver sus bufos acumulados') : undefined}
       >
-        <div>
+        {card.art && <img className="card-art" src={`/units/${card.art}.png`} alt="" />}
+        <div className="card-head-text">
           <div className="card-name">{card.name}</div>
           <div className="muted small">
             {KIND_ES[card.kind]} {card.caste ?? ''} · {card.models} modelo{card.models === 1 ? '' : 's'}
@@ -106,7 +108,7 @@ export function UnitCard({ card, labels, onSelect, selected, selfAbilities = [],
           {selfAbilities.map((a) => (
             <label key={a.id} className={'self-ab' + (a.active ? ' on' : '')} title={a.stats.join('\n')}>
               <input type="checkbox" checked={a.active} disabled={!onToggleAbility} onChange={() => onToggleAbility?.(a)} />
-              <b>{a.name}</b> <AbilityIcons a={a} />
+              <AbilityImg icon={a.icon} title={a.name} /> <b>{a.name}</b> <AbilityIcons a={a} />
               <span className="muted small">{a.duration > 0 ? ` ${a.duration} s` : ''}{a.cooldown && a.cooldown > 0 ? ` · recarga ${a.cooldown} s` : ''}</span>
             </label>
           ))}

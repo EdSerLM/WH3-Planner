@@ -202,7 +202,7 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       });
     });
     abilities[key] = strip({
-      key, name: L(`unit_abilities_onscreen_name_${key}`) ?? key, nameEn: key,
+      key, name: L(`unit_abilities_onscreen_name_${key}`) ?? key, nameEn: key, img: a.icon_name || null,
       type: L(`unit_ability_types_onscreen_name_${a.type}`) ?? a.type, typeKey: a.type, spell: (s.mana_cost ?? 0) > 0 ? true : null,
       over: a.overpower_option, active: s.active_time, range: s.effect_range, mana: s.mana_cost, cd: s.recharge_time,
       tf: s.target_friends, te: s.target_enemies, ts: s.affect_self, tg: s.target_ground, hidden: a.is_hidden_in_ui || null,

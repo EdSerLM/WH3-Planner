@@ -6,6 +6,7 @@ import { ArmySetup } from './components/ArmySetup';
 import { ArmoryPanel } from './components/ArmoryPanel';
 import { SpellSlotsPanel } from './components/SpellSlotsPanel';
 import { InitiativesPanel } from './components/InitiativesPanel';
+import { Flag } from './gameIcons';
 import { AbilitiesPanel } from './components/AbilitiesPanel';
 import { ActiveAbilities } from './components/ActiveAbilities';
 import { UnitCard } from './components/UnitCard';
@@ -102,7 +103,7 @@ export default function App() {
   const [trees, setTrees] = useState<Record<string, CharacterTree>>({});
   const [faction, setFaction] = useState<string>(loadFaction);
   const [campaigns, setCampaigns] = useState<CampaignFaction[]>([]);
-  const [factions, setFactions] = useState<{ key: string; name: string }[]>([]);
+  const [factions, setFactions] = useState<{ key: string; name: string; flag?: string }[]>([]);
   const [army, setArmy] = useState<ArmyState>(() => loadLocal(loadFaction()));
   const [result, setResult] = useState<ComputeResult | null>(null);
   const [tab, setTab] = useState<Tab>('lord');
@@ -351,6 +352,7 @@ export default function App() {
       <header>
         <h1>WH3 Planner</h1>
         <label className="faction-pick">
+          <Flag flag={factions.find((f) => f.key === faction)?.flag} size={28} />
           Facción:{' '}
           <select value={faction} onChange={(e) => changeFaction(e.target.value)}>
             {(factions.length ? factions : [{ key: DEFAULT_FACTION, name: 'Guerreros del Caos' }]).map((f) => (
@@ -360,6 +362,7 @@ export default function App() {
         </label>
         {campaigns.length > 0 && (
           <label className="faction-pick" title="Facción de campaña (datos del juego): limita el roster a lo que puede reclutar o conseguir con mejoras. Se elige sola con el señor legendario.">
+            <Flag flag={campaigns.find((c) => c.key === army.campaign)?.flag} size={28} />
             Campaña:{' '}
             <select value={army.campaign ?? ''} onChange={(e) => setArmy((a) => ({ ...a, campaign: e.target.value || undefined }))}>
               <option value="">Sin filtro (todo el roster)</option>

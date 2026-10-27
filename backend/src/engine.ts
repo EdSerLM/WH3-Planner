@@ -1,4 +1,4 @@
-import { abilities, getCharacter, getUnit, techEffects, unitInList } from './data.js';
+import { abilities, artOfUnit, getCharacter, getUnit, techEffects, unitInList } from './data.js';
 import { translateAttribute } from './i18n.js';
 import { MAX_RANK, autoRank, effectiveLevel, isFreeLevel, pointsAtRank, pointsFor } from './rankRules.js';
 import { unitRank } from './types.js';
@@ -308,6 +308,8 @@ function finalize(lines: Record<StatKey, StatLine>) {
 
 export interface AbilityState {
   key: string;
+  /** Icono del juego (/abilities/<icon>.png) */
+  icon?: string;
   /** Id para encenderla: "habilidad@personaje" (la misma habilidad puede estar en varios árboles) */
   id: string;
   /** Personaje que la tiene (id de su tarjeta) */
@@ -420,7 +422,7 @@ export function compute(req: ComputeRequest): ComputeResult {
         }
       }
       abilityStates.push({
-        key: ability.key, id: `${ability.key}@${b.tree.key}`, ownerKey: b.tree.key,
+        key: ability.key, id: `${ability.key}@${b.tree.key}`, ownerKey: b.tree.key, icon: ability.icon,
         name: ability.name, nameEn: ability.nameEn, owner: b.tree.name, skill, mode: ability.mode, passive: ability.passive,
         duration: ability.duration, cooldown: ability.cooldown, range: ability.range, mana: ability.mana, type: ability.type,
         stats: ability.stats.map((s) => s.d), attributes: ability.attributes, hasBattleStats, active: isOn,
@@ -468,6 +470,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     finalize(lines);
     cards.push({
       id: b.tree.key, name: b.tree.name + (b.mountNode ? ` (${b.mountNode.name})` : ''), kind: isLord ? 'lord' : 'hero', count: 1,
+      art: artOfUnit((b.mountNode?.levels[0].mountStats ?? b.tree.stats)?.unit) ?? artOfUnit(b.tree.stats?.unit),
       models: 1, size: base.size, interval: base.melee_attack_interval, splash: base.splash_attack_max_attacks,
       magicalAttacks: magical, flamingAttacks: flaming, stats: lines, attributes,
       notes: b.warnings,
@@ -547,7 +550,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     finalize(lines);
     if (!u.dmg) notes.push('Sin arma melee en los datos');
     cards.push({
-      id: u.card, name: u.name, kind: 'unit', count: sel.count, rank, rank7: rank >= 7, caste: u.casteEs ?? u.caste, cost: u.cost,
+      id: u.card, name: u.name, art: u.art, kind: 'unit', count: sel.count, rank, rank7: rank >= 7, caste: u.casteEs ?? u.caste, cost: u.cost,
       models: u.models, size: u.size, interval: u.interval, splash: u.splash, magicalAttacks: magical, flamingAttacks: flaming,
       stats: lines, attributes, notes,
     });

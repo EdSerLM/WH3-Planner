@@ -15,6 +15,8 @@ export interface RawAbilityPhase {
 export interface RawAbility {
   key: string;
   name: string;
+  /** Icono del juego (ui/battle ui/ability_icons/<img>.png) */
+  img?: string;
   spell?: boolean;
   type?: string;
   over?: string;
@@ -154,6 +156,8 @@ export interface UnitData {
   cap?: number;
   /** Solo estas facciones de campaña la pueden tener */
   excl?: string[];
+  /** Arte de la carta del juego (archivo en frontend/public/units, sin .png) */
+  art?: string;
   /** Descripción corta del juego */
   desc?: string;
   /** Puntos fuertes/débiles de la carta del juego (claves de ui_unit_bullet_point_enums) */
@@ -333,6 +337,8 @@ export interface AbilityInfo {
   cooldown?: number;
   mana?: number;
   overcast?: string;
+  /** Icono del juego (/abilities/<icon>.png) */
+  icon?: string;
   mode: 'self' | 'allies' | 'enemies' | 'none';
   passive: boolean;
   spell?: boolean;
@@ -396,6 +402,8 @@ export interface StatLine {
 export interface ComputedCard {
   id: string; // card o clave de personaje
   name: string;
+  /** Arte de la carta del juego (/units/<art>.png) */
+  art?: string;
   kind: 'unit' | 'lord' | 'hero';
   count: number;
   rank?: number; // rango de la unidad (0-9)

@@ -5,13 +5,16 @@ import { campaignUnits } from '../campaign';
 import { groupIndex, groupInfo } from '../unitGroups';
 import { BuffMark, SpecialTags } from './ArmyPanel';
 import { UnitIcon } from './UnitIcon';
-import { attrBadges, attrIcon } from '../attrIcons';
+import { attrIcon } from '../attrIcons';
+import { AttrImg, useAttrIndex } from '../gameIcons';
 
 // Icono genérico: el del juego (extractor) o, si no viene, según el grupo
 const ICON_BY_GROUP: Record<string, string> = {
   Infantry: 'sword', 'Missile Infantry': 'bow', 'Cavalry & Chariots': 'cav', 'Missile Cavalry & Chariots': 'cav_missile',
   'Monsters & Beasts': 'monster', 'Missile Monsters & Beasts': 'monster', 'Artillery & War Machines': 'artillery', Lords: 'lord', Heroes: 'hero',
 };
+/** Arte de la carta del juego como fondo (si npm run extraer lo copió) */
+const artStyle = (u?: UnitData) => (u?.art ? { backgroundImage: `url(/units/${u.art}.png)` } : undefined);
 const iconOf = (u?: UnitData) => u?.icon ?? ICON_BY_GROUP[u?.group ?? ''] ?? '';
 
 /** Naturaleza de la unidad según sus atributos del juego: Demonio, No muertos, Constructo o mortal */
@@ -26,15 +29,20 @@ const MARKS: Record<string, { icon: string; cls: string }> = {
   'Marca de Slaanesh': { icon: '💜', cls: 'slaanesh' }, 'Marca de Tzeentch': { icon: '🔷', cls: 'tzeentch' },
 };
 /** Atributos de la unidad como iconitos (máx. 6; el resto en "+n") */
-function AttrIcons({ attrs, max = 6 }: { attrs: { name: string; from?: string }[]; max?: number }) {
-  const { shown, other } = attrBadges(attrs.map((a) => a.name));
-  if (!shown.length && !other.length) return null;
-  const from = new Map(attrs.filter((a) => a.from).map((a) => [a.name, a.from!]));
-  const extra = shown.slice(max).map((x) => x.name).concat(other);
+function AttrIcons({ attrs, max = 7 }: { attrs: { name: string; from?: string }[]; max?: number }) {
+  const idx = useAttrIndex();
+  const NATURE = /^(Demonio|No Muertos|Constructo|Marca de )/;
+  const list = [...new Map(attrs.filter((a) => !NATURE.test(a.name)).map((a) => [a.name, a])).values()];
+  const withIcon = list.filter((a) => idx[a.name] || attrIcon(a.name));
+  const other = list.filter((a) => !withIcon.includes(a));
+  if (!list.length) return null;
+  const extra = [...withIcon.slice(max), ...other].map((a) => a.name);
   return (
     <span className="ut-attrs">
-      {shown.slice(0, max).map((x) => (
-        <span key={x.name} className={from.has(x.name) ? 'buff' : ''} title={x.name + (from.has(x.name) ? `\nPor ${from.get(x.name)}` : '')}>{x.icon}</span>
+      {withIcon.slice(0, max).map((a) => (
+        <span key={a.name} className={a.from ? 'buff' : ''} title={a.name + (a.from ? `\nPor ${a.from}` : '')}>
+          <AttrImg name={a.name} idx={idx} size={13} />
+        </span>
       ))}
       {extra.length > 0 && <span className="more" title={extra.join('\n')}>+{extra.length}</span>}
     </span>
@@ -159,7 +167,8 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
         {chars.map((c, i) => (
           <button
             key={c.kind + c.id}
-            className={'utile ' + (c.kind === 'lord' ? 'g-lord' : 'g-hero') + (selected?.kind === 'char' && selected.id === c.id ? ' sel' : '')}
+            className={'utile ' + (c.kind === 'lord' ? 'g-lord' : 'g-hero') + (c.art ? ' has-art' : '') + (selected?.kind === 'char' && selected.id === c.id ? ' sel' : '')}
+            style={c.art ? { backgroundImage: `url(/units/${c.art}.png)` } : undefined}
             onMouseEnter={() => setHover({ kind: 'char', id: c.id })}
             onMouseLeave={() => setHover(null)}
             onClick={() => setSelected({ kind: 'char', id: c.id })}
@@ -179,7 +188,8 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
           return (
             <button
               key={sel.card + i}
-              className={'utile ' + (GROUP_CLASS[g] ?? '') + (selected?.kind === 'unit' && selected.card === sel.card ? ' sel' : '')}
+              className={'utile ' + (GROUP_CLASS[g] ?? '') + (u?.art ? ' has-art' : '') + (selected?.kind === 'unit' && selected.card === sel.card ? ' sel' : '')}
+              style={artStyle(u)}
               onMouseEnter={() => setHover({ kind: 'unit', card: sel.card })}
               onMouseLeave={() => setHover(null)}
               onClick={() => setSelected({ kind: 'unit', card: sel.card })}
@@ -255,7 +265,8 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
                       return (
                         <button
                           key={u.card}
-                          className={'utile ' + (GROUP_CLASS[g] ?? '') + (b ? ' buffed' : '') + (n ? ' in-army' : '')}
+                          className={'utile ' + (GROUP_CLASS[g] ?? '') + (u.art ? ' has-art' : '') + (b ? ' buffed' : '') + (n ? ' in-army' : '')}
+                          style={artStyle(u)}
                           onClick={() => add(u.card)}
                           onMouseEnter={() => setHover({ kind: 'unit', card: u.card })}
                           onMouseLeave={() => setHover(null)}
@@ -321,6 +332,7 @@ function baseOf(u: UnitData | undefined, k: StatKey | 'ws'): number | undefined 
 function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank }: {
   focus: Focus; unit?: UnitData; card?: ComputedCard; inArmy: boolean; buffs?: RosterBuffs[string]; upgradeRank?: number;
 }) {
+  const attrIdx = useAttrIndex();
   if (!focus || (!unit && !card)) {
     return (
       <aside className="infopanel">
@@ -353,6 +365,7 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank }: {
 
   return (
     <aside className="infopanel">
+      {(unit?.art ?? card?.art) && <img className="ip-art" src={`/units/${unit?.art ?? card?.art}.png`} alt="" />}
       <div className="ip-name">{name}</div>
       <div className="ip-caste">
         <UnitIcon kind={unit ? iconOf(unit) : card?.kind === 'lord' ? 'lord' : 'hero'} size={16} /> {caste}
@@ -419,7 +432,7 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank }: {
           <div className="ip-sub">Habilidades pasivas</div>
           <ul className="ip-attrs">
             {attrs.map((a, i) => (
-              <li key={i} className={a.from ? 'buff' : ''} title={a.from ? `Por ${a.from}` : 'Propio de la unidad'}>{attrIcon(a.name) ? <span className="ip-ai">{attrIcon(a.name)}</span> : null}{a.name}{a.from ? ' ▲' : ''}</li>
+              <li key={i} className={a.from ? 'buff' : ''} title={a.from ? `Por ${a.from}` : 'Propio de la unidad'}><span className="ip-ai"><AttrImg name={a.name} idx={attrIdx} size={14} /></span>{a.name}{a.from ? ' ▲' : ''}</li>
             ))}
           </ul>
         </>

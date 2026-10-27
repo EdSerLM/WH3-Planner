@@ -1,5 +1,6 @@
 import type { AbilityState } from '../types';
 import { AbilityIcons } from './AbilityIcons';
+import { AbilityImg } from '../gameIcons';
 
 interface Props {
   abilities: AbilityState[];
@@ -36,7 +37,7 @@ export function ActiveAbilities({ abilities, inAura, onToggle, onAura, showEnemi
           <li key={a.id} className={a.active ? 'on' : ''}>
             <label title={[...a.stats, ...a.attributes].join('\n')}>
               <input type="checkbox" checked={a.active} onChange={() => onToggle(a)} />
-              <b>{a.name}</b> <AbilityIcons a={a} />
+              <AbilityImg icon={a.icon} title={a.name} /> <b>{a.name}</b> <AbilityIcons a={a} />
               <span className="muted small ab-meta">
                 {a.owner}
                 {a.duration > 0 ? ` · ${a.duration} s` : ''}

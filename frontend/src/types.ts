@@ -68,6 +68,8 @@ export interface AbilityInfo {
   range?: number;
   cooldown?: number;
   mana?: number;
+  /** Icono del juego (/abilities/<icon>.png) */
+  icon?: string;
   mode: 'self' | 'allies' | 'enemies' | 'none';
   passive: boolean;
   stats: { stat: string; how: string; v: number; d: string }[];
@@ -156,6 +158,8 @@ export interface UnitData {
   desc?: string;
   /** Icono genérico (tipo de arma/montura) */
   icon?: string;
+  /** Arte de la carta del juego (/units/<art>.png) */
+  art?: string;
   /** Puntos fuertes/débiles de la carta del juego */
   bp?: { name: string; tip?: string; good: boolean }[];
 }
@@ -238,6 +242,8 @@ export interface StatLine {
 export interface ComputedCard {
   id: string;
   name: string;
+  /** Arte de la carta del juego (/units/<art>.png) */
+  art?: string;
   kind: 'unit' | 'lord' | 'hero';
   count: number;
   rank?: number;
@@ -257,6 +263,8 @@ export interface ComputedCard {
 
 export interface AbilityState {
   key: string;
+  /** Icono del juego (/abilities/<icon>.png) */
+  icon?: string;
   /** Id para encenderla: "habilidad@personaje" */
   id: string;
   /** Personaje que la tiene (id de su tarjeta) */
@@ -355,6 +363,7 @@ export interface DpsTargetInfo {
   attrs: string[];
   bullets: { name: string; tip?: string; good: boolean }[];
   icon?: string;
+  art?: string;
 }
 
 export interface Meta {
@@ -367,6 +376,8 @@ export interface Meta {
 export interface CampaignFaction {
   key: string;
   name: string;
+  /** Bandera (/flags/<flag>.png) */
+  flag?: string;
   /** Ids de los señores legendarios que la lideran */
   leaders: string[];
   /** Unidades que puede reclutar */

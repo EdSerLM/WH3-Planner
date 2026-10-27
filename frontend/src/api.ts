@@ -11,7 +11,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   meta: () => req<Meta>('/api/meta'),
-  characterFactions: () => req<{ default: string; factions: { key: string; name: string }[] }>('/api/character-factions'),
+  characterFactions: () => req<{ default: string; factions: { key: string; name: string; flag?: string }[] }>('/api/character-factions'),
   characters: (faction?: string) => req<CharacterSummary[]>(`/api/characters${faction ? `?faction=${encodeURIComponent(faction)}` : ''}`),
   character: (key: string) => req<CharacterTree>(`/api/characters/${encodeURIComponent(key)}`),
   units: (faction?: string) => req<UnitData[]>(`/api/units${faction ? `?faction=${encodeURIComponent(faction)}` : ''}`),

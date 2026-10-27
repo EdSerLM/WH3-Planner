@@ -199,6 +199,7 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     'main_units_tables', 'land_units_tables', 'melee_weapons_tables', 'battle_entities_tables', 'unit_armour_types_tables',
     'unit_shield_types_tables', 'missile_weapons_tables', 'projectiles_tables', 'mounts_tables',
     'units_custom_battle_permissions_tables', 'unit_attributes_to_groups_junctions_tables', 'factions_tables', 'unit_variants_tables',
+    'unit_attributes_tables',
     // Campaña: qué puede reclutar cada facción (grupo militar + exclusivas) y quién la lidera
     'units_to_groupings_military_permissions_tables', 'units_to_exclusive_faction_permissions_tables',
     'frontend_factions_tables', 'frontend_faction_leaders_tables', 'ui_unit_groupings_tables',
@@ -229,7 +230,23 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     if (n) bulletDefs[b.key] = { n, t: sp.get(`ui_unit_bullet_point_enums_tooltip_${b.key}`) || undefined, s: b.state, o: b.sort_order ?? 0 };
   }
   const card = new Map<string, string>();
-  for (const v of T['unit_variants_tables']) if (!card.has(v.unit) && v.unit_card) card.set(v.unit, v.unit_card);
+  for (const v of T['unit_variants_tables']) if (!card.has(v.unit) && v.unit_card && v.unit_card !== 'placeholder') card.set(v.unit, v.unit_card);
+  // Cartas de respaldo para unidades sin variante propia (versiones "_imperial_supply", "_grudge_reward"...):
+  // la de otra unidad con el mismo land_unit, o la de la unidad base quitando sufijos
+  const cardByLand = new Map<string, string>();
+  for (const m of T['main_units_tables']) { const c = card.get(m.unit); if (c && !cardByLand.has(m.land_unit)) cardByLand.set(m.land_unit, c); }
+  const baseCard = (unit: string) => {
+    const parts = unit.split('_');
+    for (let n = parts.length - 1; n >= 3; n--) {
+      const k = parts.slice(0, n).join('_');
+      const c = card.get(k) ?? card.get(`${k}_0`);
+      if (c) return c;
+    }
+    return undefined;
+  };
+  // Retrato del personaje (el que usa la batalla personalizada): ui/portraits/portholes/...
+  const portrait = new Map<string, string>();
+  for (const r of T['units_custom_battle_permissions_tables']) if (r.general_portrait && !portrait.has(r.unit)) portrait.set(r.unit, String(r.general_portrait).replace(/\\/g, '/').toLowerCase());
   const attrs = new Map<string, string[]>();
   for (const j of T['unit_attributes_to_groups_junctions_tables']) attrs.set(j.attribute_group, [...(attrs.get(j.attribute_group) ?? []), j.attribute]);
   const perms = new Map<string, Set<string>>();
@@ -277,7 +294,7 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     const list = own.length ? own : sets.filter((x) => !x.faction_key && x.subculture === f.subculture);
     return new Set(list.flatMap((x) => [...(setTechs.get(x.key) ?? [])]));
   };
-  const campaign: { key: string; name: string; subculture: string; leaders: string[]; units: string[]; upgrades: Record<string, number> }[] = [];
+  const campaign: { key: string; name: string; subculture: string; flagPath?: string | null; leaders: string[]; units: string[]; upgrades: Record<string, number> }[] = [];
   for (const ff of T['frontend_factions_tables']) {
     const f = fac.get(ff.faction);
     if (!f || f.is_quest_faction || f.is_rebel) continue;
@@ -308,7 +325,7 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
       }
     }
     campaign.push({
-      key: f.key, name: sp.get(`factions_screen_name_${f.key}`) ?? f.key, subculture: f.subculture,
+      key: f.key, name: sp.get(`factions_screen_name_${f.key}`) ?? f.key, subculture: f.subculture, flagPath: f.flags_path ?? null,
       leaders: [...new Set(leaders.get(f.key) ?? [])], units: [...list].sort(), upgrades,
     });
   }
@@ -353,6 +370,12 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     const ex = exclusive.get(mu.unit);
     if (poolOnly.has(mu.unit)) u.excl = [...poolOnly.get(mu.unit)!].map((k) => sp.get(`factions_screen_name_${k}`) ?? k).sort((a, b) => a.localeCompare(b, 'es'));
     else if (ex && exclusiveOnly(ex, mu.unit)) u.excl = [...ex].filter(([, v]) => v).map(([k]) => sp.get(`factions_screen_name_${k}`) ?? k).sort((a, b) => a.localeCompare(b, 'es'));
+    {
+      const alts = [card.get(L.key), cardByLand.get(L.key), baseCard(mu.unit)].filter((c): c is string => !!c && c !== u.card);
+      const por = portrait.get(mu.unit);
+      if (por) { const f = `pt_${por.split('/').pop()!.replace(/\.png$/, '')}`; portraitFiles.set(por, f); alts.unshift(f); }
+      if (alts.length) cardAlts.set(mu.unit, [...new Set(alts)]);
+    }
     u.icon = unitIcon(mu.caste, u.uiGroup ?? '', u.size ?? '', L, w, pj, ent, ment, !!engine);
     const desc = L.short_description_text ? sp.get(`unit_description_short_texts_text_${L.short_description_text}`) : undefined;
     if (desc) u.desc = desc;
@@ -363,7 +386,12 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     if (pj) u.missile = { dmg: pj.damage, ap: pj.ap_damage, range: pj.effective_range, reload: pj.base_reload_time, shots: pj.projectile_number, ammo: L.primary_ammo, bvl: pj.bonus_v_large, bvi: pj.bonus_v_infantry };
     units.push(u);
   }
-  const subs = [...new Set(units.flatMap((u) => u.subcultures))].map((k) => ({ key: k, name: sp.get(`cultures_subcultures_name_${k}`) ?? k }))
+  // Nombre del atributo (como sale en las tarjetas) -> clave del juego, para buscar su icono oficial
+  for (const r of T['unit_attributes_tables']) {
+    const n = (sp.get(`unit_attributes_bullet_text_${r.key}`) ?? '').split('||')[0].trim();
+    if (n) attrKeyByName.set(n, r.key);
+  }
+  const subs = [...new Set(units.flatMap((u) => u.subcultures))].map((k) => ({ key: k, name: sp.get(`cultures_subcultures_name_${k}`) ?? k, flag: (campaign.find((c) => c.key === k.replace('_sc_', '_') && c.flagPath) ?? campaign.find((c) => c.subculture === k && c.flagPath))?.key }))
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
   return { source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', subcultures: subs, units, campaign, bulletDefs };
 }
@@ -382,6 +410,17 @@ const skillsFile = readOpt('data/raw/wh3_chs_skills.json') ?? { characters: [], 
 const unitsFile = readOpt('data/raw/wh3_chs_units.json') ?? { units: [], roster: [] };
 
 let allSkills: ReturnType<typeof buildAllSkills> | null = null;
+/** Cartas de unidad que hay que copiar de los .pack de interfaz (ui/units/icons/<carta>.png) */
+const wantedCards = new Set<string>();
+/** Cartas de respaldo por unidad (retrato del personaje, carta del mismo land_unit, de la unidad base) */
+const cardAlts = new Map<string, string[]>();
+/** Retratos a copiar: ruta en el .pack -> nombre del archivo en public/units */
+const portraitFiles = new Map<string, string>();
+let allUnitsOut: ReturnType<typeof buildAllUnits> | null = null;
+/** Atributo (nombre en español) -> clave del juego */
+const attrKeyByName = new Map<string, string>();
+/** Banderas: ruta en el .pack -> clave de facción */
+const wantedFlags = new Map<string, string>();
 
 // 1) Textos en español --------------------------------------------------
 const spPath = join(dataDir, 'local_sp.pack');
@@ -483,6 +522,10 @@ if (existsSync(dbPath)) {
   // Unidades de todas las facciones (objetivos del DPS y roster por facción)
   try {
     const all = buildAllUnits(p, spGlobal);
+    allUnitsOut = all;
+    for (const u of all.units) if (u.card) wantedCards.add(String(u.card).toLowerCase());
+    for (const alts of cardAlts.values()) for (const c of alts) if (!c.startsWith('pt_')) wantedCards.add(c.toLowerCase());
+    for (const c of all.campaign) if (c.flagPath) wantedFlags.set(`${String(c.flagPath).replace(/\\/g, '/').toLowerCase()}/mon_64.png`, c.key);
     writeFileSync(join(BACKEND, 'data/raw/wh3_all_units.json'), JSON.stringify(all));
     console.log(`Unidades de todas las facciones: ${all.units.length} (${all.subcultures.length} facciones, ${all.campaign.length} facciones de campaña jugables)`);
   } catch (err) {
@@ -497,7 +540,20 @@ const iconDir = join(FRONTEND, 'public/skills');
 mkdirSync(iconDir, { recursive: true });
 const packs = readdirSync(dataDir).filter((f) => /^(ui|data)[\w]*\.pack$/i.test(f) || /^local_(sp|en)\.pack$/i.test(f));
 let icons = 0;
+const skillIconFromSkills = new Set<string>(), skillIconFromAbility = new Set<string>();
 const ddsOnly: string[] = [];
+// Cartas de unidad (arte del juego) e índice de iconos de la interfaz, para usarlos en la app
+const cardDir = join(FRONTEND, 'public/units');
+mkdirSync(cardDir, { recursive: true });
+let cards = 0;
+// Iconos de hechizos y habilidades, de atributos y banderas de facción
+const abilityDir = join(FRONTEND, 'public/abilities'), attrDir = join(FRONTEND, 'public/attrs'), flagDir = join(FRONTEND, 'public/flags');
+for (const d of [abilityDir, attrDir, flagDir]) mkdirSync(d, { recursive: true });
+const wantedAbilityIcons = new Set<string>(Object.values<any>(allSkills?.abilities ?? {}).map((a) => String(a.img ?? '').toLowerCase()).filter(Boolean));
+const attrKeys = new Set([...attrKeyByName.values()].map((k) => k.toLowerCase()));
+const attrFound = new Set<string>(), attrFromBundle = new Set<string>();
+const uiIndex: string[] = [];
+const INDEX_RE = /^ui\/(battle ui\/ability_icons|common ui\/unit_category|skins\/default\/(icon_|modifier_icon|unit_attribute)|campaign ui\/effect_bundles|common ui\/.*attribute|units\/category|battle ui\/unit_category)/;
 for (const f of packs) {
   let p: Pack;
   try {
@@ -507,14 +563,57 @@ for (const f of packs) {
     continue;
   }
   for (const e of p.entries) {
-    const m = e.name.toLowerCase().match(/^ui\/campaign ui\/skills\/([^/]+)\.(png|dds)$/);
+    const name = e.name.toLowerCase().replace(/\\/g, '/');
+    const c = name.match(/^ui\/units\/icons\/([^/]+)\.png$/);
+    if (c && wantedCards.has(c[1])) {
+      // los .pack se leen en orden y los posteriores (parches) sobrescriben
+      writeFileSync(join(cardDir, `${c[1]}.png`), readEntry(p, e));
+      cards++;
+      continue;
+    }
+    if (portraitFiles.has(name)) { writeFileSync(join(cardDir, `${portraitFiles.get(name)}.png`), readEntry(p, e)); continue; }
+    if (name.startsWith('ui/portraits/') && /\.png$/.test(name)) uiIndex.push(`${f}\t${name}`);
+    if (wantedFlags.has(name)) { writeFileSync(join(flagDir, `${wantedFlags.get(name)}.png`), readEntry(p, e)); continue; }
+    const ab = name.match(/^ui\/battle ui\/ability_icons\/([^/]+)\.png$/);
+    // Muchas habilidades del árbol (hechizos, habilidades de personaje) usan como imagen el icono de la habilidad de batalla
+    if (ab && wantedIcons.has(ab[1]) && !skillIconFromSkills.has(ab[1])) { writeFileSync(join(iconDir, `${ab[1]}.png`), readEntry(p, e)); skillIconFromAbility.add(ab[1]); }
+    if (ab && (wantedAbilityIcons.has(ab[1]) || attrKeys.has(ab[1]))) {
+      if (wantedAbilityIcons.has(ab[1])) writeFileSync(join(abilityDir, `${ab[1]}.png`), readEntry(p, e));
+      if (attrKeys.has(ab[1]) && !attrFromBundle.has(ab[1])) { writeFileSync(join(attrDir, `${ab[1]}.png`), readEntry(p, e)); attrFound.add(ab[1]); }
+    }
+    const at = name.match(/^ui\/campaign ui\/effect_bundles\/attribute_([^/]+)\.png$/);
+    if (at && attrKeys.has(at[1])) { writeFileSync(join(attrDir, `${at[1]}.png`), readEntry(p, e)); attrFound.add(at[1]); attrFromBundle.add(at[1]); }
+    if (INDEX_RE.test(name) && /\.png$/.test(name)) uiIndex.push(`${f}\t${name}`);
+    const m = name.match(/^ui\/campaign ui\/skills\/([^/]+)\.(png|dds)$/);
     if (!m || !wantedIcons.has(m[1])) continue;
     if (m[2] === 'dds') { ddsOnly.push(m[1]); continue; }
     writeFileSync(join(iconDir, `${m[1]}.png`), readEntry(p, e));
+    skillIconFromSkills.add(m[1]);
     icons++;
   }
   closeSync(p.fd);
 }
+// Unidades cuya carta no existe en el juego (o es "placeholder"): usar la de respaldo y reescribir el JSON de unidades
+if (allUnitsOut) {
+  const have = new Set(readdirSync(cardDir).map((f) => f.replace(/\.png$/i, '').toLowerCase()));
+  let fixed = 0, still = 0;
+  for (const u of allUnitsOut.units as any[]) {
+    const cur = String(u.card ?? '').toLowerCase();
+    const isChar = u.casteKey === 'lord' || u.casteKey === 'hero';
+    if (have.has(cur) && cur !== 'placeholder' && !(isChar && cardAlts.get(u.key)?.[0]?.startsWith('pt_') && have.has(cardAlts.get(u.key)![0].toLowerCase()))) continue;
+    const alt = (cardAlts.get(u.key) ?? []).find((c) => have.has(c.toLowerCase()));
+    // el id de la unidad sigue siendo su carta; solo cambia el arte que se muestra
+    if (alt) { u.art = alt.toLowerCase(); fixed++; } else still++;
+  }
+  writeFileSync(join(BACKEND, 'data/raw/wh3_all_units.json'), JSON.stringify(allUnitsOut));
+  console.log(`Cartas de respaldo: ${fixed} unidades usan retrato o carta de su unidad base; ${still} siguen sin arte`);
+}
+writeFileSync(join(attrDir, 'index.json'), JSON.stringify(Object.fromEntries([...attrKeyByName].filter(([, k]) => attrFound.has(k.toLowerCase())).map(([n, k]) => [n, k.toLowerCase()]))));
+console.log(`Iconos de habilidades: ${readdirSync(abilityDir).length} · de atributos: ${attrFound.size} · banderas: ${readdirSync(flagDir).length}`);
+writeFileSync(join(BACKEND, 'data/raw/ui_icons_index.txt'), [...new Set(uiIndex)].sort().join('\n'));
+console.log(`Cartas de unidad: ${new Set(readdirSync(cardDir)).size} guardadas en frontend/public/units (${wantedCards.size} buscadas)`);
+console.log(`Índice de iconos de interfaz: ${uiIndex.length} rutas en backend/data/raw/ui_icons_index.txt`);
+console.log(`Iconos de habilidades del árbol tomados de los iconos de batalla: ${[...skillIconFromAbility].filter((k) => !skillIconFromSkills.has(k)).length}`);
 console.log(`Iconos: ${icons} de ${wantedIcons.size} guardados en frontend/public/skills${ddsOnly.length ? ` (${ddsOnly.length} solo en .dds, no soportados)` : ''}`);
 
 console.log('Listo. Reinicia el backend (npm run dev) para ver los cambios.');
