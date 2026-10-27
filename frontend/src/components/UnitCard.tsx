@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { AbilityState, ComputedCard, Contribution, StatKey } from '../types';
 import { AbilityIcons } from './AbilityIcons';
-import { AbilityImg } from '../gameIcons';
+import { AbilityImg, StatImg } from '../gameIcons';
 import { attrIcon } from '../attrIcons';
 
 interface Props {
@@ -64,7 +64,7 @@ export function UnitCard({ card, labels, onSelect, selected, selfAbilities = [],
             return (
               <FragmentRow key={s}>
                 <tr className={has ? 'has' : ''} onClick={() => has && setOpen(open === s ? null : s)}>
-                  <td>{labels[s] ?? s}</td>
+                  <td><StatImg stat={s} emoji="" size={14} /> {labels[s] ?? s}</td>
                   <td className="num muted">{fmt(l.base)}{PCT_DISPLAY.has(s) ? '%' : ''}</td>
                   <td className="num">{has ? '→' : ''}</td>
                   <td className={'num ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '')}>

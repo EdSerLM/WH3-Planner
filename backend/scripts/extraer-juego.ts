@@ -605,8 +605,13 @@ for (const f of packs) {
     if (wantedFlags.has(name)) { writeFileSync(join(flagDir, `${wantedFlags.get(name)}.png`), readEntry(p, e)); continue; }
     const uc = name.match(/^ui\/common ui\/unit_category_icons\/([^/]+)\.png$/);
     if (uc) { writeFileSync(join(unitCatDir, `${uc[1]}.png`), readEntry(p, e)); uiIndex.push(`${f}\t${name}`); continue; }
-    const st = name.match(/^ui\/skins\/default\/(icon_stat_[^/]+)\.png$/);
-    if (st) { writeFileSync(join(statDir, `${st[1]}.png`), readEntry(p, e)); uiIndex.push(`${f}\t${name}`); continue; }
+    // icon_stat_*, icon_resistance y modifier_icon_* de la carta; resistance_* (física, fuego…) de los iconos de batalla
+    const st = name.match(/^ui\/skins\/default\/(icon_stat_[^/]+|icon_resistance|modifier_icon_[^/]+)\.png$/) ?? name.match(/^ui\/battle ui\/ability_icons\/(resistance_[^/]+)\.png$/);
+    if (st) {
+      writeFileSync(join(statDir, `${st[1]}.png`), readEntry(p, e));
+      uiIndex.push(`${f}\t${name}`);
+      if (!name.startsWith('ui/battle ui/')) continue; // los de batalla siguen: también pueden ser icono de una habilidad
+    }
     const ab = name.match(/^ui\/battle ui\/ability_icons\/([^/]+)\.png$/);
     // Muchas habilidades del árbol (hechizos, habilidades de personaje) usan como imagen el icono de la habilidad de batalla
     if (ab && wantedIcons.has(ab[1]) && !skillIconFromSkills.has(ab[1])) { writeFileSync(join(iconDir, `${ab[1]}.png`), readEntry(p, e)); skillIconFromAbility.add(ab[1]); }

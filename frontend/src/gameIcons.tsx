@@ -60,12 +60,25 @@ const STAT_ICON: Record<string, string> = {
   charge: 'icon_stat_charge_bonus', hp: 'icon_stat_health', ws: 'icon_stat_damage', dmg: 'icon_stat_damage_base',
   ap: 'icon_stat_explosive_armour_piercing_damage', missileDmg: 'icon_stat_ranged_damage', range: 'icon_stat_range',
   ammo: 'icon_stat_ammo', reload: 'icon_stat_reload_time', shield: 'icon_stat_missile_block_chance',
+  // Resistencias y bonificaciones: ui/battle ui/ability_icons/resistance_* y ui/skins/default/modifier_icon_*
+  resPhysical: 'resistance_physical', resMissile: 'resistance_missile', resMagic: 'resistance_magic', resFlame: 'resistance_fire',
+  resWard: 'resistance_ward_save', res: 'icon_resistance', bvl: 'modifier_icon_bonus_vs_large', bvi: 'modifier_icon_bonus_vs_infantry',
 };
 
-/** Icono de stat: el oficial del juego o el emoji de respaldo */
+// Mientras no se re-extraiga: iconos oficiales de las habilidades de stat del árbol, que ya están en public/skills
+const STAT_ICON_SKILL: Record<string, string> = {
+  ma: 'battle_attack', md: 'battle_defence', armour: 'battle_armour', ld: 'battle_morale', speed: 'battle_speed',
+  charge: 'battle_charge', hp: 'character_health', ws: 'battle_damage', dmg: 'battle_damage', missileDmg: 'battle_ranged_damage',
+  range: 'battle_range', ammo: 'battle_ammo', resWard: 'battle_ward_save', bvl: 'character_bonus_vs_large',
+  bvi: 'character_bonus_vs_infantry', magic: 'battle_magic',
+};
+
+/** Icono de stat: el de la carta del juego; si aún no está, el de la habilidad de esa stat; si no, el emoji */
 export function StatImg({ stat, emoji, size = 16, title }: { stat: string; emoji: string; size?: number; title?: string }) {
-  const f = STAT_ICON[stat];
-  return <OfficialImg src={f ? `/stats/${f}.png` : undefined} size={size} title={title} fallback={<span title={title}>{emoji}</span>} />;
+  const f = STAT_ICON[stat], s = STAT_ICON_SKILL[stat];
+  const last = <span title={title}>{emoji}</span>;
+  const fallback = s ? <OfficialImg src={`/skills/${s}.png`} size={size} title={title} fallback={last} /> : last;
+  return <OfficialImg src={f ? `/stats/${f}.png` : undefined} size={size} title={title} fallback={fallback} />;
 }
 
 /** Icono de atributo: el oficial si existe; si no, el emoji de respaldo */

@@ -352,10 +352,11 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank }: {
   const caste = unit?.casteEs ?? card?.caste ?? (card?.kind === 'lord' ? 'Señor' : card?.kind === 'hero' ? 'Héroe' : '');
   const models = card?.models ?? unit?.models ?? 0;
   const hp = val('hp');
-  const res: [string, number][] = card
-    ? ([['Física', card.stats.resPhysical.final], ['Proyectiles', card.stats.resMissile.final], ['Hechizos', card.stats.resMagic.final], ['Fuego', card.stats.resFlame.final], ['Salvación', card.stats.resWard.final]] as [string, number][])
+  // [nombre, valor, clave del icono]
+  const res: [string, number, string][] = card
+    ? ([['Física', card.stats.resPhysical.final, 'resPhysical'], ['Proyectiles', card.stats.resMissile.final, 'resMissile'], ['Hechizos', card.stats.resMagic.final, 'resMagic'], ['Fuego', card.stats.resFlame.final, 'resFlame'], ['Salvación', card.stats.resWard.final, 'resWard']] as [string, number, string][])
     : unit?.res
-      ? ([['Física', unit.res.physical], ['Proyectiles', unit.res.missile], ['Hechizos', unit.res.magic], ['Fuego', unit.res.flame], ['Salvación', unit.res.ward]] as [string, number][])
+      ? ([['Física', unit.res.physical, 'resPhysical'], ['Proyectiles', unit.res.missile, 'resMissile'], ['Hechizos', unit.res.magic, 'resMagic'], ['Fuego', unit.res.flame, 'resFlame'], ['Salvación', unit.res.ward, 'resWard']] as [string, number, string][])
       : [];
   const attrs = card ? card.attributes : (unit?.attrs ?? []).map((a) => ({ name: a, from: undefined as string | undefined }));
   const bullets = unit?.bp ?? [];
@@ -366,12 +367,12 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank }: {
   const missile = unit?.missile;
   const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
   /** Fila sin barra; con bufos muestra la diferencia como las de arriba */
-  const extraRow = (label: string, st: { base: number; final: number } | null, plain: number) => {
+  const extraRow = (k: string, emoji: string, label: string, st: { base: number; final: number } | null, plain: number) => {
     const v = (st ? st.final : plain) ?? 0;
     const diff = st ? st.final - st.base : 0;
     return (
-      <tr key={label}>
-        <td>{label}</td>
+      <tr key={k}>
+        <td><StatImg stat={k} emoji={emoji} /> {label}</td>
         <td className={'num ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '')}>
           {fmt(v)}{diff ? <span className="small"> ({diff > 0 ? '+' : ''}{fmt(diff)})</span> : null}
         </td>
@@ -429,13 +430,13 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank }: {
               </tr>
             );
           })}
-          {(stat('bvl')?.final ?? raw('bvl')) > 0 && extraRow('🐘 Bonif. contra grandes', stat('bvl'), raw('bvl'))}
-          {(stat('bvi')?.final ?? raw('bvi')) > 0 && extraRow('🧍 Bonif. contra infantería', stat('bvi'), raw('bvi'))}
+          {(stat('bvl')?.final ?? raw('bvl')) > 0 && extraRow('bvl', '🐘', 'Bonif. contra grandes', stat('bvl'), raw('bvl'))}
+          {(stat('bvi')?.final ?? raw('bvi')) > 0 && extraRow('bvi', '🧍', 'Bonif. contra infantería', stat('bvi'), raw('bvi'))}
           {(mis || missile) && (
             <>
-              {extraRow('🏹 Daño de proyectil', mis ? stat('missileDmg') : null, mis ? 0 : missile!.dmg + missile!.ap)}
-              {extraRow('📏 Alcance', mis ? stat('range') : null, mis ? 0 : missile!.range)}
-              {extraRow('🎯 Munición', mis ? stat('ammo') : null, mis ? 0 : missile!.ammo)}
+              {extraRow('missileDmg', '🏹', 'Daño de proyectil', mis ? stat('missileDmg') : null, mis ? 0 : missile!.dmg + missile!.ap)}
+              {extraRow('range', '📏', 'Alcance', mis ? stat('range') : null, mis ? 0 : missile!.range)}
+              {extraRow('ammo', '🎯', 'Munición', mis ? stat('ammo') : null, mis ? 0 : missile!.ammo)}
             </>
           )}
         </tbody>
@@ -454,8 +455,8 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank }: {
         <>
           <div className="ip-sub">Resistencias</div>
           <ul className="ip-attrs">
-            {res.filter(([, v]) => v !== 0).map(([n, v]) => (
-              <li key={n} className={v < 0 ? 'bad' : ''}>{v < 0 ? 'Debilidad' : 'Resistencia'} {n.toLowerCase()}: {v > 0 ? '' : ''}{v}%</li>
+            {res.filter(([, v]) => v !== 0).map(([n, v, k]) => (
+              <li key={n} className={v < 0 ? 'bad' : ''}><span className="ip-ai"><StatImg stat={k} emoji="✨" size={14} /></span>{v < 0 ? 'Debilidad' : 'Resistencia'} {n.toLowerCase()}: {v > 0 ? '' : ''}{v}%</li>
             ))}
           </ul>
         </>

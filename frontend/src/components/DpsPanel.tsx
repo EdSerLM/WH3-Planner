@@ -76,6 +76,7 @@ type ResKey = 'ward' | 'physical' | 'missile' | 'magic' | 'flame';
 const RES_ES: [ResKey, string][] = [
   ['ward', 'Salvación'], ['physical', 'Física'], ['missile', 'Proyectiles'], ['magic', 'Mágica'], ['flame', 'Fuego'],
 ];
+const RES_ICON: Record<ResKey, string> = { ward: 'resWard', physical: 'resPhysical', missile: 'resMissile', magic: 'resMagic', flame: 'resFlame' };
 
 export function DpsPanel({ army, cards, units, ownName }: Props) {
   const [attacker, setAttacker] = useState<string>('');
@@ -438,7 +439,7 @@ function TargetSheet({ r }: { r: DpsRow }) {
           <span title="Velocidad"><StatImg stat="speed" emoji="👟" /> Velocidad <b>{i.speed}</b></span>
           {res.map(([k, n]) => (
             <span key={k} className={i.res[k] < 0 ? 'down' : 'up'} title={i.res[k] < 0 ? 'Debilidad: recibe más daño' : 'Resistencia'}>
-              ✨ {n} {i.res[k] > 0 ? '+' : ''}{i.res[k]}%
+              <StatImg stat={RES_ICON[k]} emoji="✨" /> {n} {i.res[k] > 0 ? '+' : ''}{i.res[k]}%
             </span>
           ))}
         </div>
