@@ -104,7 +104,7 @@ Vuelve a correrlo después de cada parche. Los iconos y textos del juego no se s
 - **Habilidades excluyentes**: salen del juego (`character_skill_nodes_skill_locks`). Si algo faltara, `backend/data/exclusivas.json` permite agregar grupos a mano (grupos por clave de habilidad, "elige N de estas"). Ya están las dos filas del Héroe Exaltado (Gladiator/Commander/Strategist y Wrath/Leadership/Unity), que también cubren a los Exaltados de cada dios, Khargan, Harald y los Hechiceros. Si encuentras otro par bloqueado en el juego, agrégalo ahí: la clave aparece en el detalle de cada nodo.
 - El rango mínimo es aproximado (1 punto por rango).
 - No se modelan la experiencia por rango de las unidades, objetos, tecnologías ni la autoridad del Caos.
-- El DPS no cuenta carga, splash, colisiones, que no todos los modelos peleen a la vez, ni liderazgo/huida. Subestima a monstruos y carros.
+- El DPS reparte el daño en área (splash) entre varios modelos con los datos del juego (`splash_attack_max_attacks`, `splash_attack_target_size`, `is_high_threat`), sin multiplicarlo: si el juego copia el daño completo a cada modelo, aún subestima a los monstruos. No cuenta carga, colisiones, que no todos los modelos peleen a la vez (se marca ⚠ en duelos con 3× más modelos o más) ni liderazgo/huida.
 
 ## Datos propios con RPFM (referencia)
 

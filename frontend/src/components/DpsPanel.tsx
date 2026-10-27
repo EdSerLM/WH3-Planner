@@ -457,7 +457,17 @@ function DuelBadge({ r }: { r: DpsRow }) {
   const tt = (t: number) => (Number.isFinite(t) ? `${t} s` : 'nunca');
   const tip = `Tú los matas en ${tt(r.timeToKill)} · ellos te matan en ${tt(r.duel.enemy.timeToKill)}\n` +
     (r.duel.ratio >= 1 ? `Les ganas por ×${r.duel.ratio}` : `Te ganan por ×${Math.round((1 / Math.max(r.duel.ratio, 0.01)) * 100) / 100}`);
-  return <span className={'duel ' + v.cls} title={tip}>{v.icon} {v.text}</span>;
+  const m = r.duel.models;
+  const crowd = r.duel.crowd && m
+    ? (r.duel.crowd === 'enemy'
+      ? `Ellos tienen ${m.theirs} modelos contra tus ${m.mine}: el cálculo los hace pelear a todos a la vez, así que su daño sale sobreestimado y tu resultado es peor que en la batalla.`
+      : `Tienes ${m.mine} modelos contra sus ${m.theirs}: el cálculo los hace pelear a todos a la vez, así que tu daño sale sobreestimado y tu resultado es mejor que en la batalla.`)
+    : '';
+  return (
+    <span className={'duel ' + v.cls} title={tip + (crowd ? `\n\n⚠ ${crowd}` : '')}>
+      {v.icon} {v.text}{crowd ? <span className="duel-crowd"> ⚠</span> : null}
+    </span>
+  );
 }
 
 /** Ficha del objetivo: descripción del juego, puntos fuertes/débiles, stats defensivos y el cálculo paso a paso */
@@ -539,7 +549,11 @@ function CalcLines({ d, hit, perHit, res, dps, ttk, large, hpPerModel, you }: {
       <li>
         <b>Daño por golpe</b>: {fmt1(base)} base × (1 − {d.armourRed}%) + {fmt1(ap)} perforante
         {res ? `, ${res > 0 ? '−' : '+'}${Math.abs(res)}% (${resParts.join(' + ')}${res >= 90 ? ', tope 90%' : ''})` : ''} = <b>{perHit}</b>
-        {hpPerModel && uncapped > perHit + 0.05 ? ` (tope: vida de un modelo, ${hpPerModel})` : ''}
+        {hpPerModel && uncapped > perHit + 0.05
+          ? (d.splash && d.splash.n > 1 ? ` (tope: ${d.splash.n} modelos × ${hpPerModel} de vida)` : ` (tope: vida de un modelo, ${hpPerModel})`)
+          : ''}
+        {d.splash && d.splash.n > 1 ? ` · daño en área: cada golpe se reparte hasta entre ${d.splash.n} modelos` : ''}
+        {d.splash && d.splash.n <= 1 && d.splash.max > 1 && d.splash.why ? ` · sin daño en área (${d.splash.why})` : ''}
         {d.res.magicalIgnoresPhysical ? ' · tus ataques mágicos ignoran su resistencia física' : ''}
       </li>
       <li>

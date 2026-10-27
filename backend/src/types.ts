@@ -146,7 +146,10 @@ export interface UnitData {
   bvi: number;
   interval: number;
   splash: number;
+  /** Tamaño máximo de objetivo contra el que hace daño en área (melee_weapons.splash_attack_target_size) */
   splashSize?: string;
+  /** Objetivo de alta prioridad (main_units.is_high_threat): el daño en área contra él va concentrado */
+  highThreat?: boolean;
   /** Carta original de la unidad (paquetes de facción: el id es la clave y varias variantes comparten carta) */
   cardArt?: string;
   magical?: boolean;
@@ -418,6 +421,7 @@ export interface ComputedCard {
   size?: string;
   interval: number;
   splash?: number;
+  splashSize?: string;
   magicalAttacks: boolean;
   flamingAttacks: boolean;
   stats: Record<StatKey, StatLine>;
@@ -436,4 +440,6 @@ export interface DpsTarget {
   isInfantry: boolean;
   cost?: number;
   res: { physical: number; magic: number; flame: number; ward: number };
+  size?: string;
+  highThreat?: boolean;
 }

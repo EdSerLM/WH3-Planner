@@ -583,7 +583,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     if (!u.dmg) notes.push('Sin arma melee en los datos');
     cards.push({
       id: u.card, name: u.name, art: u.art, kind: 'unit', count: sel.count, rank, rank7: rank >= 7, caste: u.casteEs ?? u.caste, cost: u.cost,
-      models: u.models, size: u.size, interval: u.interval, splash: u.splash, magicalAttacks: magical, flamingAttacks: flaming,
+      models: u.models, size: u.size, interval: u.interval, splash: u.splash, splashSize: u.splashSize, magicalAttacks: magical, flamingAttacks: flaming,
       stats: lines, attributes, notes,
     });
   }

@@ -374,6 +374,7 @@ tr.dps-detail td { background: #19161c; padding: 8px 12px 10px 30px; }
 .ts-calc { margin: 0; padding-left: 18px; font-size: 12px; color: #cfc6b8; }
 .dps-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; }
 .duel { font-size: 12px; white-space: nowrap; padding: 1px 6px; border-radius: 8px; cursor: help; }
+.duel-crowd { color: #e0b44c; }
 .duel.win { background: #1f3322; color: var(--green); }
 .duel.even { background: #2c2a1f; color: var(--gold); }
 .duel.lose { background: #3a1f1c; color: #e08070; }

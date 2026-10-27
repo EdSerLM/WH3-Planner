@@ -40,10 +40,29 @@ export interface DpsRow {
     ma: number; bonus: number; md: number; mdBase: number; dir: AttackDir; armour: number; armourRed: number;
     dmg: number; ap: number; bonusBase: number; bonusAp: number; models: number; interval: number; hpTotal: number;
     res: { ward: number; physical: number; flame: number; magicalIgnoresPhysical: boolean };
+    /** Daño en área: modelos que alcanza cada golpe (1 = golpe concentrado) y por qué */
+    splash: { n: number; max: number; size?: string; why?: string };
   };
 }
 
 const SMALL = new Set(['small', 'very_small', '']);
+const SIZES = ['very_small', 'small', 'medium', 'large', 'very_large'];
+
+/**
+ * Modelos que alcanza cada golpe con daño en área (melee_weapons del juego): hasta splash_attack_max_attacks, solo
+ * contra objetivos de tamaño splash_attack_target_size o menor, y nunca contra objetivos de alta prioridad
+ * (main_units.is_high_threat), que reciben el golpe concentrado. No pasa de los modelos que tiene el objetivo.
+ */
+function splashTargets(att: ComputedCard, t: DpsTarget): { n: number; why?: string } {
+  const max = att.splash ?? 1;
+  if (max <= 1) return { n: 1 };
+  if (!att.splashSize) return { n: 1, why: 'faltan datos del tamaño: re-extraer' };
+  if (t.highThreat) return { n: 1, why: 'objetivo de alta prioridad: golpe concentrado' };
+  const ts = SIZES.indexOf(t.size ?? ''), ss = SIZES.indexOf(att.splashSize);
+  if (ts < 0 || ss < 0) return { n: 1, why: 'tamaño desconocido' };
+  if (ts > ss) return { n: 1, why: `objetivo más grande que ${att.splashSize}` };
+  return { n: Math.max(1, Math.min(max, t.models)) };
+}
 
 export function unitAsTarget(u: UnitData): DpsTarget {
   return {
@@ -52,6 +71,7 @@ export function unitAsTarget(u: UnitData): DpsTarget {
     // infantería se aplica a lo pequeño
     isLarge: !SMALL.has(u.size), isInfantry: SMALL.has(u.size), cost: u.cost,
     res: { physical: u.res.physical, magic: u.res.magic, flame: u.res.flame, ward: u.res.ward },
+    size: u.size, highThreat: u.highThreat,
   };
 }
 
@@ -87,7 +107,10 @@ export function meleeDps(att: ComputedCard, t: DpsTarget, dir: AttackDir = 'fron
   const flame = att.flamingAttacks ? t.res.flame : 0;
   const res = Math.max(-100, Math.min(90, t.res.ward + physical + flame));
   perHit = perHit * (1 - res / 100);
-  perHit = Math.min(perHit, t.hpPerModel);
+  // Sin daño en área el golpe no pasa de la vida de un modelo. Con daño en área el daño del golpe se reparte entre
+  // varios modelos: no se pierde en uno solo, pero tampoco se multiplica (los datos no dicen si se copia a cada uno)
+  const splash = splashTargets(att, t);
+  perHit = Math.min(perHit, t.hpPerModel * splash.n);
   const interval = att.interval || 4;
   const dps = (att.models * hit * perHit) / interval;
   const totalHp = t.models * t.hpPerModel;
@@ -105,6 +128,7 @@ export function meleeDps(att: ComputedCard, t: DpsTarget, dir: AttackDir = 'fron
       ma: s('ma'), bonus, md: r1(md), mdBase: t.md, dir, armour: t.armour, armourRed: r1(armourRed * 100),
       dmg: r1(dmg), ap: r1(ap), bonusBase: r1(bonusBase), bonusAp: r1(bonusAp), models: att.models, interval, hpTotal: totalHp,
       res: { ward: t.res.ward, physical: t.res.physical, flame, magicalIgnoresPhysical: !!att.magicalAttacks && t.res.physical !== 0 },
+      splash: { n: splash.n, max: att.splash ?? 1, size: att.splashSize, why: splash.why },
     },
   };
 }
@@ -119,7 +143,7 @@ export function unitAsAttacker(u: UnitData, debuffs: { stats: { stat: StatKey; h
   const stats = Object.fromEntries(Object.entries(vals).map(([k, v]) => [k, { stat: k, base: v, final: v, contributions: [] }]));
   return {
     id: u.card, name: u.name, kind: 'unit', count: 1, cost: u.cost, models: u.models, size: u.size, interval: u.interval,
-    splash: u.splash, magicalAttacks: !!u.magical, flamingAttacks: !!u.flaming, stats, attributes: [], notes: [],
+    splash: u.splash, splashSize: u.splashSize, magicalAttacks: !!u.magical, flamingAttacks: !!u.flaming, stats, attributes: [], notes: [],
   } as unknown as ComputedCard;
 }
 
@@ -131,6 +155,7 @@ export function cardAsTarget(c: ComputedCard): DpsTarget {
     id: c.id, name: c.name, models: c.models, hpPerModel: f('hp'), md: f('md'), armour: f('armour'),
     isLarge: large, isInfantry: !large, cost: c.cost,
     res: { physical: f('resPhysical'), magic: f('resMagic'), flame: f('resFlame'), ward: f('resWard') },
+    size: c.size,
   };
 }
 
@@ -142,8 +167,12 @@ export function duel(mine: DpsRow, theirs: DpsRow) {
   const a = mine.timeToKill, b = theirs.timeToKill;
   const ratio = !Number.isFinite(a) && !Number.isFinite(b) ? 1 : !Number.isFinite(a) ? 0 : !Number.isFinite(b) ? 99 : b / a;
   const verdict: 'win' | 'lose' | 'even' = ratio >= 1.2 ? 'win' : ratio <= 1 / 1.2 ? 'lose' : 'even';
+  // El cálculo hace pelear a todos los modelos a la vez; con 3 veces más modelos o más (umbral de la app, no del juego),
+  // la unidad numerosa sale sobreestimada porque en la batalla solo pelean los que están en contacto
+  const mineM = mine.detail.models, theirM = theirs.detail.models;
+  const crowd = theirM >= mineM * 3 ? 'enemy' : mineM >= theirM * 3 ? 'mine' : undefined;
   return {
-    verdict, ratio: Math.round(ratio * 100) / 100,
+    verdict, ratio: Math.round(ratio * 100) / 100, crowd, models: { mine: mineM, theirs: theirM },
     enemy: { hitChance: theirs.hitChance, dmgPerHit: theirs.dmgPerHit, resistanceUsed: theirs.resistanceUsed, dps: theirs.dps, timeToKill: theirs.timeToKill, detail: theirs.detail },
   };
 }
@@ -153,5 +182,6 @@ export function targetsFromCards(cards: string[]): DpsTarget[] {
 }
 
 export const DPS_DISCLAIMER =
-  'No cuenta: carga, splash (golpes a varios modelos), colisiones, que no todos los modelos peleen a la vez ni ' +
-  'liderazgo/huida. Usa la tirada media de armadura. Subestima a monstruos y carros.';
+  'Daño en área (datos del juego): el golpe se reparte entre varios modelos en vez de perderse en uno; si el juego ' +
+  'copia el daño completo a cada modelo, aún se queda corto. No cuenta: carga, colisiones, que no todos los modelos ' +
+  'peleen a la vez (⚠ en duelos con 3× más modelos o más) ni liderazgo/huida. Usa la tirada media de armadura.';

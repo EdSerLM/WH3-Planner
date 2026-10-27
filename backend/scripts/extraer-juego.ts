@@ -366,6 +366,8 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
       armour: arm.get(L.armour ?? '')?.armour_value ?? 0, shield: shd.get(L.shield ?? '')?.missile_block_chance ?? 0,
       dmg: w.damage ?? 0, ap: w.ap_damage ?? 0, bvl: w.bonus_v_large ?? 0, bvi: w.bonus_v_infantry ?? 0,
       interval: Math.round((w.melee_attack_interval ?? 0) * 100) / 100, splash: w.splash_attack_max_attacks ?? 1,
+      // Daño en área: hasta qué tamaño de objetivo lo hace; contra objetivos de alta prioridad el golpe va concentrado
+      splashSize: w.splash_attack_target_size ?? undefined, highThreat: mu.is_high_threat ? true : undefined,
       res: { physical: L.damage_mod_physical ?? 0, missile: L.damage_mod_missile ?? 0, magic: L.damage_mod_magic ?? 0, flame: L.damage_mod_flame ?? 0, ward: L.damage_mod_all ?? 0 },
       attrs: (attrs.get(L.attribute_group ?? '') ?? []).map((a) => (sp.get(`unit_attributes_bullet_text_${a}`) ?? a).split('||')[0].trim()),
       subcultures,

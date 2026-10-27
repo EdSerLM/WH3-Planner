@@ -336,6 +336,8 @@ export interface DpsRow {
     ma: number; bonus: number; md: number; mdBase: number; dir: 'front' | 'flank' | 'rear'; armour: number; armourRed: number;
     dmg: number; ap: number; bonusBase: number; bonusAp: number; models: number; interval: number; hpTotal: number;
     res: { ward: number; physical: number; flame: number; magicalIgnoresPhysical: boolean };
+    /** Daño en área: modelos que alcanza cada golpe (1 = concentrado), máximo del arma y por qué no se aplica */
+    splash?: { n: number; max: number; size?: string; why?: string };
   };
   /** Ficha del objetivo (datos del juego) */
   info?: DpsTargetInfo;
@@ -344,6 +346,9 @@ export interface DpsRow {
     verdict: 'win' | 'lose' | 'even';
     /** su tiempo para matarte ÷ tu tiempo para matarlos (>1 = ganas) */
     ratio: number;
+    /** Quién tiene 3× más modelos o más (su daño sale sobreestimado: no pelean todos a la vez) */
+    crowd?: 'enemy' | 'mine';
+    models?: { mine: number; theirs: number };
     enemy: { hitChance: number; dmgPerHit: number; resistanceUsed: number; dps: number; timeToKill: number; detail?: DpsRow['detail'] };
   };
 }
