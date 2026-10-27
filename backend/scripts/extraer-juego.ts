@@ -394,7 +394,25 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
   }
   const subs = [...new Set(units.flatMap((u) => u.subcultures))].map((k) => ({ key: k, name: sp.get(`cultures_subcultures_name_${k}`) ?? k, flag: (campaign.find((c) => c.key === k.replace('_sc_', '_') && c.flagPath) ?? campaign.find((c) => c.subculture === k && c.flagPath))?.key }))
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
-  return { source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', subcultures: subs, units, campaign, bulletDefs };
+  return { source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', subcultures: subs, units, campaign, bulletDefs, experience: readExperience(p) };
+}
+
+/**
+ * Veteranía de las unidades, tal cual viene en el juego (sin interpretar): bonificación de cada stat por rango
+ * (unit_experience_bonuses: stat, value, growth_rate, growth_scalar), experiencia para cada rango y los valores
+ * globales (_kv_experience_bonuses). Se lee aparte: si una tabla cambia de versión, el resto de las unidades sale igual.
+ */
+function readExperience(p: Pack) {
+  const out: Record<string, Record<string, any>[]> = {};
+  for (const t of ['unit_experience_bonuses_tables', 'unit_experience_thresholds_tables', 'unit_experience_threshold_modifiers_tables', '_kv_experience_bonuses_tables', 'unit_stats_land_experience_bonuses_tables']) {
+    try {
+      out[t.replace(/_tables$/, '')] = loadTables(p, [t])[t];
+    } catch (err) {
+      console.warn(`No pude leer ${t}: ${(err as Error).message}`);
+    }
+  }
+  console.log(`Veteranía: ${out.unit_experience_bonuses?.length ?? 0} bonificaciones por rango, ${out.unit_experience_thresholds?.length ?? 0} umbrales de experiencia`);
+  return out;
 }
 
 // ---------------------------------------------------------------- principal

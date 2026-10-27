@@ -721,10 +721,20 @@ interface AllUnitsFile {
   campaign?: CampaignRow[];
   /** Puntos fuertes/débiles: nombre, ayuda, estado (positive/negative/very_...) y orden */
   bulletDefs?: Record<string, { n: string; t?: string; s: string; o: number }>;
+  /** Tablas de veteranía del juego, tal cual (npm run extraer); falta en extracciones viejas */
+  experience?: { unit_experience_bonuses?: ExperienceBonus[] } & Record<string, Record<string, unknown>[] | undefined>;
 }
 const allUnitsFile: AllUnitsFile | null = existsSync(join(DATA_DIR, 'raw', 'wh3_all_units.json'))
   ? readJson<AllUnitsFile>('raw/wh3_all_units.json')
   : null;
+
+/** Fila de unit_experience_bonuses: cuánto sube una stat con la veteranía */
+export interface ExperienceBonus { stat: string; value: number; growth_rate: number; growth_scalar: number }
+
+/** Bonificaciones de veteranía del juego; vacío si los datos son de antes de extraerlas. */
+export function experienceBonuses(): ExperienceBonus[] {
+  return allUnitsFile?.experience?.unit_experience_bonuses ?? [];
+}
 
 // Grupo del panel de ejército: el del juego (ui_unit_groupings) o, si no viene, según el tipo de unidad
 const GROUP_BY_UI: Record<string, string> = {
