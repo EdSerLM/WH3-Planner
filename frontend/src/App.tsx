@@ -552,7 +552,9 @@ export default function App() {
           onChange={(u) => setArmy((a) => ({ ...a, units: u }))}
           onEditChar={(t) => { setTab(t); setPage('chars'); }}
         />
-        <div className="setup-abilities">
+        {/* Tarjetas/DPS a la izquierda y activables fijas a la derecha: se encienden sin subir y bajar */}
+        <div className="army-results">
+        <aside className="setup-abilities">
           <ActiveAbilities
             abilities={result?.abilities ?? []}
             active={army.activeAbilities}
@@ -561,7 +563,7 @@ export default function App() {
             onAura={(v) => setArmy((a) => ({ ...a, inAura: v }))}
             showEnemies={view === 'dps'}
           />
-        </div>
+        </aside>
         <div className="bottom-main">
         <nav className="tabs">
           <button className={view === 'cards' ? 'active' : ''} onClick={() => setView('cards')}>Tarjetas ({cards.length})</button>
@@ -619,6 +621,7 @@ export default function App() {
             </div>
           </div>
         )}
+        </div>
         </div>
       </section>
       )}

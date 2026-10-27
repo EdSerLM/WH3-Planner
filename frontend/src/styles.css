@@ -475,6 +475,21 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .roster-legend { margin-top: 8px; }
 .setup-abilities .active-abilities ul { display: flex; flex-wrap: wrap; gap: 6px 16px; }
 .setup-abilities .active-abilities li { flex: 0 1 320px; }
+/* Activables en columna lateral fija junto a las tarjetas/DPS */
+.army-results { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; align-items: start; }
+.army-results .bottom-main { grid-column: 1; grid-row: 1; }
+.army-results .setup-abilities { grid-column: 2; grid-row: 1; position: sticky; top: 72px; max-height: calc(100vh - 84px); overflow-y: auto; }
+.army-results .active-abilities { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+.army-results .active-abilities ul { display: flex; flex-direction: column; gap: 4px; max-height: none; overflow: visible; }
+.army-results .active-abilities li { flex: none; padding: 4px 6px; border-radius: 6px; }
+.army-results .active-abilities li.on { background: #2c2416; }
+@media (max-width: 1100px) {
+  .army-results { grid-template-columns: 1fr; }
+  .army-results .setup-abilities { grid-column: 1; position: static; max-height: none; }
+  .army-results .bottom-main { grid-row: 2; }
+  .army-results .active-abilities ul { flex-direction: row; flex-wrap: wrap; gap: 6px 16px; }
+  .army-results .active-abilities li { flex: 0 1 320px; }
+}
 @media (max-width: 900px) {
   .setup-body { grid-template-columns: 1fr; }
   .infopanel { position: static; }
