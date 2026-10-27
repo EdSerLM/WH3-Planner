@@ -28,6 +28,8 @@ export interface RawAbility {
   te?: boolean;
   ts?: boolean;
   tg?: boolean;
+  /** Restricciones de objetivo del juego (special_ability_to_invalid_target_flags): a quién NO afecta */
+  inv?: string[];
   hidden?: boolean;
   phases: RawAbilityPhase[];
 }
@@ -346,6 +348,8 @@ export interface AbilityInfo {
   flamingAttacks: boolean;
   stats: { stat: string; how: string; v: number; d: string }[];
   attributes: string[];
+  /** Restricciones de objetivo del juego: a quién NO afecta (claves de special_ability_invalid_usage_flags) */
+  invalidTargets?: string[];
 }
 
 // ---------- Peticiones de cálculo ----------

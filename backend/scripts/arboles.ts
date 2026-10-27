@@ -17,6 +17,8 @@ export const SKILL_TABLES = [
   'unit_sets_tables', 'unit_set_to_unit_junctions_tables', 'agent_subtypes_tables',
   'unit_abilities_tables', 'unit_special_abilities_tables', 'special_ability_to_special_ability_phase_junctions_tables',
   'special_ability_phases_tables', 'special_ability_phase_stat_effects_tables', 'special_ability_phase_attribute_effects_tables',
+  // A quién NO afecta cada habilidad (p. ej. la pasiva Guardián solo a señores y héroes)
+  'special_ability_to_invalid_target_flags_tables', 'special_ability_invalid_usage_flags_tables',
   'main_units_tables', 'land_units_tables', 'melee_weapons_tables', 'battle_entities_tables', 'unit_armour_types_tables',
   'unit_shield_types_tables', 'units_custom_battle_permissions_tables', 'factions_tables', 'unit_attributes_to_groups_junctions_tables',
   'land_units_to_unit_abilites_junctions_tables', 'mounts_tables', 'character_skill_nodes_skill_locks_tables',
@@ -184,6 +186,11 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
   const phJ = group('special_ability_to_special_ability_phase_junctions_tables', 'special_ability');
   const ph = by('special_ability_phases_tables', 'id');
   const phSt = group('special_ability_phase_stat_effects_tables', 'phase'), phAt = group('special_ability_phase_attribute_effects_tables', 'phase');
+  const invalidTargets = group('special_ability_to_invalid_target_flags_tables', 'special_ability');
+  // Restricciones de objetivo usadas, con el texto del juego (para interpretarlas en el motor)
+  const targetFlags: Record<string, string> = {};
+  for (const f of T['special_ability_invalid_usage_flags_tables'])
+    targetFlags[f.flag_key] = L(`special_ability_invalid_usage_flags_flag_description_${f.flag_key}`) ?? L(`special_ability_invalid_usage_flags_alt_description_${f.flag_key}`) ?? '';
   const abilities: Record<string, Row> = {};
   const ability = (key: string) => {
     if (abilities[key] || !ua.has(key)) return;
@@ -207,6 +214,7 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       over: a.overpower_option, active: s.active_time, range: s.effect_range, mana: s.mana_cost, cd: s.recharge_time,
       tf: s.target_friends, te: s.target_enemies, ts: s.affect_self, tg: s.target_ground, hidden: a.is_hidden_in_ui || null,
       passive: !!s.passive, phases,
+      inv: invalidTargets.has(key) ? invalidTargets.get(key)!.map((r) => r.invalid_target as string) : null,
     });
     if (a.overpower_option) ability(a.overpower_option);
   };
@@ -719,5 +727,7 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
   return {
     source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', format: 2,
     subcultures: subs, characters, skills: skillsOut, abilities, unitLists, locks, techTrees, techs, ancillaries, itemSets, graphs,
+    // Solo las restricciones que usan las habilidades extraídas
+    targetFlags: Object.fromEntries(Object.entries(targetFlags).filter(([k]) => Object.values(abilities).some((a) => a.inv?.includes(k)))),
   };
 }

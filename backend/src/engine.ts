@@ -1,4 +1,4 @@
-import { abilities, artOfUnit, experienceBonuses, getCharacter, getUnit, techEffects, unitInList } from './data.js';
+import { abilities, artOfUnit, experienceBonuses, getCharacter, getUnit, targetFlagText, techEffects, unitInList } from './data.js';
 import { translateAttribute } from './i18n.js';
 import { MAX_RANK, autoRank, effectiveLevel, isFreeLevel, pointsAtRank, pointsFor } from './rankRules.js';
 import { unitRank } from './types.js';
@@ -483,6 +483,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     }
     for (const x of allyAbilities) {
       if (x.selfOnly && x.build !== b) continue;
+      if (!targetAllowed(x.ability, x.owner, { kind: isLord ? 'lord' : 'hero' }, b.warnings)) continue;
       applyAbility(lines, x.ability, x.owner, x.cond, attributes);
       if (x.ability.magicalAttacks) magical = true;
       if (x.ability.flamingAttacks) flaming = true;
@@ -567,6 +568,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     }
     for (const x of allyAbilities) {
       if (x.selfOnly) continue;
+      if (!targetAllowed(x.ability, x.owner, { kind: 'unit', unit: u }, notes)) continue;
       applyAbility(lines, x.ability, x.owner, x.cond, attributes);
       if (x.ability.magicalAttacks) magical = true;
       if (x.ability.flamingAttacks) flaming = true;
@@ -714,6 +716,27 @@ function summarize(b: ResolvedBuild): BuildSummary {
     sum.abilities.push({ name: ability.name, source: skill, passive: ability.passive, mode: ability.mode, detail });
   }
   return sum;
+}
+
+/**
+ * Restricciones de objetivo del juego (special_ability_to_invalid_target_flags): la habilidad NO afecta a quien cumple el flag
+ * (p. ej. la pasiva Guardián, que solo protege a señores y héroes). Solo se aplican las que están aquí; las claves y su
+ * texto salen al correr npm run extraer. Las que falten se avisan en la tarjeta y la habilidad se aplica igual.
+ */
+type AbilityTarget = { kind: 'lord' | 'hero' | 'unit'; unit?: UnitData };
+const TARGET_FLAGS: Record<string, (t: AbilityTarget) => boolean> = {};
+
+function targetAllowed(a: AbilityInfo, owner: string, t: AbilityTarget, notes: string[]): boolean {
+  for (const flag of a.invalidTargets ?? []) {
+    const rule = TARGET_FLAGS[flag];
+    if (rule) {
+      if (rule(t)) return false;
+      continue;
+    }
+    const note = `"${a.name}" (${owner}): el juego limita a quién afecta (${targetFlagText[flag] || flag}); esa regla aún no está en el planner y se aplica igual`;
+    if (!notes.includes(note)) notes.push(note);
+  }
+  return true;
 }
 
 function applyAbility(

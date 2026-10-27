@@ -535,6 +535,9 @@ if (existsSync(dbPath)) {
     allSkills = buildAllSkills(loadTables(p, SKILL_TABLES), spGlobal);
     writeFileSync(join(BACKEND, 'data/raw/wh3_all_skills.json'), JSON.stringify(allSkills));
     console.log(`Árboles de habilidades: ${allSkills.characters.length} señores y héroes de ${allSkills.subcultures.length} facciones`);
+    // Restricciones de objetivo de las habilidades: el motor solo aplica las que sabe interpretar (TARGET_FLAGS en engine.ts)
+    for (const [flag, text] of Object.entries(allSkills.targetFlags ?? {}))
+      console.log(`  Restricción de objetivo ${flag}: ${text || '(sin texto)'} · ${Object.values(allSkills.abilities).filter((a: any) => a.inv?.includes(flag)).length} habilidades`);
   } catch (err) {
     console.warn(`No pude leer los árboles de habilidades: ${(err as Error).message}`);
   }

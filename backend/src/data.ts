@@ -58,6 +58,7 @@ interface GameSkillsFile {
   ancillaries?: Record<string, { n: string; d?: string; cat: string; e: GameEffect[] }>;
   itemSets?: { key: string; n: string; items: string[]; e: GameEffect[] }[];
   graphs?: GameGraph[];
+  targetFlags?: Record<string, string>;
 }
 interface GameTechTree {
   key: string; name: string; subcultures: string[];
@@ -141,8 +142,12 @@ function toAbility(a: RawAbility): AbilityInfo {
     flamingAttacks: a.phases.some((p) => p.fire),
     stats: a.phases.flatMap((p) => p.stats.map((st) => ({ ...st, d: translateAbilityStat(st.d) }))),
     attributes: a.phases.flatMap((p) => p.attr.map((x) => translateAttribute(x))).filter(Boolean),
+    invalidTargets: a.inv?.length ? a.inv : undefined,
   };
 }
+
+/** Texto del juego de cada restricción de objetivo (vacío si la extracción es anterior) */
+export const targetFlagText: Record<string, string> = gameFile?.targetFlags ?? {};
 
 export const abilities: Record<string, AbilityInfo> = Object.fromEntries(
   Object.entries(
