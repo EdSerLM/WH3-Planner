@@ -279,36 +279,6 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
   }
   const poolOnly = new Map<string, Set<string>>();
   for (const [u, x] of poolFac) if (!x.any && x.facs.size && !builtSomewhere.has(u)) poolOnly.set(u, x.facs);
-  // Unidades que solo salen de edificios de UNA facción (p. ej. la Guardia del Sepulcro de los Condes Vampiro, que solo
-  // recluta Neferata): todo edificio que las permite es de facción concreta, por la columna "faction" de
-  // building_units_allowed o porque todas sus variantes (building_culture_variants) son de facción. Si alguno es de
-  // cultura/subcultura en general, la unidad no se restringe. Un grupo de mercenarios abierto a la facción la sigue dando.
-  let variants: Record<string, any>[] = [];
-  try {
-    variants = loadTables(p, ['building_culture_variants_tables'])['building_culture_variants_tables'];
-  } catch (err) {
-    console.warn(`No pude leer building_culture_variants (sin filtro por edificios de facción): ${(err as Error).message}`);
-  }
-  const buildingFacs = new Map<string, Set<string> | 'any'>();
-  for (const v of variants) {
-    if (v.disables) continue;
-    const cur = buildingFacs.get(v.building);
-    if (cur === 'any') continue;
-    if (!v.faction) buildingFacs.set(v.building, 'any');
-    else buildingFacs.set(v.building, (cur ?? new Set<string>()).add(v.faction));
-  }
-  const buildFac = new Map<string, Set<string> | 'any'>();
-  for (const r of T['building_units_allowed_tables']) {
-    if (r.enabled === false) continue;
-    const cur = buildFac.get(r.unit);
-    if (cur === 'any') continue;
-    // Edificio sin variantes en la tabla: no se sabe de quién es, no restringe
-    const who = r.faction ? new Set<string>([r.faction]) : buildingFacs.get(r.building) ?? 'any';
-    buildFac.set(r.unit, who === 'any' ? 'any' : new Set([...(cur ?? []), ...who]));
-  }
-  const buildOnly = new Map<string, Set<string>>();
-  if (variants.length) for (const [u, x] of buildFac) if (x !== 'any' && x.size) buildOnly.set(u, x);
-  const poolGives = (u: string, f: string) => { const x = poolFac.get(u); return !!x && (x.any || x.facs.has(f)); };
   const leaders = new Map<string, string[]>();
   for (const r of T['frontend_faction_leaders_tables']) if (r.faction && r.agent_subtype_record) leaders.set(r.faction, [...(leaders.get(r.faction) ?? []), r.agent_subtype_record]);
   // Mejoras de unidad: qué grupos suben a cuáles, desde qué rango y con qué tecnología
@@ -330,12 +300,7 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     const f = fac.get(ff.faction);
     if (!f || f.is_quest_faction || f.is_rebel) continue;
     const list = new Set<string>();
-    const poolOnlyOk = (u: string) => {
-      const fs = poolOnly.get(u);
-      if (fs && !fs.has(f.key)) return false;
-      const bs = buildOnly.get(u);
-      return !bs || bs.has(f.key) || poolGives(u, f.key);
-    };
+    const poolOnlyOk = (u: string) => { const fs = poolOnly.get(u); return !fs || fs.has(f.key); };
     // Exclusivas: si la unidad tiene facciones con allowed = true, solo esas la tienen; allowed = false la prohíbe
     // a esa facción (p. ej. la Guardia Eterna está prohibida solo para los Espíritus de Shanlin)
     for (const u of byGroup.get(f.military_group) ?? []) {
@@ -366,8 +331,6 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     });
   }
   campaign.sort((a, b) => a.subculture.localeCompare(b.subculture) || a.name.localeCompare(b.name, 'es'));
-  console.log(`Unidades solo de edificios de facción: ${buildOnly.size}`);
-  for (const [u, fs] of [...buildOnly].slice(0, 40)) console.log(`  ${sp.get(`land_units_onscreen_name_${u}`) ?? u} (${u}) -> ${[...fs].join(', ')}`);
   const campSubcultures = new Map<string, Set<string>>();
   for (const c of campaign) for (const u of [...c.units, ...Object.keys(c.upgrades)]) campSubcultures.set(u, (campSubcultures.get(u) ?? new Set()).add(c.subculture));
   const uiParent = idx('ui_unit_groupings_tables', 'key');
@@ -595,7 +558,53 @@ if (existsSync(dbPath)) {
   } catch (err) {
     console.warn(`No pude leer las unidades: ${(err as Error).message}`);
   }
+  dumpRosterTables(p);
   closeSync(p.fd);
+}
+
+/**
+ * Volcado para revisar a mano (sin reglas): las filas del juego, tal cual, que pueden decidir qué recluta cada facción
+ * de campaña de una subcultura. Sirve para encontrar qué separa, p. ej., a Neferata y la Guardia del Sepulcro de las otras
+ * campañas de Condes Vampiro antes de programar nada. Subcultura: variable WH3_DIAG_SC (por defecto Condes Vampiro).
+ * Sale en backend/data/raw/diag_roster_<subcultura>.json.
+ */
+function dumpRosterTables(p: Pack) {
+  const sc = process.env.WH3_DIAG_SC ?? 'wh_main_sc_vmp_vampire_counts';
+  const load = (t: string) => {
+    try {
+      return loadTables(p, [t])[t];
+    } catch (err) {
+      console.warn(`  (volcado: no pude leer ${t}: ${(err as Error).message})`);
+      return [];
+    }
+  };
+  const factions = load('factions_tables').filter((f) => f.subculture === sc);
+  const facKeys = new Set(factions.map((f) => f.key));
+  const groups = new Set(factions.map((f) => f.military_group));
+  const military = load('units_to_groupings_military_permissions_tables').filter((r) => groups.has(r.military_group));
+  const units = new Set(military.map((r) => r.unit as string));
+  const custom = load('units_custom_battle_permissions_tables').filter((r) => facKeys.has(r.faction) || units.has(r.unit));
+  for (const r of custom) if (facKeys.has(r.faction)) units.add(r.unit);
+  const exclusive = load('units_to_exclusive_faction_permissions_tables').filter((r) => units.has(r.key) || facKeys.has(r.faction));
+  const buildings = load('building_units_allowed_tables').filter((r) => units.has(r.unit));
+  const bkeys = new Set(buildings.map((r) => r.building as string));
+  const variants = load('building_culture_variants_tables').filter((r) => bkeys.has(r.building))
+    .map(({ building, culture, subculture, faction, disables }) => ({ building, culture, subculture, faction, disables }));
+  const mercGroups = load('mercenary_unit_groups_tables').filter((r) => units.has(r.unit_record));
+  const mkeys = new Set(mercGroups.map((r) => r.key as string));
+  const mercPools = load('mercenary_pool_to_groups_junctions_tables').filter((r) => mkeys.has(r.group));
+  const main = load('main_units_tables').filter((r) => units.has(r.unit))
+    .map(({ unit, caste, campaign_cap, additional_building_requirement, religion_requirement, resource_requirement, region_unit_resource_requirement, world_leader_only, unique_index, special_edition_mask }) =>
+      ({ unit, caste, campaign_cap, additional_building_requirement, religion_requirement, resource_requirement, region_unit_resource_requirement, world_leader_only, unique_index, special_edition_mask }));
+  const out = {
+    subculture: sc,
+    factions: factions.map(({ key, military_group, is_quest_faction, is_rebel }) => ({ key, military_group, is_quest_faction, is_rebel })),
+    units_to_groupings_military_permissions: military, units_custom_battle_permissions: custom, units_to_exclusive_faction_permissions: exclusive,
+    building_units_allowed: buildings, building_culture_variants: variants, mercenary_unit_groups: mercGroups, mercenary_pool_to_groups_junctions: mercPools,
+    main_units: main,
+  };
+  writeFileSync(join(BACKEND, `data/raw/diag_roster_${sc}.json`), JSON.stringify(out, null, 1));
+  console.log(`Volcado para revisar el roster de ${sc}: ${factions.length} facciones, ${units.size} unidades -> backend/data/raw/diag_roster_${sc}.json`);
 }
 // 5) Iconos -------------------------------------------------------------
 const wantedIcons = new Set<string>();
