@@ -76,7 +76,7 @@ app.get('/api/units/:card', (req, res) => {
 app.get('/api/factions', (_req, res) => res.json(listSubcultures()));
 app.get('/api/targets', (req, res) => {
   const sc = String(req.query.faction ?? '');
-  res.json(listTargets(sc).map((u) => ({ key: u.key, name: u.name, caste: u.casteEs ?? u.caste, group: u.group, cost: u.cost, models: u.models })));
+  res.json(listTargets(sc).map((u) => ({ key: u.key, name: u.name, caste: u.casteEs ?? u.caste, group: u.group, cost: u.cost, models: u.models, tier: u.tier })));
 });
 
 // ---------- Cálculo de bufos ----------

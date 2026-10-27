@@ -341,7 +341,14 @@ tr.dps-group td { background: var(--panel-2); border-top: 1px solid var(--line);
 td.dps-name { cursor: pointer; }
 td.dps-name:hover { color: var(--gold); }
 td.dps-name .caret { display: inline-block; width: 12px; color: var(--muted); font-size: 11px; }
-.grp-icon { display: inline-block; width: 20px; text-align: center; font-size: 13px; }
+/* Carta del objetivo y su tipo/nivel debajo del nombre */
+td.dps-name { white-space: nowrap; }
+td.dps-name > * { vertical-align: middle; }
+.dps-art { display: inline-block; width: 30px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid var(--line); margin-right: 6px; background: var(--panel-2); }
+.dps-art.big { width: 60px; height: 80px; margin: 0; }
+.dps-who { display: inline-flex; flex-direction: column; line-height: 1.25; }
+.dps-attacker { display: flex; align-items: center; gap: 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; }
+.dps-vs { font-size: 22px; font-weight: 700; color: var(--gold); margin-left: auto; }.grp-icon { display: inline-block; width: 20px; text-align: center; font-size: 13px; }
 .dps-name .tag { font-size: 10px; margin-left: 6px; padding: 0 5px; border-radius: 6px; background: #2c2416; color: var(--gold); border: 1px solid var(--gold-dim); }
 .bp-dot { display: inline-block; width: 14px; height: 14px; line-height: 14px; margin-left: 3px; text-align: center; border-radius: 50%; font-size: 11px; font-weight: 700; cursor: help; }
 .bp-dot.good { background: #1f3322; color: var(--green); }

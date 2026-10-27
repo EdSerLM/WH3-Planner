@@ -3,6 +3,7 @@ import { api } from '../api';
 import type { ArmyState, ComputedCard, DpsRow, UnitData } from '../types';
 import { GROUP_ORDER, groupIndex, groupInfo } from '../unitGroups';
 import { UnitIcon } from './UnitIcon';
+import { Tier } from './ArmySetup';
 
 interface Props {
   army: ArmyState;
@@ -11,11 +12,13 @@ interface Props {
   ownName: string;
 }
 
-interface Target { key: string; name: string; caste: string; group?: string; cost?: number; models?: number }
+interface Target { key: string; name: string; caste: string; group?: string; cost?: number; models?: number; tier?: number }
 interface Faction { key: string; name: string }
 
-type SortKey = 'name' | 'group' | 'hit' | 'dmg' | 'res' | 'dps' | 'ttk' | 'eff' | 'cost' | 'back' | 'duel';
+type SortKey = 'name' | 'group' | 'tier' | 'hit' | 'dmg' | 'res' | 'dps' | 'ttk' | 'eff' | 'cost' | 'back' | 'duel';
 interface SortState { key: SortKey; dir: 1 | -1 }
+type GroupBy = '' | 'type' | 'tier';
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
 
 const OWN = '__propia__';
 const DEFAULT_TARGETS = ['wh_main_chs_warriors', 'wh_main_chs_chosen', 'wh_main_chs_marauder', 'wh_main_chs_spawn'];
@@ -55,6 +58,7 @@ function sortValue(r: DpsRow, k: SortKey): number | string {
   switch (k) {
     case 'name': return r.targetName;
     case 'group': return groupIndex(r.info?.group);
+    case 'tier': return r.info?.tier ?? 0;
     case 'hit': return r.hitChance;
     case 'dmg': return r.dmgPerHit;
     case 'res': return r.resistanceUsed;
@@ -82,9 +86,11 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
   const [faction, setFaction] = useState<string>(OWN);
   const [factionUnits, setFactionUnits] = useState<Target[]>([]);
   const [groupFilter, setGroupFilter] = useState('');
-  const [view, setView] = useState<{ sort: SortState; grouped: boolean }>(() =>
+  // grouped (booleano) es de versiones anteriores: equivale a agrupar por tipo
+  const [view, setView] = useState<{ sort: SortState; grouped: boolean; groupBy?: GroupBy }>(() =>
     loadJson(STORE_VIEW, { sort: { key: 'ttk', dir: 1 } as SortState, grouped: false }),
   );
+  const groupBy: GroupBy = view.groupBy ?? (view.grouped ? 'type' : '');
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [dir, setDir] = useState<'front' | 'flank' | 'rear'>('front');
 
@@ -162,11 +168,17 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
   }, [rows, view.sort]);
 
   const sections = useMemo(() => {
-    if (!view.grouped) return [{ group: '', rows: sorted }];
+    if (!groupBy) return [{ group: '', rows: sorted }];
+    const keyOf = (r: DpsRow) => (groupBy === 'tier' ? String(r.info?.tier ?? 0) : r.info?.group ?? '');
     const m = new Map<string, DpsRow[]>();
-    for (const r of sorted) m.set(r.info?.group ?? '', [...(m.get(r.info?.group ?? '') ?? []), r]);
-    return [...m.entries()].sort((a, b) => groupIndex(a[0]) - groupIndex(b[0])).map(([group, rows]) => ({ group, rows }));
-  }, [sorted, view.grouped]);
+    for (const r of sorted) m.set(keyOf(r), [...(m.get(keyOf(r)) ?? []), r]);
+    const order = (k: string) => (groupBy === 'tier' ? -Number(k) : groupIndex(k)); // nivel: de élite (V) a básicas (I)
+    return [...m.entries()].sort((a, b) => order(a[0]) - order(b[0])).map(([group, rows]) => ({ group, rows }));
+  }, [sorted, groupBy]);
+  const sectionTitle = (g: string) =>
+    groupBy === 'tier'
+      ? <><Tier t={Number(g) || undefined} /> <b>{Number(g) ? `Nivel ${ROMAN[Number(g)] ?? g}` : 'Sin nivel'}</b></>
+      : <><span className="grp-icon">{groupInfo(g).icon}</span> <b>{groupInfo(g).es}</b></>;
 
   const maxDps = Math.max(1, ...rows.map((r) => r.dps));
   const finite = rows.filter((r) => Number.isFinite(r.timeToKill)).map((r) => r.timeToKill);
@@ -187,6 +199,21 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
   return (
     <div className="dps">
       <h3>Daño cuerpo a cuerpo (DPS)</h3>
+      {attCard && (
+        <div className="dps-attacker">
+          {attCard.art ? <img className="dps-art big" src={`/units/${attCard.art}.png`} alt="" /> : null}
+          <div>
+            <b>{attCard.name}</b>
+            <div className="small muted">{attCard.caste}{attCard.models ? ` · ${attCard.models} modelos` : ''} · con tus bufos</div>
+            <div className="small">
+              ⚔️ {attCard.stats.ma.final} · 💥 {Math.round((attCard.stats.dmg.final + attCard.stats.ap.final) * 10) / 10} ({Math.round(attCard.stats.ap.final * 10) / 10} perf.)
+              · 🛡️ {attCard.stats.md.final} · ⛓️ {attCard.stats.armour.final}
+            </div>
+          </div>
+          <span className="dps-vs">vs</span>
+          <span className="small muted">{rows.length} objetivo{rows.length === 1 ? '' : 's'}</span>
+        </div>
+      )}
       <div className="dps-tools">
         <label>
           Atacante:{' '}
@@ -234,7 +261,7 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
             <option value="">— elegir ({options.length}) —</option>
             {options.map((u) => (
               <option key={u.key} value={u.key} disabled={targets.includes(u.key)}>
-                {groupInfo(u.group).icon} {u.name}{u.cost ? ` · ${u.cost}` : ''}
+                {groupInfo(u.group).icon} {u.name}{u.tier ? ` · ${ROMAN[u.tier] ?? u.tier}` : ''}{u.cost ? ` · ${u.cost}` : ''}
               </option>
             ))}
           </select>
@@ -251,8 +278,13 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
             <option value="rear">Por la espalda (defensa ×0.3)</option>
           </select>
         </label>
-        <label title="Separa la tabla por tipo de unidad (infantería, caballería, monstruos...)">
-          <input type="checkbox" checked={view.grouped} onChange={(e) => setView((v) => ({ ...v, grouped: e.target.checked }))} /> Agrupar por tipo
+        <label title="Separa la tabla por tipo de unidad (infantería, caballería, monstruos...) o por nivel (tier I a V)">
+          Agrupar:{' '}
+          <select value={groupBy} onChange={(e) => setView((v) => ({ ...v, groupBy: e.target.value as GroupBy }))}>
+            <option value="">Sin agrupar</option>
+            <option value="type">Por tipo</option>
+            <option value="tier">Por nivel (tier)</option>
+          </select>
         </label>
         <button className="ghost" onClick={() => setOpen(open.size ? new Set() : new Set(rows.map((r) => r.target)))}>
           {open.size ? 'Cerrar fichas' : 'Abrir todas las fichas'}
@@ -269,6 +301,7 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
             <th className="sortable" onClick={() => sortBy('name', 1)} title="Unidad enemiga. Clic para ordenar por nombre">
               Objetivo{arrow('name')}
               <span className="th-sub" onClick={(e) => { e.stopPropagation(); sortBy('group', 1); }} title="Ordenar por tipo de unidad">tipo{arrow('group')}</span>
+              <span className="th-sub" onClick={(e) => { e.stopPropagation(); sortBy('tier', -1); }} title="Ordenar por nivel (tier) del objetivo">nivel{arrow('tier')}</span>
               <span className="th-sub" onClick={(e) => { e.stopPropagation(); sortBy('cost', -1); }} title="Ordenar por coste del objetivo">coste{arrow('cost')}</span>
             </th>
             {COLS.map((c) => (
@@ -282,10 +315,10 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
         <tbody>
           {sections.map((sec) => (
             <Fragment key={sec.group || 'all'}>
-              {view.grouped && (
+              {groupBy && (
                 <tr className="dps-group">
                   <td colSpan={10}>
-                    <span className="grp-icon">{groupInfo(sec.group).icon}</span> <b>{groupInfo(sec.group).es}</b>
+                    {sectionTitle(sec.group)}
                     <span className="muted small">
                       {' '}· {sec.rows.length} unidad{sec.rows.length === 1 ? '' : 'es'}
                       {(() => {
@@ -310,8 +343,14 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
                     <tr className={'dps-row' + (isOpen ? ' open' : '')}>
                       <td className="dps-name" onClick={() => toggleOpen(r.target)} title={r.info?.desc ?? 'Clic para ver la ficha'}>
                         <span className="caret">{isOpen ? '▾' : '▸'}</span>
-                        <span className="grp-icon" title={gi.es}>{r.info?.icon ? <UnitIcon kind={r.info.icon} size={15} /> : gi.icon}</span>
-                        <span>{r.targetName}</span>
+                        {r.info?.art ? <img className="dps-art" src={`/units/${r.info.art}.png`} alt="" loading="lazy" /> : <span className="dps-art" />}
+                        <span className="dps-who">
+                          <span>
+                            <span className="grp-icon" title={gi.es}>{r.info?.icon ? <UnitIcon kind={r.info.icon} size={15} /> : gi.icon}</span>
+                            {' '}{r.targetName}
+                          </span>
+                          <span className="small muted"><Tier t={r.info?.tier} /> {r.info?.caste ?? gi.es}</span>
+                        </span>
                         {r.info?.large && <span className="tag" title="Unidad grande: le afecta la bonificación contra grandes">Grande</span>}
                         {r.info?.bullets.slice(0, 4).map((b) => (
                           <span key={b.name} className={'bp-dot ' + (b.good ? 'good' : 'bad')} title={`${b.name}${b.tip ? `\n${b.tip}` : ''}`}>

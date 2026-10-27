@@ -305,7 +305,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
 
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
 /** Nivel (tier) de la unidad en números romanos, como en el juego */
-function Tier({ t }: { t?: number }) {
+export function Tier({ t }: { t?: number }) {
   if (!t) return null;
   return <span className={'ut-tier t' + t} title={`Nivel ${t} (tier): 1 = básicas, 5 = de élite`}>{ROMAN[t] ?? t}</span>;
 }

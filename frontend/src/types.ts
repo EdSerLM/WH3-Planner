@@ -352,6 +352,8 @@ export interface DpsTargetInfo {
   size: string;
   large: boolean;
   cost: number;
+  /** Nivel de la unidad en el juego (1-5) */
+  tier?: number;
   models: number;
   hpPerModel: number;
   md: number;

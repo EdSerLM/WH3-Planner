@@ -96,6 +96,7 @@ function loadFaction(): string {
 type Tab = 'lord' | 'techs' | number; // número = índice de héroe
 
 const PAGE_KEY = 'wh3-planner:page';
+type Page = 'chars' | 'army' | 'dps';
 
 export default function App() {
   const [meta, setMeta] = useState<Meta | null>(null);
@@ -112,16 +113,17 @@ export default function App() {
   const [saved, setSaved] = useState<SavedBuild[]>([]);
   const [currentId, setCurrentId] = useState<string | undefined>();
   const [buildName, setBuildName] = useState('');
-  const [view, setView] = useState<'cards' | 'dps' | 'campaign'>('cards');
-  // Página: personajes y tecnologías, o ejército y DPS (se recuerda)
-  const [page, setPageState] = useState<'chars' | 'army'>(() => {
+  const [view, setView] = useState<'cards' | 'campaign'>('cards');
+  // Página: personajes y tecnologías, ejército, o DPS (se recuerda)
+  const [page, setPageState] = useState<Page>(() => {
     try {
-      return localStorage.getItem(PAGE_KEY) === 'army' ? 'army' : 'chars';
+      const p = localStorage.getItem(PAGE_KEY);
+      return p === 'army' || p === 'dps' ? p : 'chars';
     } catch {
       return 'chars';
     }
   });
-  const setPage = (p: 'chars' | 'army') => {
+  const setPage = (p: Page) => {
     setPageState(p);
     try {
       localStorage.setItem(PAGE_KEY, p);
@@ -422,8 +424,12 @@ export default function App() {
           </span>
         </button>
         <button className={page === 'army' ? 'active' : ''} onClick={() => setPage('army')}>
-          ⚔️ Ejército, tarjetas y DPS
+          ⚔️ Ejército y tarjetas
           <span className="pt-sub">{usedSlots} / 20 · {army.units.reduce((n, u) => n + u.count, 0)} unidades</span>
+        </button>
+        <button className={page === 'dps' ? 'active' : ''} onClick={() => setPage('dps')}>
+          📊 DPS
+          <span className="pt-sub">tus unidades contra cada objetivo</span>
         </button>
       </nav>
 
@@ -552,7 +558,7 @@ export default function App() {
           rosterCards={rosterCards}
           cards={cards}
           campaign={campaigns.find((c) => c.key === army.campaign)}
-          compact={view === 'dps'}
+          compact={false}
           onChange={(u) => setArmy((a) => ({ ...a, units: u }))}
           onEditChar={(t) => { setTab(t); setPage('chars'); }}
         />
@@ -567,18 +573,18 @@ export default function App() {
             inAura={army.inAura}
             onToggle={toggleAbility}
             onAura={(v) => setArmy((a) => ({ ...a, inAura: v }))}
-            showEnemies={view === 'dps'}
+            showEnemies={false}
           />
           </ErrorBoundary>
         </aside>
         <div className="bottom-main">
         <nav className="tabs">
           <button className={view === 'cards' ? 'active' : ''} onClick={() => setView('cards')}>Tarjetas ({cards.length})</button>
-          <button className={view === 'dps' ? 'active' : ''} onClick={() => setView('dps')}>DPS</button>
           <button className={view === 'campaign' ? 'active' : ''} onClick={() => setView('campaign')}>Campaña y magia</button>
+          <button className="ghost" onClick={() => setPage('dps')} title="El DPS tiene su propia pestaña arriba">📊 DPS →</button>
         </nav>
 
-        <ErrorBoundary label={view === 'dps' ? 'el DPS' : view === 'cards' ? 'las tarjetas' : 'la campaña'} resetKey={`${faction}|${view}`}>
+        <ErrorBoundary label={view === 'cards' ? 'las tarjetas' : 'la campaña'} resetKey={`${faction}|${view}`}>
         {view === 'cards' && (
           <>
             <div ref={summaryRef}>
@@ -602,8 +608,6 @@ export default function App() {
             </p>
           </>
         )}
-
-        {view === 'dps' && <DpsPanel army={army} cards={cards} units={units} ownName={factions.find((f) => f.key === faction)?.name ?? 'Mi facción'} />}
 
         {view === 'campaign' && (
           <div className="campaign">
@@ -630,6 +634,35 @@ export default function App() {
           </div>
         )}
         </ErrorBoundary>
+        </div>
+        </div>
+      </section>
+      )}
+
+      {/* DPS en su propia pestaña: toda la anchura para la tabla, con las activables (y debufos al enemigo) al lado */}
+      {page === 'dps' && (
+      <section className="bottom dps-page">
+        <div className="army-results">
+        <aside className="setup-abilities">
+          <ErrorBoundary label="las activables" resetKey={faction}>
+          <ActiveAbilities
+            abilities={result?.abilities ?? []}
+            active={army.activeAbilities}
+            inAura={army.inAura}
+            onToggle={toggleAbility}
+            onAura={(v) => setArmy((a) => ({ ...a, inAura: v }))}
+            showEnemies
+          />
+          </ErrorBoundary>
+        </aside>
+        <div className="bottom-main">
+          <ErrorBoundary label="el DPS" resetKey={faction}>
+            {cards.length ? (
+              <DpsPanel army={army} cards={cards} units={units} ownName={factions.find((f) => f.key === faction)?.name ?? 'Mi facción'} />
+            ) : (
+              <p className="muted">Elige un señor y agrega unidades en la pestaña Ejército para comparar su DPS.</p>
+            )}
+          </ErrorBoundary>
         </div>
         </div>
       </section>

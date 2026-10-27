@@ -835,6 +835,7 @@ export function targetInfo(id: string) {
     size: u.size,
     large: !['small', 'very_small', ''].includes(u.size ?? ''),
     cost: u.cost,
+    tier: u.tier,
     models: u.models,
     hpPerModel: u.hpPerModel,
     md: u.md,

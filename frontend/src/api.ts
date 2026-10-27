@@ -24,7 +24,7 @@ export const api = {
     }),
   factions: () => req<{ key: string; name: string }[]>('/api/factions'),
   targets: (faction: string) =>
-    req<{ key: string; name: string; caste: string; group?: string; cost?: number; models?: number }[]>(`/api/targets?faction=${encodeURIComponent(faction)}`),
+    req<{ key: string; name: string; caste: string; group?: string; cost?: number; models?: number; tier?: number }[]>(`/api/targets?faction=${encodeURIComponent(faction)}`),
   graphs: (faction: string) => req<{ key: string; name: string }[]>(`/api/graphs?faction=${encodeURIComponent(faction)}`),
   graph: (key: string) => req<GraphData>(`/api/graphs/${encodeURIComponent(key)}`),
   techSummary: (techs: string[]) => req<TechSummaryData>('/api/tech-summary', { method: 'POST', body: JSON.stringify({ techs }) }),
