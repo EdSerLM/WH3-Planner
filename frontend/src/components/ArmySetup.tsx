@@ -1,3 +1,4 @@
+import { fmtStat, statDiff } from '../statFormat';
 import { useMemo, useState } from 'react';
 import { unitRank, type ArmyUnitSelection, type CampaignFaction, type ComputedCard, type StatKey, type UnitData } from '../types';
 import type { RosterBuffs } from '../App';
@@ -434,16 +435,15 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank }: {
   const raw = (k: string) => Number((unit as unknown as Record<string, number> | undefined)?.[k] ?? 0);
   const mis = stat('missileDmg')?.base || stat('missileDmg')?.final ? card : null;
   const missile = unit?.missile;
-  const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
   /** Fila sin barra; con bufos muestra la diferencia como las de arriba */
   const extraRow = (k: string, emoji: string, label: string, st: { base: number; final: number } | null, plain: number) => {
     const v = (st ? st.final : plain) ?? 0;
-    const diff = st ? st.final - st.base : 0;
+    const diff = st ? statDiff(st.final, st.base) : 0;
     return (
       <tr key={k}>
         <td><StatImg stat={k} emoji={emoji} /> {label}</td>
         <td className={'num ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '')}>
-          {fmt(v)}{diff ? <span className="small"> ({diff > 0 ? '+' : ''}{fmt(diff)})</span> : null}
+          {fmtStat(v)}{diff ? <span className="small"> ({diff > 0 ? '+' : ''}{fmtStat(diff)})</span> : null}
         </td>
         <td />
       </tr>
@@ -474,23 +474,23 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank }: {
       )}
       <div className="ip-hp" title="Vida total = modelos × vida por modelo">
         <span className="ip-hpbar"><span style={{ width: '100%' }} /></span>
-        <b>{fmt(hp.final * models)}</b>
-        {hp.final !== hp.base && <span className="up small"> (+{fmt((hp.final - hp.base) * models)})</span>}
+        <b>{fmtStat(hp.final * models)}</b>
+        {statDiff(hp.final * models, hp.base * models) > 0 && <span className="up small"> (+{statDiff(hp.final * models, hp.base * models)})</span>}
       </div>
       <div className="ip-models">
-        👤 {models} modelo{models === 1 ? '' : 's'} × {fmt(hp.final)} vida{unit?.cost ? ` · ${unit.cost} MP` : ''}
+        👤 {models} modelo{models === 1 ? '' : 's'} × {fmtStat(hp.final)} vida{unit?.cost ? ` · ${unit.cost} MP` : ''}
         {unit?.tier ? <> · <Tier t={unit.tier} /> nivel {unit.tier}</> : null}
       </div>
       <table className="ip-stats">
         <tbody>
           {BARS.map((s) => {
             const v = val(s.k);
-            const diff = v.final - v.base;
+            const diff = statDiff(v.final, v.base);
             return (
               <tr key={s.k}>
                 <td><StatImg stat={s.k} emoji={s.icon} /> {s.label}</td>
                 <td className={'num ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '')}>
-                  {fmt(v.final)}{diff ? <span className="small"> ({diff > 0 ? '+' : ''}{fmt(diff)})</span> : null}
+                  {fmtStat(v.final)}{diff ? <span className="small"> ({diff > 0 ? '+' : ''}{fmtStat(diff)})</span> : null}
                 </td>
                 <td className="ip-bar">
                   <span className="bar-base" style={{ width: `${Math.min(100, (Math.min(v.base, v.final) / s.max) * 100)}%` }} />

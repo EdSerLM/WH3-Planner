@@ -1,3 +1,4 @@
+import { fmtStat, statDiff } from '../statFormat';
 import { useState } from 'react';
 import type { AbilityState, ComputedCard, Contribution, StatKey } from '../types';
 import { AbilityIcons } from './AbilityIcons';
@@ -22,9 +23,6 @@ const PCT_DISPLAY = new Set<StatKey>(['resPhysical', 'resMissile', 'resMagic', '
 
 const KIND_ES = { unit: '', lord: 'Señor', hero: 'Héroe' } as const;
 
-function fmt(v: number) {
-  return Number.isInteger(v) ? String(v) : v.toFixed(1);
-}
 
 function contribText(c: Contribution) {
   const v = c.how === 'mult' ? `×${c.value}` : c.how === 'pct' ? `${c.value > 0 ? '+' : ''}${c.value}%` : `${c.value > 0 ? '+' : ''}${c.value}`;
@@ -59,18 +57,18 @@ export function UnitCard({ card, labels, onSelect, selected, selfAbilities = [],
         <tbody>
           {stats.map((s) => {
             const l = card.stats[s];
-            const diff = l.final - l.base;
+            const diff = statDiff(l.final, l.base, s);
             const has = l.contributions.length > 0;
             return (
               <FragmentRow key={s}>
                 <tr className={has ? 'has' : ''} onClick={() => has && setOpen(open === s ? null : s)}>
                   <td><StatImg stat={s} emoji="" size={14} /> {labels[s] ?? s}</td>
-                  <td className="num muted">{fmt(l.base)}{PCT_DISPLAY.has(s) ? '%' : ''}</td>
+                  <td className="num muted">{fmtStat(l.base, s)}{PCT_DISPLAY.has(s) ? '%' : ''}</td>
                   <td className="num">{has ? '→' : ''}</td>
                   <td className={'num ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '')}>
-                    <b>{fmt(l.final)}{PCT_DISPLAY.has(s) ? '%' : ''}</b>
+                    <b>{fmtStat(l.final, s)}{PCT_DISPLAY.has(s) ? '%' : ''}</b>
                   </td>
-                  <td className={'num small ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '')}>{diff ? `${diff > 0 ? '+' : ''}${fmt(diff)}` : ''}</td>
+                  <td className={'num small ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '')}>{diff ? `${diff > 0 ? '+' : ''}${fmtStat(diff, s)}` : ''}</td>
                 </tr>
                 {open === s && (
                   <tr className="contribs">

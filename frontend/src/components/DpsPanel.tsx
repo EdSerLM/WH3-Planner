@@ -1,3 +1,4 @@
+import { fmtStat } from '../statFormat';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import type { ArmyState, ComputedCard, DpsRow, UnitData } from '../types';
@@ -276,10 +277,10 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
             <b>{attCard.name}</b>
             <div className="small muted">{attCard.caste}{attCard.models ? ` · ${attCard.models} modelos` : ''} · con tus bufos</div>
             <div className="small">
-              <StatImg stat="ma" emoji="⚔️" title="Ataque cuerpo a cuerpo" /> {attCard.stats.ma.final}
-              {' · '}<StatImg stat="ws" emoji="💥" title="Fuerza del arma" /> {Math.round((attCard.stats.dmg.final + attCard.stats.ap.final) * 10) / 10} ({Math.round(attCard.stats.ap.final * 10) / 10} perf.)
-              {' · '}<StatImg stat="md" emoji="🛡️" title="Defensa cuerpo a cuerpo" /> {attCard.stats.md.final}
-              {' · '}<StatImg stat="armour" emoji="⛓️" title="Armadura" /> {attCard.stats.armour.final}
+              <StatImg stat="ma" emoji="⚔️" title="Ataque cuerpo a cuerpo" /> {fmtStat(attCard.stats.ma.final)}
+              {' · '}<StatImg stat="ws" emoji="💥" title="Fuerza del arma" /> {fmtStat(attCard.stats.dmg.final + attCard.stats.ap.final)} ({fmtStat(attCard.stats.ap.final)} perf.)
+              {' · '}<StatImg stat="md" emoji="🛡️" title="Defensa cuerpo a cuerpo" /> {fmtStat(attCard.stats.md.final)}
+              {' · '}<StatImg stat="armour" emoji="⛓️" title="Armadura" /> {fmtStat(attCard.stats.armour.final)}
             </div>
           </div>
           <span className="dps-vs">vs</span>
@@ -299,10 +300,10 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
             {attCard.flamingAttacks && <span className="chip fire">Flamígero</span>}
             {attCard.magicalAttacks && <span className="chip magic">Mágico</span>}
             {attCard.stats.bvl.final > 0 && (
-              <span className="chip" title="Bonificación contra grandes: se suma al ataque contra caballería, carros y monstruos">vs grandes +{attCard.stats.bvl.final}</span>
+              <span className="chip" title="Bonificación contra grandes: se suma al ataque contra caballería, carros y monstruos">vs grandes +{fmtStat(attCard.stats.bvl.final)}</span>
             )}
             {attCard.stats.bvi.final > 0 && (
-              <span className="chip" title="Bonificación contra infantería: se suma al ataque contra objetivos pequeños">vs infantería +{attCard.stats.bvi.final}</span>
+              <span className="chip" title="Bonificación contra infantería: se suma al ataque contra objetivos pequeños">vs infantería +{fmtStat(attCard.stats.bvi.final)}</span>
             )}
           </span>
         )}

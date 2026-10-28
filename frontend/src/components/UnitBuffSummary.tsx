@@ -1,3 +1,4 @@
+import { fmtStat, statDiff } from '../statFormat';
 import type { ComputedCard, Contribution, StatKey } from '../types';
 import { UnitCard } from './UnitCard';
 
@@ -58,7 +59,7 @@ function groupContributions(card: ComputedCard) {
 
 export function UnitBuffSummary({ card, labels, onClose }: Props) {
   const groups = groupContributions(card);
-  const changed = (Object.entries(card.stats) as [StatKey, ComputedCard['stats'][StatKey]][]).filter(([, l]) => l.final !== l.base);
+  const changed = (Object.entries(card.stats) as [StatKey, ComputedCard['stats'][StatKey]][]).filter(([s, l]) => statDiff(l.final, l.base, s) !== 0);
 
   return (
     <div className="unit-summary">
@@ -100,9 +101,9 @@ export function UnitBuffSummary({ card, labels, onClose }: Props) {
               <table className="summary">
                 <tbody>
                   {changed.map(([s, l]) => {
-                    const d = l.final - l.base;
+                    const d = statDiff(l.final, l.base, s);
                     const pct = PCT_STATS.has(s) ? '%' : '';
-                    const f = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
+                    const f = (v: number) => fmtStat(v, s);
                     return (
                       <tr key={s}>
                         <td className="num"><b className={d > 0 ? 'up' : 'down'}>{d > 0 ? '+' : ''}{f(d)}{pct}</b></td>
