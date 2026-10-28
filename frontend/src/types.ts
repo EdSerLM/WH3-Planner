@@ -131,6 +131,8 @@ export interface ItemInfo {
   questBattle?: boolean;
   effects: ParsedEffect[];
   ability?: string;
+  /** Cuántos personajes distintos pueden llevarlo (1 = solo este) */
+  owners?: number;
 }
 
 export interface UnitData {

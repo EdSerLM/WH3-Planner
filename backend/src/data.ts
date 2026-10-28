@@ -447,6 +447,23 @@ if (!gameFile) {
   }
 }
 
+/**
+ * Cuántos personajes distintos pueden llevar cada objeto (por unidad: Bloab señor y Bloab héroe son uno). Los de misión son de uno solo; los que salen de
+ * ancillaries_included_agent_subtypes son los que el juego deja equipar a esos subtipos, pero se consiguen en campaña
+ * (p. ej. la forja de Ikit o los objetos de Nurgle que comparten 8 personajes).
+ */
+let ownersCache: Map<string, number> | null = null;
+function itemOwners(): Map<string, number> {
+  if (ownersCache) return ownersCache;
+  const subs = new Map<string, Set<string>>();
+  for (const c of gameFile?.characters ?? []) for (const i of c.items ?? []) {
+    if (!subs.has(i.k)) subs.set(i.k, new Set());
+    subs.get(i.k)!.add(c.unit || c.subtype);
+  }
+  ownersCache = new Map([...subs].map(([k, s]) => [k, s.size]));
+  return ownersCache;
+}
+
 /** Id del personaje en una facción: la clave sola si es su facción propia, o "clave@facción". */
 function charId(c: GameCharacter, faction: string): string {
   return faction === c.home ? c.key : `${c.key}@${faction}`;
@@ -470,7 +487,10 @@ function buildGameTree(c: GameCharacter, faction: string): CharacterTree {
       .filter((i) => gameFile!.ancillaries?.[i.k])
       .map((i): ItemInfo => {
         const a = gameFile!.ancillaries![i.k];
-        return { key: i.k, name: a.n, description: a.d, category: a.cat, rank: i.rank, questBattle: i.quest, effects: gameEffects(a.e) };
+        return {
+          key: i.k, name: a.n, description: a.d, category: a.cat, rank: i.rank, questBattle: i.quest, effects: gameEffects(a.e),
+          owners: itemOwners().get(i.k) ?? 1,
+        };
       });
     const mine = new Set(tree.items.map((i) => i.key));
     tree.itemSets = (gameFile!.itemSets ?? [])

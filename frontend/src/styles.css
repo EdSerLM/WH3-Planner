@@ -264,6 +264,7 @@ footer { margin-top: 16px; }
 .items { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
 .items-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14px; }
 .item-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.items-sub { margin-top: 6px; }
 .item-chip { display: flex; gap: 6px; align-items: center; font: inherit; font-size: 13px; text-align: left; padding: 5px 9px; border-radius: 6px;
   border: 1px solid #3a3340; background: #221d27; color: var(--text); cursor: pointer; }
 .item-chip:hover { border-color: var(--gold-dim); }

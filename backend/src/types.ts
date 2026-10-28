@@ -332,6 +332,8 @@ export interface ItemInfo {
   rank?: number;
   questBattle?: boolean;
   effects: ParsedEffect[];
+  /** Cuántos personajes distintos pueden llevarlo (1 = solo este) */
+  owners?: number;
 }
 
 export interface AbilityInfo {
