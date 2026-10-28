@@ -268,6 +268,9 @@ function gameNode(n: GameNode, c: GameCharacter, present: Set<string>): SkillNod
     levels,
     isMount: levels.some((l) => l.mountStats || l.effects.some((e) => e.kind === 'mount')),
     icon: raw.img ? raw.img.split('/').pop() : undefined,
+    // En el juego muchos hechizos del árbol (Nurgle, Tzeentch, Slaanesh...) traen la imagen del Saber de las Fauces;
+    // el icono correcto es el de la habilidad de batalla que da el nodo (frontend/public/abilities)
+    abilityIcon: levels.flatMap((l) => l.abilities).map((k) => abilities[k]).find((a) => a?.spell && a.icon)?.icon,
     autoActive: n.bg ? !!n.auto : undefined,
   };
 }

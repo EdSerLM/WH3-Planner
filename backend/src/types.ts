@@ -241,6 +241,8 @@ export interface SkillNode {
   isMount: boolean;
   /** Nombre del icono del juego (ui/campaign ui/skills/<icon>.png) */
   icon?: string;
+  /** Hechizos: icono de la habilidad de batalla (/abilities/<icon>.png); manda sobre `icon` */
+  abilityIcon?: string;
   /** Tipo de habilidad, para el icono de respaldo */
   category?: 'mount' | 'magic' | 'actions' | 'army' | 'combat' | 'campaign';
   /** Habilidad de fondo oculta que siempre está activa (hechizo inicial, acciones de héroe...) */

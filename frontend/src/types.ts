@@ -48,7 +48,9 @@ export interface SkillNode {
   isMount: boolean;
   autoActive?: boolean;
   icon?: string;
-  category?: 'mount' | 'magic' | 'actions' | 'army' | 'combat' | 'campaign';
+  /** Hechizos: icono de la habilidad de batalla (/abilities/<icon>.png); manda sobre `icon` */
+  abilityIcon?: string;
+  category?:'mount' | 'magic' | 'actions' | 'army' | 'combat' | 'campaign';
 }
 
 export interface CharacterSummary {
