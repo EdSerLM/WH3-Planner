@@ -725,11 +725,6 @@ function summarize(b: ResolvedBuild): BuildSummary {
 }
 
 /**
- * Restricciones de objetivo del juego (special_ability_to_invalid_target_flags): la habilidad NO afecta a quien cumple el flag
- * (p. ej. la pasiva Guardián, que solo protege a señores y héroes). Solo se aplican las que están aquí; las claves y su
- * texto salen al correr npm run extraer. Las que falten se avisan en la tarjeta y la habilidad se aplica igual.
- */
-/**
  * Provisional hasta re-extraer: efectos "a todos los ejércitos de la facción" que la extracción vieja dejó como campaña
  * (sin stat ni unidades). El valor sale del texto del juego; las unidades las confirmó el usuario en partida.
  * Solo actúa mientras el efecto siga sin objetivo; con la extracción nueva manda el dato del juego.
@@ -746,16 +741,19 @@ const FACTIONWIDE_PATCH: Record<string, { stat: StatKey; pct: boolean; units: Se
 };
 
 type AbilityTarget = { kind: 'lord' | 'hero' | 'unit'; unit?: UnitData };
-const TARGET_FLAGS: Record<string, (t: AbilityTarget) => boolean> = {};
-
 /**
- * Provisional hasta re-extraer: habilidades que en el juego solo afectan a señores y héroes (comprobado por el usuario en partida).
- * Solo se usa si los datos aún no traen sus restricciones de objetivo; con la extracción nueva manda el dato del juego.
+ * Restricciones de objetivo del juego (special_ability_to_invalid_target_flags): la habilidad NO afecta a quien cumple el flag
+ * (p. ej. la pasiva Guardián, que solo protege a señores y héroes). Solo se aplican las que están aquí; las que falten se
+ * avisan en la tarjeta y la habilidad se aplica igual. true = el objetivo cumple el flag.
  */
-const CHARACTERS_ONLY = new Set(['wh2_dlc10_unit_passive_guardian']);
+const TARGET_FLAGS: Record<string, (t: AbilityTarget) => boolean> = {
+  // "La unidad no es un Señor ni un héroe": solo afecta a señores y héroes (Guardián, Guardiana de la Zarina...)
+  unit_is_not_commander_class: (t) => t.kind === 'unit',
+  // "La unidad es un Señor o un héroe": solo afecta a las tropas
+  unit_is_commander_class: (t) => t.kind !== 'unit',
+};
 
 function targetAllowed(a: AbilityInfo, owner: string, t: AbilityTarget, notes: string[]): boolean {
-  if (!a.invalidTargets && CHARACTERS_ONLY.has(a.key) && t.kind === 'unit') return false;
   for (const flag of a.invalidTargets ?? []) {
     const rule = TARGET_FLAGS[flag];
     if (rule) {
