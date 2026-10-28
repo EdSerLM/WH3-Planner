@@ -289,7 +289,10 @@ function unitBase(u: UnitData): Partial<Record<StatKey, number>> {
 }
 
 function charBase(s: CharacterStats): Partial<Record<StatKey, number>> {
+  // Las stats del árbol no traen el arma a distancia: sale de la unidad del personaje (o de la montada) en las tablas de unidades
+  const m = s.unit ? getUnit(s.unit)?.missile : undefined;
   return {
+    missileDmg: m ? m.dmg + m.ap : 0, ammo: m?.ammo ?? 0, reload: m?.reload ?? 0, range: m?.range ?? 0,
     ma: s.melee_attack, md: s.melee_defence, armour: s.armour, charge: s.charge_bonus, ld: s.morale,
     dmg: s.damage, ap: s.ap_damage, hp: s.hit_points + s.bonus_hit_points, speed: Math.round((s.run_speed ?? 0) * 10),
     bvl: s.bonus_v_large ?? 0, bvi: s.bonus_v_infantry ?? 0,
