@@ -243,6 +243,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
             inArmy={focus?.kind === 'unit' ? !!unitCard(focus.card) : true}
             buffs={focus?.kind === 'unit' ? buffs[focus.card] : undefined}
             upgradeRank={focus?.kind === 'unit' ? campaign?.upgrades[focus.card] : undefined}
+            building={focus?.kind === 'unit' ? campaign?.buildings?.[focus.card] : undefined}
           />
           <div className="roster-area">
             <div className="roster-tools">
@@ -282,6 +283,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
                             {/_ror/.test(u.key + u.card) && <span title="Regimiento de Renombre">🏅</span>}
                             {u.campaignOnly && <span title="Solo en campaña">🗺️</span>}
                             {(u.excl?.length ?? 0) > 0 && <span title={`Solo: ${u.excl!.join(', ')}`}>🔒</span>}
+                            {campaign?.buildings?.[u.card] && <span title={`Solo con edificio: ${campaign.buildings[u.card].join(', ')}`}>🏛️</span>}
                             {campaign?.upgrades[u.card] !== undefined && <span className="ut-rank" title="Se consigue mejorando otra unidad">M{campaign.upgrades[u.card]}</span>}
                           </span>
                           {n > 0 && <span className="ut-count">×{n}</span>}
@@ -399,8 +401,8 @@ function baseOf(u: UnitData | undefined, k: StatKey | 'ws'): number | undefined 
   return x[k];
 }
 
-function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank }: {
-  focus: Focus; unit?: UnitData; card?: ComputedCard; inArmy: boolean; buffs?: RosterBuffs[string]; upgradeRank?: number;
+function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building }: {
+  focus: Focus; unit?: UnitData; card?: ComputedCard; inArmy: boolean; buffs?: RosterBuffs[string]; upgradeRank?: number; building?: string[];
 }) {
   const attrIdx = useAttrIndex();
   if (!focus || (!unit && !card)) {
@@ -463,7 +465,7 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank }: {
           const mark = at.find((a) => MARKS[a]);
           return <span className={'ip-nature ' + n}><UnitIcon kind={n} size={14} /> {{ n_daemon: 'Demonio', n_undead: 'No muerto', n_construct: 'Constructo', n_mortal: 'Mortal' }[n]}{mark ? ` · ${MARKS[mark].icon} ${mark}` : ''}</span>;
         })()}
-        {unit && <SpecialTags u={unit} upgradeRank={upgradeRank} />}
+        {unit && <SpecialTags u={unit} upgradeRank={upgradeRank} building={building} />}
       </div>
       {bullets.length > 0 && (
         <ul className="ip-bullets">

@@ -35,7 +35,7 @@ export function BuffMark({ b }: { b?: RosterBuffs[string] }) {
 }
 
 /** Etiquetas de unidades especiales (datos del juego): Renombre, solo campaña, exclusivas, límite, mejora */
-export function SpecialTags({ u, upgradeRank }: { u: UnitData; upgradeRank?: number }) {
+export function SpecialTags({ u, upgradeRank, building }: { u: UnitData; upgradeRank?: number; building?: string[] }) {
   const ror = /_ror/.test(u.key + u.card);
   const excl = u.excl ?? [];
   return (
@@ -43,6 +43,11 @@ export function SpecialTags({ u, upgradeRank }: { u: UnitData; upgradeRank?: num
       {ror && <span className="sp-tag ror" title="Regimiento de Renombre: versión única y mejorada de una unidad, con rasgos propios. En campaña solo puedes tener 1.">🏅 Renombre</span>}
       {upgradeRank !== undefined && (
         <span className="exalted-tag" title={`En campaña se consigue mejorando otra unidad (Mejoras de Banda) desde rango ${upgradeRank}`}>Mejora R{upgradeRank}</span>
+      )}
+      {building && (
+        <span className="sp-tag bld" title={`Su reserva de reclutamiento es de otra facción; esta facción solo la recluta con: ${building.join(', ')}`}>
+          🏛️ Solo con edificio
+        </span>
       )}
       {u.campaignOnly && !ror && (
         <span className="sp-tag camp" title="Solo existe en campaña (no aparece en batallas personalizadas): mecánicas de facción, eventos, rituales, recompensas...">🗺️ Solo campaña</span>
@@ -147,7 +152,7 @@ export function ArmyPanel({ units, army, usedSlots, buffs = {}, campaign, onChan
               <span className="army-name">
                 {u && <span className="grp-icon"><GroupIcon g={u.group} /></span>}
                 {u?.name ?? a.card} <BuffMark b={buffs[a.card]} />
-                {u && <SpecialTags u={u} upgradeRank={campaign?.upgrades[u.card]} />}
+                {u && <SpecialTags u={u} upgradeRank={campaign?.upgrades[u.card]} building={campaign?.buildings?.[u.card]} />}
                 {u && !unitAllowed(u) && (
                   <span className="camp-warn" title={`${campName} no puede tener esta unidad en campaña`}>⚠ no disponible</span>
                 )}
@@ -203,7 +208,7 @@ export function ArmyPanel({ units, army, usedSlots, buffs = {}, campaign, onChan
                       <button key={u.card} className={'roster-item' + (n ? ' in-army' : '')} onClick={() => add(u.card)} disabled={usedSlots >= 20}>
                         <span>
                           {n > 0 && <b className="in-count">×{n}</b>} {u.name} <BuffMark b={buffs[u.card]} />
-                          <SpecialTags u={u} upgradeRank={campaign?.upgrades[u.card]} />
+                          <SpecialTags u={u} upgradeRank={campaign?.upgrades[u.card]} building={campaign?.buildings?.[u.card]} />
                         </span>
                         <span className="muted">{u.cost}</span>
                       </button>

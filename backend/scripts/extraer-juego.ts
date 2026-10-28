@@ -17,6 +17,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decompress as zstdDecompress } from 'fzstd';
 import { SKILL_TABLES, buildAllSkills } from './arboles.js';
+import { lockedToOtherFaction, type RosterTables } from '../src/rosterRules.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const BACKEND = join(here, '..');
@@ -295,7 +296,14 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     const list = own.length ? own : sets.filter((x) => !x.faction_key && x.subculture === f.subculture);
     return new Set(list.flatMap((x) => [...(setTechs.get(x.key) ?? [])]));
   };
-  const campaign: { key: string; name: string; subculture: string; flagPath?: string | null; leaders: string[]; units: string[]; upgrades: Record<string, number> }[] = [];
+  // Reserva de la subcultura atada a otra facción (Guardia de las Tumbas solo para Neferata): ver src/rosterRules.ts
+  const rosterTables: RosterTables = {
+    mercenary_unit_groups: T['mercenary_unit_groups_tables'] as any, mercenary_pool_to_groups_junctions: T['mercenary_pool_to_groups_junctions_tables'] as any,
+    building_units_allowed: T['building_units_allowed_tables'] as any,
+  };
+  const subFactions = new Map<string, Set<string>>();
+  for (const f of T['factions_tables']) subFactions.set(f.subculture, (subFactions.get(f.subculture) ?? new Set()).add(f.key));
+  const campaign: { key: string; name: string; subculture: string; flagPath?: string | null; leaders: string[]; units: string[]; upgrades: Record<string, number>; buildings: Record<string, string[]> }[] = [];
   for (const ff of T['frontend_factions_tables']) {
     const f = fac.get(ff.faction);
     if (!f || f.is_quest_faction || f.is_rebel) continue;
@@ -309,6 +317,12 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
       if (!ex || (exclusiveIn(ex, f.military_group) ? ex.get(f.key) === true : ex.get(f.key) !== false)) list.add(u);
     }
     for (const [u, ex] of exclusive) if (ex.get(f.key)) list.add(u);
+    // Solo con un edificio (nombre del edificio), o fuera del todo si ningún edificio de su cultura la recluta
+    const buildings: Record<string, string[]> = {};
+    for (const [u, blds] of lockedToOtherFaction(rosterTables, f.key, f.subculture, subFactions.get(f.subculture) ?? new Set(), list)) {
+      if (blds.length) buildings[u] = blds.map((b) => sp.get(`building_levels_onscreen_name_${b}`) ?? b);
+      else list.delete(u);
+    }
     // Lo que se consigue mejorando unidades que ya tiene (p. ej. Bloodletters -> Exaltados): unidad -> rango requerido
     const techs = techsOf(f);
     const upgrades: Record<string, number> = {};
@@ -327,7 +341,7 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     }
     campaign.push({
       key: f.key, name: sp.get(`factions_screen_name_${f.key}`) ?? f.key, subculture: f.subculture, flagPath: f.flags_path ?? null,
-      leaders: [...new Set(leaders.get(f.key) ?? [])], units: [...list].sort(), upgrades,
+      leaders: [...new Set(leaders.get(f.key) ?? [])], units: [...list].sort(), upgrades, buildings,
     });
   }
   campaign.sort((a, b) => a.subculture.localeCompare(b.subculture) || a.name.localeCompare(b.name, 'es'));

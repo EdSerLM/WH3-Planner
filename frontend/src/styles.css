@@ -385,6 +385,7 @@ tr.dps-detail td { background: #19161c; padding: 8px 12px 10px 30px; }
 .sp-tag.camp { background: #1f2a33; color: var(--blue); }
 .sp-tag.excl { background: #2d2140; color: var(--magic); }
 .sp-tag.cap { background: #2d2832; color: var(--muted); }
+.sp-tag.bld { background: #2a2a1c; color: var(--gold-dim); }
 .roster-group .grp-icon, .army-name .grp-icon { margin-right: 2px; }
 
 /* ---------- Páginas: personajes/tecnologías y ejército/DPS ---------- */

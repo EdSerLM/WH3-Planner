@@ -400,6 +400,8 @@ export interface CampaignFaction {
   units: string[];
   /** Unidades que consigue mejorando otras (Mejoras de Banda): unidad -> rango requerido */
   upgrades: Record<string, number>;
+  /** Unidades que solo recluta con un edificio porque su reserva es de otra facción: unidad -> edificios */
+  buildings?: Record<string, string[]>;
 }
 
 export interface SavedBuild {

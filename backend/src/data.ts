@@ -2,6 +2,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEffect } from './effects.js';
+import { lockedToOtherFaction, type RosterTables } from './rosterRules.js';
 import {
   ABILITY_TYPES, CASTES, loadOfficialLoc, officialAbilityName, officialSkillDesc, officialSkillName, officialUnitName,
   officialCount, officialCharacterName, translateAbilityStat, translateAttribute, translateEffect,
@@ -742,7 +743,7 @@ export function getUnit(card: string): UnitData | undefined {
 
 // ---------- Unidades de TODAS las facciones (se generan con npm run extraer) ----------
 /** Facción de campaña jugable: quién la lidera, qué recluta y qué consigue con mejoras (unidad -> rango requerido) */
-interface CampaignRow { key: string; name: string; subculture: string; leaders: string[]; units: string[]; upgrades?: Record<string, number> }
+interface CampaignRow { key: string; name: string; subculture: string; leaders: string[]; units: string[]; upgrades?: Record<string, number>; buildings?: Record<string, string[]> }
 interface AllUnitsFile {
   source: string; subcultures: { key: string; name: string; flag?: string }[];
   units: (UnitData & { subcultures: string[]; casteKey?: string; uiGroup?: string; campOnly?: boolean })[];
@@ -827,19 +828,39 @@ export function listRoster(faction?: string): UnitData[] {
 
 /**
  * Facciones de campaña jugables de una subcultura (datos del juego): sus señores legendarios (ids de personaje),
- * las unidades que puede reclutar y las que consigue con mejoras de unidad (Mejoras de Banda del Caos).
+ * las unidades que puede reclutar, las que consigue con mejoras de unidad (Mejoras de Banda del Caos) y las que solo
+ * consigue con un edificio porque la reserva de su subcultura se la da a otra facción (unidad -> edificios).
  */
-export function listCampaign(subculture: string): { key: string; name: string; flag?: string; leaders: string[]; units: string[]; upgrades: Record<string, number> }[] {
+export function listCampaign(subculture: string): { key: string; name: string; flag?: string; leaders: string[]; units: string[]; upgrades: Record<string, number>; buildings: Record<string, string[]> }[] {
   return (allUnitsFile?.campaign ?? [])
     .filter((c) => c.subculture === subculture)
-    .map((c) => ({
-      key: c.key,
-      name: c.name,
-      flag: c.key,
-      leaders: (gameFile?.characters ?? []).filter((ch) => c.leaders.includes(ch.subtype) && ch.subcultures.includes(subculture)).map((ch) => charId(ch, subculture)),
-      units: c.units.filter((k) => allByKey.has(k)),
-      upgrades: c.upgrades ?? {},
-    }));
+    .map((c) => {
+      const { units, buildings } = c.buildings ? { units: c.units, buildings: c.buildings } : lockedFromDiag(c);
+      return {
+        key: c.key,
+        name: c.name,
+        flag: c.key,
+        leaders: (gameFile?.characters ?? []).filter((ch) => c.leaders.includes(ch.subtype) && ch.subcultures.includes(subculture)).map((ch) => charId(ch, subculture)),
+        units: units.filter((k) => allByKey.has(k)),
+        upgrades: c.upgrades ?? {},
+        buildings,
+      };
+    });
+}
+
+// Extracciones sin "buildings" en la campaña: la misma regla con el volcado diag_roster_<subcultura>.json, si está.
+// Ahí no viene el nombre del edificio en español, así que se muestra su clave hasta re-extraer.
+const diagRoster = new Map<string, (RosterTables & { factions: { key: string }[] }) | null>();
+function lockedFromDiag(c: CampaignRow): { units: string[]; buildings: Record<string, string[]> } {
+  if (!diagRoster.has(c.subculture)) {
+    const f = join(DATA_DIR, 'raw', `diag_roster_${c.subculture}.json`);
+    diagRoster.set(c.subculture, existsSync(f) ? readJson(`raw/diag_roster_${c.subculture}.json`) : null);
+  }
+  const d = diagRoster.get(c.subculture);
+  if (!d) return { units: c.units, buildings: {} };
+  const locked = lockedToOtherFaction(d, c.key, c.subculture, new Set(d.factions.map((f) => f.key)), c.units);
+  const buildings = Object.fromEntries([...locked].filter(([, b]) => b.length));
+  return { units: c.units.filter((u) => !locked.has(u) || locked.get(u)!.length), buildings };
 }
 
 /** Busca un objetivo por clave de unidad (todas las facciones) o por carta. */
