@@ -474,7 +474,7 @@ export default function App() {
                 labels={labels}
               />
               {/* Pirámide Negra (Legiones No Muertas) y otros grafos del juego: se investigan como tecnologías */}
-              <PyramidGraph faction={faction} researched={army.techs ?? []} onChange={(p) => setArmy((a) => ({ ...a, ...p }))} />
+              <PyramidGraph faction={faction} researched={army.techs ?? []} onChange={(p) => setArmy((a) => ({ ...a, ...p }))} units={rosterUnits} characters={characters} labels={labels} />
             </>
           ) : (
           <>
@@ -517,11 +517,7 @@ export default function App() {
               ) : leftView === 'spells' && currentTree.spellSlots?.length ? (
                 <SpellSlotsPanel tree={currentTree} selection={currentSel} onChange={updateSelection} />
               ) : leftView !== 'summary' ? (
-                <>
-                  <SkillTree tree={currentTree} selection={currentSel} onChange={updateSelection} info={currentInfo} />
-                  <CharUnits owner={currentTree.name} units={rosterUnits} rosterCards={rosterCards} buffs={rosterBuffs} labels={labels}
-                    abilityNames={(result?.abilities ?? []).filter((a) => a.owner === currentTree.name).map((a) => a.name)} />
-                </>
+                <SkillTree tree={currentTree} selection={currentSel} onChange={updateSelection} info={currentInfo} />
               ) : (
                 <BuildSummary
                   summary={currentInfo?.summary}
@@ -529,6 +525,11 @@ export default function App() {
                   labels={labels}
                   isHero={tab !== 'lord'}
                 />
+              )}
+              {/* Debajo del árbol, los dones (Daniel), los hechizos y las mecánicas: a qué unidades llega lo elegido */}
+              {leftView !== 'summary' && (
+                <CharUnits owner={currentTree.name} units={rosterUnits} rosterCards={rosterCards} buffs={rosterBuffs} labels={labels}
+                  abilityNames={(result?.abilities ?? []).filter((a) => a.owner === currentTree.name).map((a) => a.name)} />
               )}
             </>
           ) : currentSel ? (

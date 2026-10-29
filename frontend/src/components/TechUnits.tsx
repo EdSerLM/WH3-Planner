@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
-import type { ArmyState, CharacterSummary, ComputedCard, StatKey, TechNode, UnitData } from '../types';
+import type { ArmyState, CharacterSummary, ComputedCard, StatKey, UnitData } from '../types';
 import { UnitBadgeStrip } from './ArmySetup';
 import { UnitBuffSummary } from './UnitBuffSummary';
 
 interface Props {
-  nodes: TechNode[];
+  /** Nodos del árbol o del grafo (Pirámide Negra): clave de tecnología y nombre */
+  nodes: { tech: string; name: string }[];
   have: Set<string>;
   units: UnitData[];
   characters: CharacterSummary[];
@@ -25,7 +26,9 @@ export function TechUnits({ nodes, have, units, characters, labels, onResearch }
   const [data, setData] = useState<{ hits: Record<string, string[]>; art: Record<string, string> }>({ hits: {}, art: {} });
   const [selected, setSelected] = useState<string | null>(null);
   const [card, setCard] = useState<ComputedCard | null>(null);
-  const techs = useMemo(() => [...new Set(nodes.map((n) => n.tech))], [nodes]);
+  // Por contenido: la Pirámide arma la lista de nodos en cada dibujo y no queremos pedirla otra vez
+  const techKey = [...new Set(nodes.map((n) => n.tech))].join('|');
+  const techs = useMemo(() => (techKey ? techKey.split('|') : []), [techKey]);
   const nameOf = useMemo(() => new Map(nodes.map((n) => [n.tech, n.name])), [nodes]);
   const affect = data.hits;
 

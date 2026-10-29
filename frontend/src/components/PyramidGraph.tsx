@@ -1,11 +1,15 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
-import type { GraphData, GraphNode } from '../types';
+import type { CharacterSummary, GraphData, GraphNode, StatKey, UnitData } from '../types';
+import { TechUnits } from './TechUnits';
 
 interface Props {
   faction: string;
   researched: string[];
   onChange: (p: { techs: string[] }) => void;
+  units: UnitData[];
+  characters: CharacterSummary[];
+  labels: Record<StatKey, string>;
 }
 
 // Color por gran grupo (supercluster) del juego
@@ -21,7 +25,7 @@ const STEP = 21.3; // separación de la cuadrícula del juego en px
  * Pirámide Negra (Legiones No Muertas): grafo de nodos vecinos. Se puede tomar un nodo si algún vecino ya está tomado
  * (empezando por el origen); las puertas piden haber gastado cierto número de puntos.
  */
-export function PyramidGraph({ faction, researched, onChange }: Props) {
+export function PyramidGraph({ faction, researched, onChange, units, characters, labels }: Props) {
   const [graphs, setGraphs] = useState<{ key: string; name: string }[]>([]);
   const [g, setG] = useState<GraphData | null>(null);
   const [onlyBattle, setOnlyBattle] = useState(true);
@@ -61,13 +65,15 @@ export function PyramidGraph({ faction, researched, onChange }: Props) {
   }, [g]);
 
   if (!g) return null;
-  const isGot = (n: GraphNode) => n.key === g.origin || have.has(n.tech);
+  const isGotIn = (set: Set<string>, n: GraphNode) => n.key === g.origin || set.has(n.tech);
+  const isGot = (n: GraphNode) => isGotIn(have, n);
   const gotNodes = g.nodes.filter((n) => n.key !== g.origin && have.has(n.tech));
   const points = gotNodes.reduce((s, n) => s + n.cost, 0);
   const avail = (n: GraphNode) => !isGot(n) && [...(nbrs.get(n.key) ?? [])].some((k) => isGot(byKey.get(k)!)) && (n.threshold ?? 0) <= points;
 
   /** Camino más corto desde lo ya tomado hasta el nodo (los tomados cuestan 0) */
-  const pathTo = (target: GraphNode): GraphNode[] | null => {
+  const pathTo = (target: GraphNode, set: Set<string> = have): GraphNode[] | null => {
+    const isGot = (n: GraphNode) => isGotIn(set, n);
     const dist = new Map<string, number>([[g.origin, 0]]);
     const prev = new Map<string, string>();
     const queue: string[] = [g.origin];
@@ -100,6 +106,31 @@ export function PyramidGraph({ faction, researched, onChange }: Props) {
     }
     setMsg(null);
     onChange({ techs: [...new Set([...researched, ...path.map((x) => x.tech)])] });
+  };
+  /** Toma varios nodos (con su camino); los que piden más puntos de los que llevarías se saltan */
+  const takeMany = (techs: string[]) => {
+    const got = new Set(researched);
+    const ptsOf = () => g.nodes.reduce((s, x) => s + (x.key !== g.origin && got.has(x.tech) ? x.cost : 0), 0);
+    const targets = g.nodes.filter((n) => techs.includes(n.tech) && !isGotIn(got, n)).sort((a, b) => (a.threshold ?? 0) - (b.threshold ?? 0));
+    // Por vueltas: se toma cada camino hasta la primera puerta cerrada; los puntos gastados pueden abrirla en la siguiente vuelta
+    for (let changed = true; changed;) {
+      changed = false;
+      for (const n of targets) {
+        if (isGotIn(got, n)) continue;
+        const path = pathTo(n, got);
+        if (!path) continue;
+        let pts = ptsOf();
+        for (const x of path) {
+          if ((x.threshold ?? 0) > pts) break;
+          got.add(x.tech);
+          pts += x.cost;
+          changed = true;
+        }
+      }
+    }
+    const skipped = targets.filter((n) => !isGotIn(got, n)).map((n) => n.name);
+    setMsg(skipped.length ? `No se pudieron tomar (puerta con más puntos de los que llevarías): ${skipped.join(', ')}` : null);
+    onChange({ techs: [...got] });
   };
   const drop = (n: GraphNode) => {
     // Quitar el nodo y todo lo que quede desconectado del origen
@@ -181,6 +212,7 @@ export function PyramidGraph({ faction, researched, onChange }: Props) {
         Clic: tomar el nodo (y el camino más corto desde lo que ya tienes) · Clic derecho: quitarlo (y lo que quede desconectado) · ⚔ = bufo de batalla ·
         🔒 = puerta que pide puntos gastados. Los bufos de batalla se suman a las tarjetas como las tecnologías.
       </p>
+      <TechUnits nodes={g.nodes.filter((n) => n.key !== g.origin)} have={have} units={units} characters={characters} labels={labels} onResearch={takeMany} />
       {hover && <NodeTip hover={hover} g={g} />}
     </div>
   );
