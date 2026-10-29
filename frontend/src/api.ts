@@ -35,6 +35,8 @@ export const api = {
   techSummary: (techs: string[]) => req<TechSummaryData>('/api/tech-summary', { method: 'POST', body: JSON.stringify({ techs }) }),
   techUnits: (techs: string[], units: string[], chars: { key: string; type: string }[] = []) =>
     req<{ hits: Record<string, string[]>; art: Record<string, string> }>('/api/techs/units', { method: 'POST', body: JSON.stringify({ techs, units, chars }) }),
+  charPotential: (character: string, kind: 'lord' | 'hero', units: string[]) =>
+    req<Record<string, string[]>>('/api/characters/potential', { method: 'POST', body: JSON.stringify({ character, kind, units }) }),
   techTrees: (faction: string) => req<TechTreeSummary[]>(`/api/techs?faction=${encodeURIComponent(faction)}`),
   techTree: (key: string, variant?: string) =>
     req<TechTreeData>(`/api/techs/${encodeURIComponent(key)}${variant ? `?variant=${encodeURIComponent(variant)}` : ''}`),

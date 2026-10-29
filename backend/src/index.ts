@@ -71,6 +71,30 @@ app.post('/api/techs/units', (req, res) => {
   res.json({ hits, art });
 });
 
+// Habilidades del árbol de un personaje que podrían cambiar la tarjeta de cada unidad (todas compradas al máximo,
+// sin contar excluyentes ni monturas). Solo lo permanente: las auras y habilidades de batalla no cuentan.
+app.post('/api/characters/potential', (req, res) => {
+  const key = String(req.body?.character ?? '');
+  const tree = getCharacter(key);
+  if (!tree) return res.status(404).json({ error: 'Personaje no encontrado' });
+  const cards: string[] = Array.isArray(req.body?.units) ? req.body.units.map(String) : [];
+  const levels = Object.fromEntries(tree.rows.flat().filter((n) => !n.isMount).map((n) => [n.key, n.levels.length]));
+  const build = { character: key, levels, rank: 50 };
+  const isLord = req.body?.kind !== 'hero';
+  const r = compute({ lord: isLord ? build : null, heroes: isLord ? [] : [build], units: cards.map((card) => ({ card, count: 1, rank: 9 })), techs: [], activeAbilities: [], inAura: true } as ComputeRequest);
+  const inBattle = new Set(r.abilities.filter((a) => a.owner === tree.name).map((a) => a.name));
+  const suffix = ` (${tree.name})`;
+  const out: Record<string, string[]> = {};
+  for (const c of r.cards) {
+    if (c.kind !== 'unit') continue;
+    const s = new Set<string>();
+    for (const l of Object.values(c.stats)) for (const x of l.contributions) if (x.from === tree.name && !inBattle.has(x.source)) s.add(x.source);
+    for (const a of c.attributes) if (a.from?.endsWith(suffix) && !inBattle.has(a.from.slice(0, -suffix.length))) s.add(a.from.slice(0, -suffix.length));
+    if (s.size) out[c.id] = [...s];
+  }
+  res.json(out);
+});
+
 // Grafos de iniciativas (Pirámide Negra): se investigan como tecnologías
 app.get('/api/graphs', (req, res) => res.json(listGraphs(String(req.query.faction ?? DEFAULT_FACTION))));
 app.get('/api/graphs/:key', (req, res) => {

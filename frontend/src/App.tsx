@@ -529,7 +529,8 @@ export default function App() {
               {/* Debajo del árbol, los dones (Daniel), los hechizos y las mecánicas: a qué unidades llega lo elegido */}
               {leftView !== 'summary' && (
                 <CharUnits owner={currentTree.name} units={rosterUnits} rosterCards={rosterCards} buffs={rosterBuffs} labels={labels}
-                  abilityNames={(result?.abilities ?? []).filter((a) => a.owner === currentTree.name).map((a) => a.name)} />
+                  abilityNames={(result?.abilities ?? []).filter((a) => a.owner === currentTree.name).map((a) => a.name)}
+                  character={currentSel.character} kind={tab === 'lord' ? 'lord' : 'hero'} />
               )}
             </>
           ) : currentSel ? (
