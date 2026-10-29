@@ -173,6 +173,31 @@ function trimToRank(sel: BuildSelection, tree: CharacterTree, r: number): BuildS
   return next;
 }
 
+/**
+ * Compra todo lo que se pueda del árbol visible (fila por fila, de arriba abajo) sin pasar del rango máximo.
+ * Respeta lo ya elegido (en los excluyentes se queda con lo que tengas; si no hay nada, toma el primero).
+ * `added` = niveles subidos; `missing` = habilidades que quedaron sin el nivel máximo por falta de puntos (0 = cabe todo).
+ */
+export function fillAll(sel: BuildSelection, tree: CharacterTree): { sel: BuildSelection; missing: number; added: number } {
+  const nodes = tree.rows.flat().filter((n) => n.visible);
+  let next = sel;
+  let added = 0;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const n of nodes) {
+      while (!whyNotBuy(n, next, tree)) {
+        next = increment(next, n, tree);
+        changed = true;
+        added++;
+      }
+    }
+  }
+  next = { ...next, mount: sel.mount ?? null }; // comprar monturas no cambia con cuál vas
+  const missing = nodes.filter((n) => whyNotBuy(n, next, tree)?.startsWith('No cabe')).length;
+  return { sel: next, missing, added };
+}
+
 export function emptyBuild(tree: CharacterTree): BuildSelection {
   return normalize({ character: tree.key, levels: {}, mount: null, innate: tree.defaultInnate, rank: 1 }, tree);
 }

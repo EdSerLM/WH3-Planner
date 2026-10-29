@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { BuildSelection, CharacterTree, ComputeResult, SkillNode } from '../types';
-import { blockedBy, buyHint, decrement, increment, isAvailable, levelOf, normalize, pointsUsed, rankOf, setRank, whyNotBuy } from '../treeLogic';
+import { blockedBy, buyHint, decrement, fillAll, increment, isAvailable, levelOf, normalize, pointsUsed, rankOf, setRank, whyNotBuy } from '../treeLogic';
 import { MAX_RANK, isFreeLevel } from '../rankRules';
 import { SkillIcon } from './SkillIcon';
 import { ItemsPanel } from './ItemsPanel';
@@ -43,6 +43,7 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info }: Pro
   const rank = rankOf(selection);
   const used = pointsUsed(selection, tree);
   const floor = selection.rank ?? 1;
+  const fill = useMemo(() => fillAll(selection, tree), [selection, tree]);
   const mounts = tree.rows.flat().filter((n) => n.isMount);
   // Elegir una montura: si no está comprada, se compra (y el rango sube si hace falta)
   const pickMount = (key: string) => {
@@ -94,6 +95,19 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info }: Pro
             Puntos gastados: <b>{used}</b> <span className="muted">(1 por rango)</span>
           </span>
           {selection.rankOver ? <span className="bad">No cabe: necesitaría rango {selection.rankOver}</span> : null}
+          <button
+            className="ghost"
+            disabled={fill.added === 0}
+            title={
+              (fill.missing > 0
+                ? `Gasta todos los puntos hasta rango ${MAX_RANK}, fila por fila de arriba abajo. No cabe todo: ${fill.missing} habilidad(es) se quedan sin comprar (quita con clic derecho y elige otras).`
+                : `Compra todas las habilidades del árbol (caben en rango ${MAX_RANK}).`) +
+              ' Respeta lo que ya tengas; en las excluyentes se queda con la elegida, o la primera.'
+            }
+            onClick={() => onChange(fill.sel)}
+          >
+            Asignar todo
+          </button>
           <button className="ghost" onClick={() => onChange(normalize({ ...selection, levels: {}, mount: null, rank: 1 }, tree))}>Reiniciar árbol</button>
         </div>
         <div className="tree-options">
