@@ -262,12 +262,26 @@ function abilitiesOf(b: ResolvedBuild): { ability: AbilityInfo; skill: string }[
   // Reemplazos: si un efecto dice Replaces: "X", quitamos la habilidad X
   const replaced = new Set<string>();
   const removedKeys = new Set<string>();
+  // "Mejora la habilidad: X" da la versión mejorada (otra clave, mismo nombre): la normal deja de estar
+  const upgraded = new Set<string>();
   for (const { effect } of effectsOf(b)) {
     if (effect.disable) removedKeys.add(effect.disable);
     const m = (effect.textEn ?? effect.text).match(/^Replaces: "([^"]+)"/);
     if (m) replaced.add(m[1]);
+    if (effect.ability && /^(Mejora la habilidad|Upgrades)/i.test(effect.text || effect.textEn || '')) upgraded.add(effect.ability);
   }
-  return out.filter((x) => !removedKeys.has(x.ability.key) && !replaced.has(x.ability.nameEn ?? x.ability.name));
+  const kept = out.filter((x) => !removedKeys.has(x.ability.key) && !replaced.has(x.ability.nameEn ?? x.ability.name));
+  // Misma habilidad repetida con otra clave (la innata y la de la habilidad, o la normal y la mejorada): una sola.
+  // Los hechizos vinculados son otra habilidad aunque se llamen igual que el hechizo del saber.
+  const bound = (k: string) => /_spell_bound_/.test(k);
+  const best = new Map<string, (typeof out)[number]>();
+  const score = (x: (typeof out)[number]) => (upgraded.has(x.ability.key) || /_upgraded/.test(x.ability.key) ? 2 : 0) + (x.skill === 'Innata' ? 0 : 1);
+  for (const x of kept) {
+    const id = `${x.ability.name}|${bound(x.ability.key)}`;
+    const cur = best.get(id);
+    if (!cur || score(x) > score(cur)) best.set(id, x);
+  }
+  return kept.filter((x) => best.get(`${x.ability.name}|${bound(x.ability.key)}`) === x);
 }
 
 // ---------- Tarjetas ----------
@@ -301,7 +315,19 @@ function charBase(s: CharacterStats): Partial<Record<StatKey, number>> {
   };
 }
 
+/** Stats de proyectiles: no cambian nada a quien no dispara (p. ej. "Munición +20%" del ejército a la infantería cuerpo a cuerpo) */
+const MISSILE_STATS = new Set<StatKey>(['missileDmg', 'ammo', 'reload', 'range']);
+
+/** ¿El nombre de la unidad/personaje es uno de esos? Palabra por palabra, sin artículos y sin distinguir singular/plural */
+export function namedMatch(names: string[], unitName: string): boolean {
+  const words = (t: string) => t.toLowerCase().split(/[^\p{L}]+/u).filter((w) => w && !STOP.has(w)).map((w) => w.replace(/s$/, ''));
+  const have = new Set(words(unitName));
+  return names.some((n) => words(n).every((w) => have.has(w)));
+}
+const STOP = new Set(['de', 'del', 'la', 'las', 'los', 'el', 'y']);
+
 function contribute(lines: Record<StatKey, StatLine>, stat: StatKey, c: Contribution, exact = false) {
+  if (MISSILE_STATS.has(stat) && !lines.missileDmg.base) return;
   // "Fuerza del arma" (%) sube daño base y perforante a la vez (los datos del juego ya traen las dos por separado)
   if (stat === 'dmg' && c.how === 'pct' && !exact) {
     lines.dmg.contributions.push(c);
@@ -467,6 +493,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     let flaming = !!base.is_flaming;
     const isLord = b === lordBuild;
     for (const { effect, skill, owner, build } of effects) {
+      if (effect.target === 'army' && effect.forNames && !namedMatch(effect.forNames, b.tree.name)) continue;
       if (effect.kind === 'attribute' && effect.attribute) {
         if ((effect.target === 'self' && build === b) || (effect.target === 'army' && !effect.units && effect.unitList === undefined) || charMatch(effect, b, isLord) || armyListMatch(effect, b)) {
           attributes.push({ name: effect.attribute, from: `${skill} (${owner})` });
@@ -550,16 +577,14 @@ export function compute(req: ComputeRequest): ComputeResult {
       if (effect.units && !effect.units.includes(u.card) && !effect.units.includes(u.key) && !(u.cardArt && effect.units.includes(u.cardArt))) continue;
       if (effect.unitList !== undefined && !unitInList(effect.unitList, u.key)) continue;
       if (effect.rank7 && rank < (effect.rankMin ?? 7)) continue;
+      if (effect.forNames && !namedMatch(effect.forNames, u.name) && !(u.nameEn && namedMatch(effect.forNames, u.nameEn))) continue;
       if (effect.kind === 'attribute' && effect.attribute) {
-        if (effect.forNames && !effect.forNames.some((n) => (u.nameEn ?? u.name).toLowerCase().includes(n.toLowerCase()))) continue;
         attributes.push({ name: effect.attribute, from: `${skill} (${owner})` });
         if (/flam/i.test(effect.attribute)) flaming = true;
         if (/mágic/i.test(effect.attribute)) magical = true;
         continue;
       }
       if (effect.kind !== 'battle' || !effect.stat || effect.value === undefined) continue;
-      // Bufos de proyectiles a unidades que no disparan: no cambian nada y confunden en los resúmenes
-      if (effect.stat === 'missileDmg' && !u.missile) continue;
       if (isPerRank(skill, owner, effect)) {
         const k = `${effect.stat}|${skill}|${owner}|${effect.pct ? 'pct' : 'add'}|${effect.value}`;
         const acc = perRankAcc.get(k);

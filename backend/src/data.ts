@@ -206,9 +206,31 @@ function scopeFromText(text: string): string | undefined {
   return s[0].toUpperCase() + s.slice(1);
 }
 
+/** Atributos "a todo el ejército" en los datos que solo son para unidades concretas (el juego las filtra por la clave del efecto) */
+const NAMED_UNITS: Record<string, string[]> = {
+  wh3_dlc24_effect_force_stat_enable_slow_death_attacks_ostankya_spiders: ['Araña'],
+  wh3_dlc24_effect_force_stat_enable_demoralize_attacks_ostankya_spiders: ['Cosas del Bosque'],
+};
+
+/**
+ * "Los ataques mágicos a las unidades de Guardia del Fénix" -> atributo "Ataques mágicos" solo para "Guardia del Fénix".
+ * Sin esto el atributo (y los ataques mágicos/flamígeros) le llegaban a todo el ejército.
+ */
+function limitToNamedUnits(p: ParsedEffect, key: string, text: string): ParsedEffect {
+  if (p.target !== 'army' || p.unitList !== undefined || p.kind !== 'attribute' || !p.attribute) return p;
+  // "Silencio (héroes en el ejército del Señor)": solo los héroes
+  if (/\(héroes en el ejército/i.test(text)) return { ...p, target: 'chars', who: 'hero' };
+  if (NAMED_UNITS[key]) return { ...p, forNames: NAMED_UNITS[key] };
+  const m = /^(.*?)\s+(?:para|a)\s+(?:las unidades de|los|las)\s+(?!todas\b)(.+)$/i.exec(p.attribute);
+  if (!m) return p;
+  const attr = m[1].replace(/^(los|las)\s+/i, '');
+  const names = m[2].split(/,\s*|\s+y\s+/).map((n) => n.trim()).filter(Boolean);
+  return { ...p, attribute: attr[0].toUpperCase() + attr.slice(1), forNames: names };
+}
+
 function gameEffect(e: GameEffect, first: boolean, keyText: string): ParsedEffect {
   const x = e.s as GameEffect['s'] & { who?: 'lord' | 'hero' | 'wizard' };
-  return {
+  return limitToNamedUnits({
     who: x.who,
     key: e.k,
     text: first ? e.d : '',
@@ -226,7 +248,7 @@ function gameEffect(e: GameEffect, first: boolean, keyText: string): ParsedEffec
     action: x.action,
     exact: true,
     scope: x.target === 'army' ? scopeFromText(keyText) : undefined,
-  };
+  }, e.k, keyText);
 }
 
 function gameEffects(list: GameEffect[]): ParsedEffect[] {
