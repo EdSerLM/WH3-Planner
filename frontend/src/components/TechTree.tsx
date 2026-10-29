@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
-import type { CampaignFaction, StatKey, TechNode, TechTreeData, TechTreeSummary, UnitData } from '../types';
+import type { CampaignFaction, CharacterSummary, StatKey, TechNode, TechTreeData, TechTreeSummary, UnitData } from '../types';
 import { campaignUnits } from '../campaign';
 import { TechUnits } from './TechUnits';
 
@@ -11,6 +11,7 @@ interface Props {
   researched: string[];
   onChange: (p: { techs?: string[]; techTree?: string; techVariant?: string }) => void;
   units: UnitData[];
+  characters: CharacterSummary[];
   campaign?: CampaignFaction;
   labels: Record<StatKey, string>;
 }
@@ -31,7 +32,7 @@ function isAvailable(n: TechNode, byKey: Map<string, TechNode>, have: Set<string
   return ok >= Math.min(n.parentsNeeded, n.parents.length) && n.requires.every((r) => have.has(byKey.get(r)!.tech));
 }
 
-export function TechTree({ faction, treeKey, variant, researched, onChange, units, campaign, labels }: Props) {
+export function TechTree({ faction, treeKey, variant, researched, onChange, units, characters, campaign, labels }: Props) {
   const [trees, setTrees] = useState<TechTreeSummary[]>([]);
   const [tree, setTree] = useState<TechTreeData | null>(null);
   const [onlyBattle, setOnlyBattle] = useState(false);
@@ -222,6 +223,7 @@ export function TechTree({ faction, treeKey, variant, researched, onChange, unit
         nodes={tree.nodes}
         have={have}
         units={rosterUnits}
+        characters={characters}
         labels={labels}
         onResearch={(techs) => researchNodes(tree.nodes.filter((n) => techs.includes(n.tech)))}
       />

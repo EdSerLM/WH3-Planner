@@ -42,23 +42,33 @@ app.get('/api/techs', (req, res) => res.json(listTechTrees(String(req.query.fact
 // Efectos acumulados de lo investigado (tecnologías y nodos de la Pirámide)
 app.post('/api/tech-summary', (req, res) => res.json(techSummary(Array.isArray(req.body?.techs) ? req.body.techs.map(String) : [])));
 
-// Qué tecnologías cambian la tarjeta de cada unidad (stats o atributos), con el mismo motor que las tarjetas.
-// Se prueba cada tecnología sola en rango 9 para que cuenten también las de "rango 7+".
+// Qué tecnologías cambian la tarjeta de cada unidad, señor o héroe (stats o atributos), con el mismo motor que las tarjetas.
+// Se prueba cada tecnología sola; las unidades en rango 9 para que cuenten también las de "rango 7+".
+// Claves: la carta de la unidad, o "lord:<clave>" / "hero:<clave>" para los personajes (sin habilidades compradas).
 app.post('/api/techs/units', (req, res) => {
   const techs: string[] = Array.isArray(req.body?.techs) ? req.body.techs.map(String) : [];
   const cards: string[] = Array.isArray(req.body?.units) ? req.body.units.map(String) : [];
-  const out: Record<string, string[]> = Object.fromEntries(cards.map((c) => [c, []]));
+  const chars: { key: string; type: string }[] = Array.isArray(req.body?.chars) ? req.body.chars.filter((c: { key?: unknown }) => typeof c?.key === 'string') : [];
+  const hits: Record<string, string[]> = {};
+  const art: Record<string, string> = {};
   const units = cards.map((card) => ({ card, count: 1, rank: 9 }));
-  for (const t of new Set(techs)) {
-    const r = compute({ lord: null, heroes: [], units, techs: [t], activeAbilities: [], inAura: true } as ComputeRequest);
+  const heroes = chars.filter((c) => c.type === 'hero').map((c) => ({ character: c.key, levels: {} }));
+  const lords = chars.filter((c) => c.type === 'lord').map((c) => ({ character: c.key, levels: {} }));
+  const touched = (c: ComputedCard) =>
+    Object.values(c.stats).some((l) => l.contributions.some((x) => x.from === 'Tecnologías')) || c.attributes.some((a) => a.from?.endsWith('(Tecnologías)'));
+  const run = (t: string, lord: (typeof lords)[number] | null, withRest: boolean) => {
+    const r = compute({ lord, heroes: withRest ? heroes : [], units: withRest ? units : [], techs: [t], activeAbilities: [], inAura: true } as ComputeRequest);
     for (const c of r.cards) {
-      if (c.kind !== 'unit' || !out[c.id]) continue;
-      const hit = Object.values(c.stats).some((l) => l.contributions.some((x) => x.from === 'Tecnologías')) ||
-        c.attributes.some((a) => a.from?.endsWith('(Tecnologías)'));
-      if (hit) out[c.id].push(t);
+      const k = c.kind === 'unit' ? c.id : `${c.kind}:${c.id}`;
+      if (c.kind !== 'unit' && c.art) art[k] = c.art;
+      if (touched(c)) (hits[k] ??= []).push(t);
     }
+  };
+  for (const t of new Set(techs)) {
+    run(t, null, true);
+    for (const l of lords) run(t, l, false); // un señor por cálculo: los bufos "solo señores" dependen de eso
   }
-  res.json(out);
+  res.json({ hits, art });
 });
 
 // Grafos de iniciativas (Pirámide Negra): se investigan como tecnologías

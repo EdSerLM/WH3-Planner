@@ -463,6 +463,7 @@ export default function App() {
                 researched={army.techs ?? []}
                 onChange={(p) => setArmy((a) => ({ ...a, ...p }))}
                 units={units}
+                characters={characters}
                 campaign={campaigns.find((c) => c.key === army.campaign)}
                 labels={labels}
               />
