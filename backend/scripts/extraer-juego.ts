@@ -17,7 +17,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decompress as zstdDecompress } from 'fzstd';
 import { SKILL_TABLES, buildAllSkills } from './arboles.js';
-import { lockedToOtherFaction, type RosterTables } from '../src/rosterRules.js';
+import { cultureCode, lockedToOtherFaction, type RosterTables } from '../src/rosterRules.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const BACKEND = join(here, '..');
@@ -575,6 +575,7 @@ if (existsSync(dbPath)) {
     console.warn(`No pude leer las unidades: ${(err as Error).message}`);
   }
   dumpRosterTables(p);
+  dumpCouncilTables(p);
   closeSync(p.fd);
 }
 
@@ -621,6 +622,78 @@ function dumpRosterTables(p: Pack) {
   };
   writeFileSync(join(BACKEND, `data/raw/diag_roster_${sc}.json`), JSON.stringify(out, null, 1));
   console.log(`Volcado para revisar el roster de ${sc}: ${factions.length} facciones, ${units.size} unidades -> backend/data/raw/diag_roster_${sc}.json`);
+}
+
+/**
+ * Volcado para revisar a mano (sin reglas): los cargos (ministerial_positions) de una subcultura, p. ej. el Consejo de los
+ * Elfos Silvanos, con sus restricciones, los grupos de campaña que los usan y los paquetes de efectos que dan, más los
+ * textos en español de todo eso. Antes de programar nada hay que ver aquí cómo se nombra a un señor y qué cambia por
+ * facción. Subcultura: variable WH3_DIAG_COUNCIL_SC (por defecto Elfos Silvanos).
+ * Sale en backend/data/raw/diag_consejo_<subcultura>.json.
+ */
+function dumpCouncilTables(p: Pack) {
+  const sc = process.env.WH3_DIAG_COUNCIL_SC ?? 'wh_dlc05_sc_wef_wood_elves';
+  const load = (t: string) => {
+    try {
+      return loadTables(p, [t])[t];
+    } catch (err) {
+      console.warn(`  (volcado: no pude leer ${t}: ${(err as Error).message})`);
+      return [];
+    }
+  };
+  const culture = load('cultures_subcultures_tables').find((r) => r.subculture === sc)?.culture;
+  const facKeys = new Set(load('factions_tables').filter((f) => f.subculture === sc).map((f) => f.key as string));
+  // Cargos de la cultura, subcultura o una de sus facciones (el juego los puede dar por facción)
+  const details = load('ministerial_positions_culture_details_tables')
+    .filter((r) => r.subculture_key === sc || (culture && r.culture_key === culture) || facKeys.has(r.faction_key));
+  const posKeys = new Set(details.map((r) => r.ministerial_position_key as string));
+  // Por si los detalles no los ligan a la subcultura: también los cargos con su código de cultura en la clave (_wef_)
+  const allPositions = load('ministerial_positions_tables');
+  const code = cultureCode(sc);
+  if (code) for (const r of allPositions) if (String(r.minister_key).includes(`_${code}_`)) posKeys.add(r.minister_key);
+  const byPos = (t: string, col = 'ministerial_position') => load(t).filter((r) => posKeys.has(r[col]));
+  const criteria = byPos('campaign_group_member_criteria_ministerial_positions_tables');
+  const memberIds = new Set(criteria.map((r) => r.member as string));
+  const allMembers = load('campaign_group_members_tables');
+  const groups = new Set(allMembers.filter((m) => memberIds.has(m.id)).map((m) => m.group as string));
+  // Todos los miembros de esos grupos y sus otros criterios (facción, subcultura, cultura, tipo de personaje)
+  const members = allMembers.filter((m) => groups.has(m.group));
+  const ids = new Set(members.map((m) => m.id as string));
+  const byMember = (t: string) => load(t).filter((r) => ids.has(r.member));
+  const bundles = [
+    ...load('ministerial_position_effect_bundles_tables').filter((r) => groups.has(r.campaign_group)),
+    ...load('campaign_group_effect_bundles_tables').filter((r) => groups.has(r.campaign_group)),
+  ];
+  const bundleKeys = new Set(bundles.map((r) => r.effect_bundle as string));
+  const effects = load('effect_bundles_to_effects_junctions_tables').filter((r) => bundleKeys.has(r.effect_bundle_key));
+  // Textos: los que nombran un cargo, un paquete o un texto de los detalles, y la descripción de cada efecto
+  const tokens = [...posKeys, ...bundleKeys, ...details.flatMap((r) => [r.localised_string_key, r.localised_description_key, String(r.unique_id)])].filter((k) => k && k.length > 3);
+  const effectKeys = new Set(effects.map((r) => `effects_description_${r.effect_key}`));
+  const texts: Record<string, string> = {};
+  for (const [k, v] of spGlobal) if (effectKeys.has(k) || tokens.some((t) => k.endsWith(`_${t}`))) texts[k] = v;
+  const out = {
+    subculture: sc, culture, factions: [...facKeys],
+    ministerial_positions_culture_details: details,
+    ministerial_positions: allPositions.filter((r) => posKeys.has(r.minister_key)),
+    // Claves de todos los cargos del juego, para ver si los de esta subcultura se llaman distinto
+    todas_las_claves_de_cargos: allPositions.map((r) => r.minister_key as string).sort(),
+    ministerial_positition_to_subtype_restrictions: byPos('ministerial_positition_to_subtype_restrictions_tables'),
+    ministerial_positions_to_region_restrictions: byPos('ministerial_positions_to_region_restrictions_tables'),
+    ministerial_position_to_required_building_junctions: byPos('ministerial_position_to_required_building_junctions_tables'),
+    ministerial_effectiveness_modifiers: load('ministerial_effectiveness_modifiers_tables'),
+    campaign_group_member_criteria_ministerial_positions: criteria,
+    campaign_group_members: members,
+    campaign_group_member_criteria_factions: byMember('campaign_group_member_criteria_factions_tables'),
+    campaign_group_member_criteria_subcultures: byMember('campaign_group_member_criteria_subcultures_tables'),
+    campaign_group_member_criteria_cultures: byMember('campaign_group_member_criteria_cultures_tables'),
+    campaign_group_member_criteria_agent_subtypes: byMember('campaign_group_member_criteria_agent_subtypes_tables'),
+    effect_bundles_by_group: bundles,
+    effect_bundles: load('effect_bundles_tables').filter((r) => bundleKeys.has(r.key)),
+    effect_bundles_to_effects_junctions: effects,
+    textos: texts,
+  };
+  writeFileSync(join(BACKEND, `data/raw/diag_consejo_${sc}.json`), JSON.stringify(out, null, 1));
+  console.log(`Volcado para revisar los cargos de ${sc}: ${posKeys.size} cargos, ${groups.size} grupos, ${bundleKeys.size} paquetes de efectos -> backend/data/raw/diag_consejo_${sc}.json`);
 }
 // 5) Iconos -------------------------------------------------------------
 const wantedIcons = new Set<string>();
