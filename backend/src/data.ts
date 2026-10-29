@@ -446,6 +446,16 @@ function assemble(
 
 const trees = new Map<string, CharacterTree>();
 const summaries: CharacterSummary[] = [];
+/**
+ * Facciones que agregamos a mano aunque el juego no las tenga en sus datos (lo pidió el usuario):
+ * Mannfred pasó a las Legiones No Muertas, pero se sigue queriendo planear con los Condes Vampiro.
+ */
+const EXTRA_SUBCULTURES: Record<string, string[]> = {
+  wh_main_skill_node_set_vmp_mannfred: ['wh_main_sc_vmp_vampire_counts'],
+};
+for (const c of gameFile?.characters ?? []) {
+  for (const sc of EXTRA_SUBCULTURES[c.key] ?? []) if (!c.subcultures.includes(sc)) c.subcultures.push(sc);
+}
 const gameChars = new Map((gameFile?.characters ?? []).map((c) => [c.key, c]));
 
 if (!gameFile) {
@@ -495,7 +505,10 @@ function charId(c: GameCharacter, faction: string): string {
 function buildGameTree(c: GameCharacter, faction: string): CharacterTree {
   // Nodos que aplican en esa facción y en la campaña de Imperios Inmortales
   const keep = (n: GameNode) => (!n.sc || n.sc === faction) && (!n.ck || n.ck === 'wh3_main_combi');
-  const nodes = c.nodes.filter(keep);
+  // La versión propia de la facción ocupa el lugar de la genérica (misma fila y columna): si no, salen las dos
+  // (p. ej. "Los Muertos Incansables" doble en la fila de campaña de las Legiones No Muertas)
+  const own = new Set(c.nodes.filter((n) => keep(n) && n.sc).map((n) => `${n.i}|${n.t}`));
+  const nodes = c.nodes.filter((n) => keep(n) && (n.sc || !own.has(`${n.i}|${n.t}`)));
   const present = new Set(nodes.map((n) => n.k));
   const byRow = new Map<number, GameNode[]>();
   for (const n of nodes) byRow.set(n.i, [...(byRow.get(n.i) ?? []), n]);
