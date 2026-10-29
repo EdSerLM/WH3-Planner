@@ -56,15 +56,16 @@ function AttrIcons({ attrs, max = 7 }: { attrs: { name: string; from?: string }[
 }
 
 /**
- * Iconos de naturaleza (y marca de dios) en la esquina de la carta. Demonio, No muertos y Constructo llevan su icono de
- * atributo; las mortales, el de su categoría del juego (caballería, monstruo...), igual que en la batalla personalizada.
+ * Iconos en la esquina de la carta: la categoría del juego (caballería, monstruo...) en todas, como en la batalla
+ * personalizada; debajo la naturaleza si no es mortal (Demonio, No muertos, Constructo) y la marca de dios.
  */
 function NatureBadges({ attrs, kind, cat }: { attrs?: string[]; kind?: string; cat?: string }) {
   const n = natureOf(attrs);
   const mark = (attrs ?? []).find((a) => MARKS[a]);
   return (
     <span className="ut-nature">
-      <span className={'nat ' + n}>{n === 'n_mortal' ? <UnitIcon kind={kind} cat={cat} size={14} /> : <UnitIcon kind={n} size={14} />}</span>
+      <span className="nat n_mortal"><UnitIcon kind={kind} cat={cat} size={14} /></span>
+      {n !== 'n_mortal' && <span className={'nat ' + n}><UnitIcon kind={n} size={14} /></span>}
       {mark && <span className={'nat mark ' + MARKS[mark].cls} title={mark}><MarkIcon mark={mark} /></span>}
     </span>
   );
