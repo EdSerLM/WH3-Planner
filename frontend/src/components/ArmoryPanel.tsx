@@ -95,12 +95,13 @@ export function ArmoryPanel({ tree, selection, onChange }: Props) {
   const applySet = (items: string[]) => {
     const keep = raw.filter((k) => !byKey.has(k) && !k.startsWith('empty:'));
     const setSlots = new Set(items.map((k) => byKey.get(k)?.slot));
-    const set = byKey.get(items[0]);
+    // Dios del conjunto: el de sus piezas no genéricas (la primera pieza puede ser genérica)
+    const god = items.map((k) => byKey.get(k)?.god).find((x) => x && x !== 'generic') ?? 'generic';
     // Del resto de lo que lleva, se queda lo que no choca con el conjunto
     const others = raw.filter((k) => {
       const w = byKey.get(k);
       if (!w || setSlots.has(w.slot)) return false;
-      return set?.god === 'generic' || w.god === 'generic' || w.god === set?.god;
+      return god === 'generic' || w.god === 'generic' || w.god === god;
     });
     onChange({ ...selection, items: [...keep, ...others, ...items] });
   };
@@ -180,34 +181,58 @@ export function ArmoryPanel({ tree, selection, onChange }: Props) {
       </div>
 
       <h4>Conjuntos</h4>
-      <p className="muted small">Con todas las piezas de un conjunto ganas su bonificación. "Poner conjunto" cambia esas ranuras (y quita lo que choque).</p>
-      <div className="armory-sets">
-        {ar.sets
-          .map((st) => ({ st, have: st.items.filter((k) => worn.has(k)).length, god: byKey.get(st.items[0])?.god ?? 'generic' }))
-          .filter(({ god }) => !godFilter || god === godFilter)
-          .sort((a, b) => b.have / b.st.items.length - a.have / a.st.items.length)
-          .map(({ st, have, god }) => {
-            const done = have === st.items.length;
-            return (
-              <div key={st.key} className={'aset ' + god + (done ? ' done' : '')} title={st.description}>
-                <div className="aset-head">
-                  <b>{GOD[god]?.icon} {st.name}</b>
-                  <span className={done ? 'up' : 'muted'}>{have}/{st.items.length}{done ? ' ✓' : ''}</span>
-                  {!done && <button className="ghost small" onClick={() => applySet(st.items)}>Poner conjunto</button>}
-                </div>
+      <p className="muted small">
+        Con todas las piezas de un conjunto ganas su bonificación. "Poner conjunto" cambia esas ranuras (y quita lo que choque).
+        Los de un dios no se pueden juntar con piezas de otro dios: en gris los que chocan con lo que llevas.
+      </p>
+      {['generic', ...GODS].map((g) => {
+        // Dios del conjunto: el de sus piezas que no son genéricas (si todas son genéricas, Caos Absoluto)
+        const list = ar.sets
+          .map((st) => {
+            const gods = [...new Set(st.items.map((k) => byKey.get(k)?.god ?? 'generic'))].filter((x) => x !== 'generic');
+            return { st, have: st.items.filter((k) => worn.has(k)).length, god: gods[0] ?? 'generic' };
+          })
+          .filter(({ god }) => god === g && (!godFilter || god === godFilter));
+        if (!list.length) return null;
+        // Piezas de otro dios que lleva puestas: el conjunto de este dios choca con ellas
+        const rivals = g === 'generic' ? [] : godCount.filter(([x]) => x !== g);
+        return (
+          <section key={g} className="armory-set-group">
+            <h5 className={'god-chip ' + g}>
+              {GOD[g].icon} {GOD[g].es} <span className="muted small">({list.length})</span>
+              {rivals.length > 0 && <span className="small"> · excluidos: llevas piezas de {rivals.map(([x]) => GOD[x].es).join(', ')}</span>}
+            </h5>
+            <div className="armory-sets">
+              {list
+                .sort((a, b) => b.have / b.st.items.length - a.have / a.st.items.length || b.st.items.length - a.st.items.length)
+                .map(({ st, have, god }) => {
+                  const done = have === st.items.length;
+                  const excluded = !done && rivals.length > 0;
+                  return (
+                    <div key={st.key} className={'aset ' + god + (done ? ' done' : '') + (excluded ? ' excluded' : '')}
+                      title={(excluded ? `Choca con tus piezas de ${rivals.map(([x]) => GOD[x].es).join(', ')}: ponerlo las quita.\n` : '') + (st.description ?? '')}>
+                      <div className="aset-head">
+                        <b>{GOD[god]?.icon} {st.name}</b>
+                        <span className={done ? 'up' : 'muted'}>{have}/{st.items.length}{done ? ' ✓' : ''}</span>
+                        {excluded && <span className="tag">excluido</span>}
+                        {!done && <button className="ghost small" onClick={() => applySet(st.items)}>{excluded ? 'Poner (quita las otras)' : 'Poner conjunto'}</button>}
+                      </div>
                 <div className="small muted">
                   {st.items.map((k) => {
                     const it = byKey.get(k);
                     return <span key={k} className={worn.has(k) ? 'have' : ''}>{worn.has(k) ? '✓ ' : ''}{it?.name ?? k} ({slotName.get(it?.slot ?? '') ?? ''}) · </span>;
                   })}
                 </div>
-                <ul className="aslot-eff">
-                  {effText(st).map((t, i) => <li key={i}>{t}</li>)}
-                </ul>
-              </div>
-            );
-          })}
-      </div>
+                      <ul className="aslot-eff">
+                        {effText(st).map((t, i) => <li key={i}>{t}</li>)}
+                      </ul>
+                    </div>
+                  );
+                })}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

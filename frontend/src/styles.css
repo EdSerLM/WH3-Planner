@@ -582,6 +582,9 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .aset-head { display: flex; gap: 8px; align-items: center; }
 .aset-head button { margin-left: auto; }
 .aset .have { color: var(--green); }
+.aset.excluded { opacity: .45; filter: grayscale(.7); }
+.aset.excluded:hover { opacity: .8; }
+.armory-set-group h5 { display: block; margin: 12px 0 6px; padding: 3px 8px; font-size: 13px; }
 /* Espacios de hechizo (Kairos) */
 .aslot.spell.r-common { --god: #9aa0a6; }
 .aslot.spell.r-uncommon { --god: #3f8fd6; }
