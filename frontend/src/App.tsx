@@ -519,7 +519,8 @@ export default function App() {
               ) : leftView !== 'summary' ? (
                 <>
                   <SkillTree tree={currentTree} selection={currentSel} onChange={updateSelection} info={currentInfo} />
-                  <CharUnits owner={currentTree.name} units={rosterUnits} rosterCards={rosterCards} buffs={rosterBuffs} labels={labels} />
+                  <CharUnits owner={currentTree.name} units={rosterUnits} rosterCards={rosterCards} buffs={rosterBuffs} labels={labels}
+                    abilityNames={(result?.abilities ?? []).filter((a) => a.owner === currentTree.name).map((a) => a.name)} />
                 </>
               ) : (
                 <BuildSummary

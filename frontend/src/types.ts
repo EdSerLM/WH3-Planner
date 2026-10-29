@@ -294,6 +294,12 @@ export interface AbilityState {
   magical?: boolean;
   flaming?: boolean;
   active: boolean;
+  /** Valores con lo que le cambian las habilidades compradas */
+  final?: { mana?: number; cooldown?: number; duration?: number; range?: number; uses?: number };
+  /** Versión potenciada: si está desbloqueada y su coste */
+  overcast?: { name: string; unlocked: boolean; mana?: number; finalMana?: number };
+  /** Textos de esos cambios con la habilidad que los da */
+  mods?: string[];
 }
 
 export interface SummaryLine {

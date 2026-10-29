@@ -321,6 +321,10 @@ section.left { min-width: 0; }
 .tech-summary h4 { margin: 10px 0 4px; }
 /* Tecnologías por unidad (debajo del árbol) */
 .tech-units { margin-top: 14px; }
+.utile.dim { filter: grayscale(1) brightness(.6); }
+.spells .spell-val { margin-right: 10px; white-space: nowrap; }
+.spells .ok { color: var(--green); }
+.utile.dim:hover, .utile.dim.sel { filter: grayscale(.6) brightness(.85); }
 .utile .ut-techs { color: #c9b98a; }
 .utile .ut-techs.full { color: var(--green); }
 .tech-unit-list { display: flex; flex-wrap: wrap; gap: 4px 14px; list-style: none; padding: 0; margin: 6px 0; }

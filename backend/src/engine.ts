@@ -206,6 +206,49 @@ export function wornItems(b: { tree: CharacterTree; selection: BuildSelection; a
 }
 
 /** Efectos del nivel comprado (en el juego cada nivel ya trae el total, no se suman). */
+/**
+ * Lo que las habilidades compradas le cambian a un hechizo o habilidad, por su nombre entre comillas:
+ * "Tiempo de espera: -30% para "Plaga de óxido"", "Coste en Vientos de la Magia: -1 para "…"", "Hechizo potenciado: "… mejorada"".
+ */
+function abilityMods(a: AbilityInfo, effects: { effect: ParsedEffect; skill: string }[]): Pick<AbilityState, 'final' | 'overcast' | 'mods'> {
+  const over = a.overcast ? abilities[a.overcast] : undefined;
+  let mana = 0, overMana = 0, cdPct = 0, durPct = 0, rangePct = 0, uses = 0, unlocked = false;
+  const mods: string[] = [];
+  for (const { effect, skill } of effects) {
+    const t = effect.text;
+    if (!t || effect.kind === 'battle' || effect.kind === 'attribute') continue;
+    // "Hechizo: X" solo lo habilita (no cambia sus valores); "Hechizo potenciado: X" sí cuenta
+    if (effect.kind === 'ability' && !/potenciad|bendición/i.test(t)) continue;
+    // Los textos no siempre usan las mismas mayúsculas que el nombre ("Plaga de óxido" / "Plaga de Óxido")
+    const names = [...t.matchAll(/"([^"]+)"/g)].map((m) => m[1].toLowerCase());
+    const forBase = names.includes(a.name.toLowerCase());
+    const forOver = !!over && names.includes(over.name.toLowerCase());
+    if (!forBase && !forOver) continue;
+    const label = /^([^:]+):/.exec(t)?.[1] ?? '';
+    const num = /:\s*([+-]?\d+(?:[.,]\d+)?)/.exec(t);
+    const v = num ? parseFloat(num[1].replace(',', '.')) : 0;
+    if (/potenciad|bendición/i.test(label)) unlocked = true;
+    else if (/^Tiempo de espera/.test(label) && forBase) cdPct += v;
+    else if (/^Coste en Vientos/.test(label)) { if (forBase) mana += v; else overMana += v; }
+    else if (/^Duración del efecto/.test(label) && forBase) durPct += v;
+    else if (/^Alcance al objetivo/.test(label) && forBase) rangePct += v;
+    else if (/usos/i.test(label) && forBase) uses += v;
+    mods.push(`${t} — ${skill}`);
+  }
+  if (!mods.length) return {};
+  const r1 = (x: number) => Math.round(x * 10) / 10;
+  const final: NonNullable<AbilityState['final']> = {};
+  if (a.mana !== undefined) final.mana = Math.max(0, a.mana + mana);
+  if (a.cooldown) final.cooldown = r1(a.cooldown * (1 + cdPct / 100));
+  if (a.duration > 0) final.duration = r1(a.duration * (1 + durPct / 100));
+  if (a.range) final.range = r1(a.range * (1 + rangePct / 100));
+  if (uses) final.uses = uses;
+  return {
+    final, mods,
+    overcast: over ? { name: over.name, unlocked, mana: over.mana, finalMana: over.mana !== undefined ? Math.max(0, over.mana + overMana) : undefined } : undefined,
+  };
+}
+
 function effectsOf(b: ResolvedBuild): { effect: ParsedEffect; skill: string }[] {
   const out: { effect: ParsedEffect; skill: string }[] = [];
   for (const { node, level } of b.activeNodes) {
@@ -383,6 +426,12 @@ export interface AbilityState {
   spell?: boolean;
   magical?: boolean;
   flaming?: boolean;
+  /** Valores con lo que le cambian las habilidades compradas (coste, espera, duración, alcance, usos extra) */
+  final?: { mana?: number; cooldown?: number; duration?: number; range?: number; uses?: number };
+  /** Versión potenciada del hechizo: si está desbloqueada y su coste */
+  overcast?: { name: string; unlocked: boolean; mana?: number; finalMana?: number };
+  /** Textos de esos cambios con la habilidad que los da */
+  mods?: string[];
 }
 
 export interface SummaryLine {
@@ -477,6 +526,7 @@ export function compute(req: ComputeRequest): ComputeResult {
         stats: ability.stats.map((s) => s.d), attributes: ability.attributes, hasBattleStats, active: isOn,
         effects: ability.stats.map((s) => ({ stat: s.stat, how: s.how, v: s.v })),
         spell: ability.spell || undefined, magical: ability.magicalAttacks || undefined, flaming: ability.flamingAttacks || undefined,
+        ...abilityMods(ability, effectsOf(b)),
       });
     }
   }

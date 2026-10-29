@@ -360,7 +360,7 @@ export function RosterDuelStrip({ units, matchups, best }: { units: UnitData[]; 
 }
 
 /** Tira de señores, héroes y unidades para elegir una (Tecnologías; unidades que reciben bufos de un personaje) */
-export function UnitBadgeStrip({ units, chars = [], badge, tip, selected, onPick }: {
+export function UnitBadgeStrip({ units, chars = [], badge, tip, dim, selected, onPick }: {
   units: UnitData[];
   /** Personajes: `id` es "lord:<clave>" o "hero:<clave>" */
   chars?: { id: string; name: string; kind: 'lord' | 'hero'; art?: string }[];
@@ -368,6 +368,8 @@ export function UnitBadgeStrip({ units, chars = [], badge, tip, selected, onPick
   badge: (id: string) => { text: string; full?: boolean };
   /** Lo que dice el título al pasar el ratón, después del nombre */
   tip: (id: string) => string;
+  /** En gris (p. ej. todavía no recibe nada) */
+  dim?: (id: string) => boolean;
   selected: string | null;
   onPick: (id: string) => void;
 }) {
@@ -400,7 +402,7 @@ export function UnitBadgeStrip({ units, chars = [], badge, tip, selected, onPick
         return (
           <button
             key={u.card}
-            className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (selected === u.card ? ' sel' : '')}
+            className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (selected === u.card ? ' sel' : '') + (dim?.(u.card) ? ' dim' : '')}
             style={artStyle(u)}
             title={`${u.name}\n${tip(u.card)}`}
             onClick={() => onPick(u.card)}
