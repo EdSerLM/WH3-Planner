@@ -476,14 +476,21 @@ function assemble(
 const trees = new Map<string, CharacterTree>();
 const summaries: CharacterSummary[] = [];
 /**
- * Facciones que agregamos a mano aunque el juego no las tenga en sus datos (lo pidió el usuario):
- * Mannfred pasó a las Legiones No Muertas, pero se sigue queriendo planear con los Condes Vampiro.
+ * El señor legendario de cada facción de campaña siempre sale en su facción, aunque su árbol diga otra subcultura:
+ * Neferata (La Hermandad de Lahmias) y Mannfred (El cónclave de Drakenhof) tienen el árbol solo de las Legiones No Muertas,
+ * pero el juego los pone como líderes de facciones de los Condes Vampiro. Se hace al primer uso (las unidades se cargan después).
  */
-const EXTRA_SUBCULTURES: Record<string, string[]> = {
-  wh_main_skill_node_set_vmp_mannfred: ['wh_main_sc_vmp_vampire_counts'],
-};
-for (const c of gameFile?.characters ?? []) {
-  for (const sc of EXTRA_SUBCULTURES[c.key] ?? []) if (!c.subcultures.includes(sc)) c.subcultures.push(sc);
+let leadersAdded = false;
+function addCampaignLeaders() {
+  if (leadersAdded || !gameFile) return;
+  leadersAdded = true;
+  const bySubtype = new Map<string, GameCharacter[]>();
+  for (const c of gameFile.characters) bySubtype.set(c.subtype, [...(bySubtype.get(c.subtype) ?? []), c]);
+  for (const row of allUnitsFile?.campaign ?? []) {
+    for (const leader of row.leaders) {
+      for (const c of bySubtype.get(leader) ?? []) if (!c.subcultures.includes(row.subculture)) c.subcultures.push(row.subculture);
+    }
+  }
 }
 const gameChars = new Map((gameFile?.characters ?? []).map((c) => [c.key, c]));
 
@@ -616,6 +623,7 @@ export function listCharacterFactions(): { key: string; name: string; flag?: str
  */
 const namesByFaction = new Map<string, Map<string, string>>();
 function factionNames(f: string): Map<string, string> {
+  addCampaignLeaders();
   if (namesByFaction.has(f)) return namesByFaction.get(f)!;
   const chars = gameFile!.characters.filter((c) => c.subcultures.includes(f));
   const groups = new Map<string, GameCharacter[]>();
@@ -639,6 +647,7 @@ function factionNames(f: string): Map<string, string> {
 }
 
 export function listCharacters(faction?: string): CharacterSummary[] {
+  addCampaignLeaders();
   if (!gameFile) return summaries.filter((s) => s.faction === (faction || DEFAULT_FACTION));
   const f = faction || DEFAULT_FACTION;
   const names = factionNames(f);
@@ -649,6 +658,7 @@ export function listCharacters(faction?: string): CharacterSummary[] {
 }
 
 export function getCharacter(key: string): CharacterTree | undefined {
+  addCampaignLeaders();
   if (!gameFile) return trees.get(key);
   const cached = trees.get(key);
   if (cached) return cached;

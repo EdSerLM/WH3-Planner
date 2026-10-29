@@ -20,7 +20,7 @@ export const SKILL_TABLES = [
   // A quién NO afecta cada habilidad (p. ej. la pasiva Guardián solo a señores y héroes)
   'special_ability_to_invalid_target_flags_tables', 'special_ability_invalid_usage_flags_tables',
   'main_units_tables', 'land_units_tables', 'melee_weapons_tables', 'battle_entities_tables', 'unit_armour_types_tables',
-  'unit_shield_types_tables', 'units_custom_battle_permissions_tables', 'factions_tables', 'unit_attributes_to_groups_junctions_tables',
+  'unit_shield_types_tables', 'units_custom_battle_permissions_tables', 'factions_tables', 'frontend_faction_leaders_tables', 'unit_attributes_to_groups_junctions_tables',
   'land_units_to_unit_abilites_junctions_tables', 'mounts_tables', 'character_skill_nodes_skill_locks_tables',
   'character_skill_level_to_ancillaries_junctions_tables', 'ancillaries_tables', 'ancillaries_included_agent_subtypes_tables',
   'effect_bonus_value_agent_action_record_junctions_tables',
@@ -541,13 +541,22 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     for (const sub of subs) charInitBySub.set(sub, [...(charInitBySub.get(sub) ?? []), row]);
   }
 
+  // Facciones que lleva cada señor legendario en la pantalla de campaña: si su unidad no sale en batalla personalizada
+  // (p. ej. Malus Darkblade) es la única forma de saber su facción
+  const leaderSc = new Map<string, string[]>();
+  for (const r of T['frontend_faction_leaders_tables']) {
+    if (!r.agent_subtype_record || !fac.has(r.faction)) continue;
+    const sc = fac.get(r.faction)!.subculture as string;
+    leaderSc.set(r.agent_subtype_record, [...new Set([...(leaderSc.get(r.agent_subtype_record) ?? []), sc])].sort());
+  }
+
   const characters: Row[] = [];
   for (const s of T['character_skill_node_sets_tables']) {
     if (s.for_navy || s.for_army || !ag.has(s.agent_subtype_key)) continue;
     const a = ag.get(s.agent_subtype_key)!;
     const unit: string | undefined = a.associated_unit_override;
     if (!unit) continue;
-    let scs = unitSc.get(unit)?.length ? unitSc.get(unit)! : setPieceSc.get(unit) ?? [];
+    let scs = unitSc.get(unit)?.length ? unitSc.get(unit)! : setPieceSc.get(unit)?.length ? setPieceSc.get(unit)! : leaderSc.get(s.agent_subtype_key) ?? [];
     if (s.subculture) scs = scs.includes(s.subculture) ? [s.subculture] : [s.subculture];
     if (s.faction_key && fac.has(s.faction_key)) scs = [fac.get(s.faction_key)!.subculture];
     if (!scs.length) continue;
