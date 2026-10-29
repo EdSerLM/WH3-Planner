@@ -17,15 +17,15 @@ export const api = {
   units: (faction?: string) => req<UnitData[]>(`/api/units${faction ? `?faction=${encodeURIComponent(faction)}` : ''}`),
   campaign: (faction: string) => req<CampaignFaction[]>(`/api/campaign?faction=${encodeURIComponent(faction)}`),
   compute: (army: ArmyState) => req<ComputeResult>('/api/compute', { method: 'POST', body: JSON.stringify(army) }),
-  dps: (army: ArmyState, attacker: string, targets: string[], dir: 'front' | 'flank' | 'rear' = 'front') =>
+  dps: (army: ArmyState, attacker: string, targets: string[], dir: 'front' | 'flank' | 'rear' = 'front', mode: 'melee' | 'ranged' = 'melee') =>
     req<{ attacker: string; rows: DpsRow[]; disclaimer: string; debuffs: string[] }>('/api/dps', {
       method: 'POST',
-      body: JSON.stringify({ army, attacker, targets, dir }),
+      body: JSON.stringify({ army, attacker, targets, dir, mode }),
     }),
-  matchups: (army: ArmyState, targets: string[], dir: 'front' | 'flank' | 'rear' = 'front') =>
+  matchups: (army: ArmyState, targets: string[], dir: 'front' | 'flank' | 'rear' = 'front', mode: 'melee' | 'ranged' = 'melee') =>
     req<{ cards: Record<string, Record<string, 'win' | 'even' | 'lose'>> }>('/api/dps/matchups', {
       method: 'POST',
-      body: JSON.stringify({ army, targets, dir }),
+      body: JSON.stringify({ army, targets, dir, mode }),
     }),
   factions: () => req<{ key: string; name: string }[]>('/api/factions'),
   targets: (faction: string) =>

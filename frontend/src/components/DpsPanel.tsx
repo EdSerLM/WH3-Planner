@@ -44,6 +44,7 @@ const STORE_VIEW = 'wh3-planner:dps-view';
 // Unidad atacante y dirección elegidas: el panel se desmonta al cambiar de pestaña
 const STORE_PICK = 'wh3-planner:dps-pick';
 type AttackDir = 'front' | 'flank' | 'rear';
+type AttackMode = 'melee' | 'ranged';
 
 // Columnas: qué es cada una y cómo se calcula (se ve al pasar el ratón por el encabezado)
 const COLS: { key: SortKey; label: string; tip: string; firstDir: 1 | -1 }[] = [
@@ -110,11 +111,12 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
   const [groupFilter, setGroupFilter] = useState('');
   // grouped (booleano) es de versiones anteriores: equivale a agrupar por tipo
   // noRor: sin Regimientos de Renombre; verdict: solo los duelos con ese resultado;
-  // single: mostrar los objetivos de un solo modelo (ocultos por defecto: el duelo no los calcula bien)
-  const [view, setView] = useState<{ sort: SortState; grouped: boolean; groupBy?: GroupBy; noRor?: boolean; single?: boolean; verdict?: Verdict | '' }>(() =>
+  // single: mostrar los objetivos de un solo modelo (ocultos por defecto: el duelo no los calcula bien); mode: melee o distancia
+  const [view, setView] = useState<{ sort: SortState; grouped: boolean; groupBy?: GroupBy; noRor?: boolean; single?: boolean; verdict?: Verdict | ''; mode?: AttackMode }>(() =>
     loadJson(STORE_VIEW, { sort: { key: 'ttk', dir: 1 } as SortState, grouped: false }),
   );
   const groupBy: GroupBy = view.groupBy ?? (view.grouped ? 'type' : '');
+  const mode: AttackMode = view.mode ?? 'melee';
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [dir, setDir] = useState<AttackDir>(pick.dir);
   // Las filas son de este atacante y dirección; si no coinciden con lo elegido, se está recalculando
@@ -170,7 +172,7 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
     let stale = false;
     const t = setTimeout(() => {
       api
-        .dps(army, attacker, targets, dir)
+        .dps(army, attacker, targets, dir, mode)
         .then((r) => {
           if (stale) return;
           // Objetivos guardados con claves viejas y nuevas de la misma unidad: el backend los resuelve a la misma
@@ -180,15 +182,15 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
           setRows(uniq);
           // Si el backend resolvió todos (misma cantidad y orden), se guardan con la clave actual y sin repetir
           if (r.rows.length === targets.length && r.rows.some((x, i) => x.target !== targets[i])) setTargets(uniq.map((x) => x.target));
-          setRowsFor(`${attacker}|${dir}`);
+          setRowsFor(`${attacker}|${dir}|${mode}`);
           setInfo({ disclaimer: r.disclaimer, debuffs: r.debuffs });
           setErr(null);
         })
         .catch((e) => { if (!stale) setErr(e.message); });
     }, 200);
     return () => { stale = true; clearTimeout(t); };
-  }, [army, attacker, targets, dir]);
-  const recalculating = !!rows.length && rowsFor !== `${attacker}|${dir}`;
+  }, [army, attacker, targets, dir, mode]);
+  const recalculating = !!rows.length && rowsFor !== `${attacker}|${dir}|${mode}`;
 
   // Duelos de todas las tarjetas del ejército contra los mismos objetivos, para marcar en la franja las que mejor salen
   const [duels, setDuels] = useState<Record<string, Record<string, Verdict>>>({});
@@ -199,10 +201,10 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
     }
     let stale = false;
     const t = setTimeout(() => {
-      api.matchups(army, targets, dir).then((r) => { if (!stale) setDuels(r.cards); }).catch(() => { if (!stale) setDuels({}); });
+      api.matchups(army, targets, dir, mode).then((r) => { if (!stale) setDuels(r.cards); }).catch(() => { if (!stale) setDuels({}); });
     }, 400);
     return () => { stale = true; clearTimeout(t); };
-  }, [army, targets, dir, cards.length]);
+  }, [army, targets, dir, mode, cards.length]);
   // Objetivos de un solo modelo (gigantes, dragones, personajes...), por la ficha de cada fila o la lista de la facción
   const singles = useMemo(() => {
     const out = new Set<string>();
@@ -241,12 +243,12 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
     }
     let stale = false;
     const t = setTimeout(() => {
-      api.matchups({ ...army, units: rest.map((u) => ({ card: u.card, count: 1 })) }, targets, dir)
+      api.matchups({ ...army, units: rest.map((u) => ({ card: u.card, count: 1 })) }, targets, dir, mode)
         .then((r) => { if (!stale) setRestDuels(r.cards); })
         .catch(() => { if (!stale) setRestDuels({}); });
     }, 600);
     return () => { stale = true; clearTimeout(t); };
-  }, [army, rest, targets, dir, cards.length]);
+  }, [army, rest, targets, dir, mode, cards.length]);
   const restMatchups = useMemo(() => {
     const keep = new Set(rest.map((u) => u.card));
     return countDuels(Object.fromEntries(Object.entries(restDuels).filter(([id]) => keep.has(id))));
@@ -316,19 +318,32 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
 
   return (
     <div className="dps">
-      <h3>Daño cuerpo a cuerpo (DPS)</h3>
+      <h3>{mode === 'ranged' ? 'Daño a distancia (DPS)' : 'Daño cuerpo a cuerpo (DPS)'}</h3>
       {attCard && (
         <div className="dps-attacker">
           {attCard.art ? <img className="dps-art big" src={`/units/${attCard.art}.png`} alt="" /> : null}
           <div>
             <b>{attCard.name}</b>
             <div className="small muted">{attCard.caste}{attCard.models ? ` · ${attCard.models} modelos` : ''} · con tus bufos</div>
+            {mode === 'ranged' ? (
+              <div className="small">
+                {attCard.stats.missileDmg.final > 0 ? (
+                  <>
+                    <StatImg stat="missileDmg" emoji="🏹" title="Fuerza de proyectiles" /> {fmtStat(attCard.stats.missileDmg.final)}
+                    {' · '}<StatImg stat="range" emoji="📏" title="Alcance" /> {fmtStat(attCard.stats.range.final)}
+                    {' · '}<StatImg stat="ammo" emoji="🎯" title="Munición" /> {fmtStat(attCard.stats.ammo.final)}
+                    {' · '}<StatImg stat="reload" emoji="⏱️" title="Recarga (s)" /> {fmtStat(attCard.stats.reload.final, 'reload')} s
+                  </>
+                ) : <span className="warn">No tiene arma a distancia</span>}
+              </div>
+            ) : (
             <div className="small">
               <StatImg stat="ma" emoji="⚔️" title="Ataque cuerpo a cuerpo" /> {fmtStat(attCard.stats.ma.final)}
               {' · '}<StatImg stat="ws" emoji="💥" title="Fuerza del arma" /> {fmtStat(attCard.stats.dmg.final + attCard.stats.ap.final)} ({fmtStat(attCard.stats.ap.final)} perf.)
               {' · '}<StatImg stat="md" emoji="🛡️" title="Defensa cuerpo a cuerpo" /> {fmtStat(attCard.stats.md.final)}
               {' · '}<StatImg stat="armour" emoji="⛓️" title="Armadura" /> {fmtStat(attCard.stats.armour.final)}
             </div>
+            )}
           </div>
           <span className="dps-vs">vs</span>
           <span className="small muted">
@@ -402,6 +417,13 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
         <button className="ghost" onClick={() => setTargets([])}>Limpiar</button>
       </div>
       <div className="dps-tools">
+        <label title="Qué daño se compara: el cuerpo a cuerpo o el de proyectiles (a distancia). Cambia la tabla, los duelos y los enfrentamientos de las cartas.">
+          Daño:{' '}
+          <select value={mode} onChange={(e) => setView((v) => ({ ...v, mode: e.target.value as AttackMode }))}>
+            <option value="melee">⚔️ Cuerpo a cuerpo</option>
+            <option value="ranged">🏹 A distancia</option>
+          </select>
+        </label>
         <label title="Desde dónde atacas: por el flanco la defensa del enemigo cuenta ×0.6 y por la espalda ×0.3 (constantes del juego). El duelo al revés siempre es de frente.">
           Atacas:{' '}
           <select value={dir} onChange={(e) => setDir(e.target.value as 'front' | 'flank' | 'rear')}>
@@ -636,6 +658,43 @@ function CalcLines({ d, hit, perHit, res, dps, ttk, large, hpPerModel, you }: {
     d.res.physical && !d.res.magicalIgnoresPhysical ? `física ${d.res.physical}%` : '',
     d.res.flame ? `fuego ${d.res.flame}%` : '',
   ].filter(Boolean);
+  const rg = d.ranged;
+  if (rg) {
+    const parts = [...resParts, rg.missileRes ? `proyectiles ${rg.missileRes}%` : ''].filter(Boolean);
+    return (
+      <ul className="ts-calc">
+        {d.bonus > 0 && (
+          <li>
+            <b>Bonus del proyectil</b> contra {large ? 'grandes' : 'infantería'}: +{fmt1(d.bonus)} (+{d.bonusBase} base y +{d.bonusAp} perforante)
+          </li>
+        )}
+        <li>
+          <b>Armadura</b> {d.armour}: quita en promedio el <b>{d.armourRed}%</b> del daño base
+        </li>
+        <li>
+          <b>Daño por proyectil</b>: {fmt1(base)} base × (1 − {d.armourRed}%) + {fmt1(ap)} perforante
+          {res ? `, ${res > 0 ? '−' : '+'}${Math.abs(res)}% (${parts.join(' + ')}${res >= 90 ? ', tope 90%' : ''})` : ''} = <b>{perHit}</b>
+          {hpPerModel && uncapped > perHit + 0.05 ? ` (tope: vida de un modelo, ${hpPerModel})` : ''}
+          {d.res.magicalIgnoresPhysical ? ' · tus ataques mágicos ignoran su resistencia física' : ''}
+        </li>
+        {rg.shield > 0 && (
+          <li>
+            <b>Escudo</b>: de frente bloquea el {rg.shield}% de los proyectiles
+          </li>
+        )}
+        <li>
+          <b>DPS</b>: {d.models} modelos × {rg.shots} proyectil{rg.shots === 1 ? '' : 'es'}{rg.shield ? ` × ${100 - rg.shield}%` : ''} × {perHit} ÷ {rg.reload} s de recarga = <b>{dps}</b>
+          {' '}(suponiendo que aciertan todos)
+        </li>
+        <li>
+          <b>Munición</b> {rg.ammo} disparos: alcanza para quitar el <b>{rg.ammoPct}%</b> de su vida{rg.ammoPct < 100 ? ' — se acaba antes de matarlos' : ''}
+        </li>
+        <li>
+          <b>{you ? 'Te matan en' : 'Tiempo para matar'}</b>: {d.hpTotal} vida ÷ {dps} = <b>{Number.isFinite(ttk) ? `${ttk} s` : '—'}</b>
+        </li>
+      </ul>
+    );
+  }
   return (
     <ul className="ts-calc">
       <li>

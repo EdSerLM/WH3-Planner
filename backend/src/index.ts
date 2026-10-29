@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { abilities, DEFAULT_FACTION, getCharacter, getGraph, getTechTree, listGraphs, techSummary, listTechTrees, getUnit, listCampaign, listCharacterFactions, listCharacters, listRoster, listSubcultures, listTargets, sources, targetInfo, getTarget, bulletsInfo, groupIcons } from './data.js';
 import { compute } from './engine.js';
-import { type AttackDir, applyDebuffs, cardAsTarget, DPS_DISCLAIMER, duel, meleeDps, targetsFromCards, unitAsAttacker } from './dps.js';
+import { type AttackDir, type AttackMode, applyDebuffs, attackDps, cardAsTarget, DPS_DISCLAIMER, DPS_RANGED_DISCLAIMER, duel, targetsFromCards, unitAsAttacker } from './dps.js';
 import { deleteBuild, getBuild, listBuilds, upsertBuild } from './builds.js';
 import { STAT_LABELS_ES } from './effects.js';
 import type { ComputeRequest, ComputedCard } from './types.js';
@@ -90,42 +90,45 @@ app.post('/api/compute', (req, res) => {
 });
 
 // ---------- DPS ----------
-// body: { army: ComputeRequest, attacker: id de tarjeta, targets: [unit cards] }
+// body: { army: ComputeRequest, attacker: id de tarjeta, targets: [unit cards], dir, mode: 'melee' | 'ranged' }
 app.post('/api/dps', (req, res) => {
   try {
-    const { army, attacker, targets, dir } = req.body as { army: ComputeRequest; attacker: string; targets: string[]; dir?: AttackDir };
+    const { army, attacker, targets, dir, mode } = req.body as { army: ComputeRequest; attacker: string; targets: string[]; dir?: AttackDir; mode?: AttackMode };
     const d: AttackDir = dir === 'flank' || dir === 'rear' ? dir : 'front';
+    const m: AttackMode = mode === 'ranged' ? 'ranged' : 'melee';
     const result = compute({ ...army, units: army.units ?? [] });
     const att = result.cards.find((c) => c.id === attacker);
     if (!att) return res.status(404).json({ error: 'Atacante no está en el ejército' });
-    const rows = dpsRows(att, targets, d, result.enemyDebuffs).map((r) => ({ ...r, info: targetInfo(r.target) }));
-    res.json({ attacker: att.name, rows, disclaimer: DPS_DISCLAIMER, debuffs: result.enemyDebuffs.map((d) => d.ability) });
+    const rows = dpsRows(att, targets, d, result.enemyDebuffs, m).map((r) => ({ ...r, info: targetInfo(r.target) }));
+    res.json({ attacker: att.name, rows, disclaimer: m === 'ranged' ? DPS_RANGED_DISCLAIMER : DPS_DISCLAIMER, debuffs: result.enemyDebuffs.map((d) => d.ability) });
   } catch (e) {
     res.status(400).json({ error: (e as Error).message });
   }
 });
 
-function dpsRows(att: ComputedCard, targets: string[] | undefined, d: AttackDir, debuffs: ReturnType<typeof compute>['enemyDebuffs']) {
+function dpsRows(att: ComputedCard, targets: string[] | undefined, d: AttackDir, debuffs: ReturnType<typeof compute>['enemyDebuffs'], m: AttackMode = 'melee') {
   return targetsFromCards(targets ?? [])
     .map((t) => applyDebuffs(t, debuffs))
     .map((t) => {
-      const mine = meleeDps(att, t, d);
-      // Al revés: el enemigo (stats base, con tus debufos) contra tu unidad (con sus bufos)
+      const mine = attackDps(m, att, t, d);
+      // Al revés: el enemigo (stats base, con tus debufos) contra tu unidad (con sus bufos), del mismo modo (a distancia,
+      // si no dispara, no te hace daño)
       const u = getTarget(t.id);
-      const back = u ? duel(mine, meleeDps(unitAsAttacker(u, debuffs), cardAsTarget(att))) : undefined;
+      const back = u ? duel(mine, attackDps(m, unitAsAttacker(u, debuffs), cardAsTarget(att))) : undefined;
       return { ...mine, duel: back };
     });
 }
 
 // Resultado del duelo de cada tarjeta del ejército contra cada objetivo (para marcar las que mejor se enfrentan)
-// body: { army, targets, dir } → { cards: { [id tarjeta]: { [objetivo]: 'win' | 'even' | 'lose' } } }
+// body: { army, targets, dir, mode } → { cards: { [id tarjeta]: { [objetivo]: 'win' | 'even' | 'lose' } } }
 app.post('/api/dps/matchups', (req, res) => {
   try {
-    const { army, targets, dir } = req.body as { army: ComputeRequest; targets: string[]; dir?: AttackDir };
+    const { army, targets, dir, mode } = req.body as { army: ComputeRequest; targets: string[]; dir?: AttackDir; mode?: AttackMode };
     const d: AttackDir = dir === 'flank' || dir === 'rear' ? dir : 'front';
+    const m: AttackMode = mode === 'ranged' ? 'ranged' : 'melee';
     const result = compute({ ...army, units: army.units ?? [] });
     const cards = Object.fromEntries(
-      result.cards.map((c) => [c.id, Object.fromEntries(dpsRows(c, targets, d, result.enemyDebuffs).flatMap((r) => (r.duel ? [[r.target, r.duel.verdict]] : [])))]),
+      result.cards.map((c) => [c.id, Object.fromEntries(dpsRows(c, targets, d, result.enemyDebuffs, m).flatMap((r) => (r.duel ? [[r.target, r.duel.verdict]] : [])))]),
     );
     res.json({ cards });
   } catch (e) {

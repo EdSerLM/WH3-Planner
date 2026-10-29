@@ -426,6 +426,8 @@ export interface ComputedCard {
   interval: number;
   splash?: number;
   splashSize?: string;
+  /** Proyectil del juego (daño base/perforante, proyectiles por disparo, bonus contra tipo); las stats con bufos van en stats */
+  missile?: { dmg: number; ap: number; shots: number; bvl: number; bvi: number };
   magicalAttacks: boolean;
   flamingAttacks: boolean;
   stats: Record<StatKey, StatLine>;
@@ -443,7 +445,9 @@ export interface DpsTarget {
   isLarge: boolean;
   isInfantry: boolean;
   cost?: number;
-  res: { physical: number; magic: number; flame: number; ward: number };
+  res: { physical: number; magic: number; flame: number; ward: number; missile?: number };
+  /** Bloqueo de proyectiles del escudo (%), solo de frente */
+  shield?: number;
   size?: string;
   highThreat?: boolean;
 }

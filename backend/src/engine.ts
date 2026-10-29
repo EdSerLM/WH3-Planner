@@ -496,6 +496,7 @@ export function compute(req: ComputeRequest): ComputeResult {
       id: b.tree.key, name: b.tree.name + (b.mountNode ? ` (${b.mountNode.name})` : ''), kind: isLord ? 'lord' : 'hero', count: 1,
       art: artOfUnit((b.mountNode?.levels[0].mountStats ?? b.tree.stats)?.unit) ?? artOfUnit(b.tree.stats?.unit),
       models: 1, size: base.size, interval: base.melee_attack_interval, splash: base.splash_attack_max_attacks,
+      missile: base.unit ? getUnit(base.unit)?.missile : undefined,
       magicalAttacks: magical, flamingAttacks: flaming, stats: lines, attributes,
       notes: b.warnings,
     });
@@ -587,7 +588,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     cards.push({
       id: u.card, name: u.name, art: u.art, kind: 'unit', count: sel.count, rank, rank7: rank >= 7, caste: u.casteEs ?? u.caste, cost: u.cost,
       models: u.models, size: u.size, interval: u.interval, splash: u.splash, splashSize: u.splashSize, magicalAttacks: magical, flamingAttacks: flaming,
-      stats: lines, attributes, notes,
+      missile: u.missile, stats: lines, attributes, notes,
     });
   }
 

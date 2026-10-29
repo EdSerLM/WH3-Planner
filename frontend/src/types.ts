@@ -342,6 +342,8 @@ export interface DpsRow {
     res: { ward: number; physical: number; flame: number; magicalIgnoresPhysical: boolean };
     /** Daño en área: modelos que alcanza cada golpe (1 = concentrado), máximo del arma y por qué no se aplica */
     splash?: { n: number; max: number; size?: string; why?: string };
+    /** Solo a distancia: proyectiles por disparo, recarga, bloqueo del escudo, munición y % de su vida que alcanza a quitar */
+    ranged?: { shots: number; reload: number; shield: number; ammo: number; missileRes: number; ammoPct: number };
   };
   /** Ficha del objetivo (datos del juego) */
   info?: DpsTargetInfo;
