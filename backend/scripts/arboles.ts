@@ -124,10 +124,12 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
   }
   const attrGroups = group('unit_attributes_to_groups_junctions_tables', 'attribute_group');
   const luAbil = group('land_units_to_unit_abilites_junctions_tables', 'land_unit');
+  // Todas las unidades con datos de batalla (no solo las de batalla personalizada): las variantes de campaña
+  // (p. ej. "Malditos de Nurgle" de los Guerreros del Caos) también entran en los conjuntos de unidades de los efectos
   const universe: { rec: string; caste: string; cat: string; cls: string }[] = [];
   for (const m of T['main_units_tables']) {
     const Lu = lu.get(m.land_unit);
-    if (!Lu || !unitSc.get(m.unit)?.length) continue;
+    if (!Lu) continue;
     universe.push({ rec: m.unit, caste: m.caste, cat: Lu.category, cls: Lu.class });
   }
   const attrName = (a: string) => (L(`unit_attributes_bullet_text_${a}`) ?? a).split('||')[0].trim();

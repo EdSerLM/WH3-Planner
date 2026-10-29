@@ -73,7 +73,32 @@ const gameFile: GameSkillsFile | null = existsSync(join(DATA_DIR, 'raw', 'wh3_al
 /** Listas de unidades (claves) de los efectos del juego */
 const unitListSets: Set<string>[] = (gameFile?.unitLists ?? []).map((l) => new Set(l));
 export function unitInList(list: number, unitKey: string): boolean {
-  return unitListSets[list]?.has(unitKey) ?? false;
+  const set = unitListSets[list];
+  if (!set) return false;
+  if (set.has(unitKey)) return true;
+  const twin = listTwin(unitKey);
+  return !!twin && set.has(twin);
+}
+/**
+ * Unidades que no están en ninguna lista porque el extractor solo armaba las listas con las de batalla personalizada
+ * (variantes de campaña como "Malditos de Nurgle" de los Guerreros del Caos o los carros de Tamurkhan):
+ * se usa su gemela con el mismo nombre y casta que sí está en las listas. Con una extracción nueva ya no hace falta.
+ */
+let twins: Map<string, string> | null = null;
+function listTwin(unitKey: string): string | undefined {
+  if (!twins) {
+    twins = new Map();
+    const listed = new Set(unitListSets.flatMap((s) => [...s]));
+    const units = allUnitsFile?.units ?? [];
+    const byName = new Map<string, string[]>();
+    for (const u of units) if (listed.has(u.key)) byName.set(`${u.name}|${u.casteKey ?? u.caste}`, [...(byName.get(`${u.name}|${u.casteKey ?? u.caste}`) ?? []), u.key]);
+    for (const u of units) {
+      if (listed.has(u.key)) continue;
+      const t = byName.get(`${u.name}|${u.casteKey ?? u.caste}`);
+      if (t?.length) twins.set(u.key, t[0]);
+    }
+  }
+  return twins.get(unitKey);
 }
 /** Facción por defecto (la del planner original) */
 export const DEFAULT_FACTION = 'wh_main_sc_chs_chaos';
