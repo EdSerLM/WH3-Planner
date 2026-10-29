@@ -198,6 +198,40 @@ export function fillAll(sel: BuildSelection, tree: CharacterTree): { sel: BuildS
   return { sel: next, missing, added };
 }
 
+/**
+ * Compra esas habilidades al máximo y, antes, lo que piden: sus padres obligatorios (a nivel 1) y, si piden N puntos
+ * entre varios padres, los primeros de la lista hasta juntarlos. Lo que no cabe en el rango máximo o está bloqueado
+ * por una excluyente se salta; `missing` dice cuántas de las pedidas no quedaron al máximo.
+ */
+export function buyNodes(sel: BuildSelection, tree: CharacterTree, keys: string[]): { sel: BuildSelection; missing: number } {
+  const by = new Map(tree.rows.flat().map((n) => [n.key, n]));
+  let next = sel;
+  const lvl = (k: string) => (by.get(k) ? levelOf(next, by.get(k)!) : 0);
+  const need = (n: SkillNode, full: boolean, depth = 0): void => {
+    if (depth > 30) return;
+    for (const p of n.parentsRequired) if (by.has(p) && lvl(p) < 1) need(by.get(p)!, false, depth + 1);
+    if (n.parentSubset.length && n.parentSubsetCount > 0) {
+      const sum = () => n.parentSubset.reduce((s, p) => s + lvl(p), 0);
+      for (const p of n.parentSubset) {
+        const pn = by.get(p);
+        if (!pn) continue;
+        while (sum() < n.parentSubsetCount && lvl(p) < pn.levels.length) {
+          const before = lvl(p);
+          if (before === 0) need(pn, false, depth + 1);
+          else if (!whyNotBuy(pn, next, tree)) next = increment(next, pn, tree);
+          if (lvl(p) === before) break;
+        }
+        if (sum() >= n.parentSubsetCount) break;
+      }
+    }
+    const goal = full ? n.levels.length : Math.max(1, levelOf(next, n));
+    while (levelOf(next, n) < goal && !whyNotBuy(n, next, tree)) next = increment(next, n, tree);
+  };
+  for (const k of keys) if (by.has(k)) need(by.get(k)!, true);
+  const missing = keys.filter((k) => by.has(k) && lvl(k) < by.get(k)!.levels.length).length;
+  return { sel: { ...next, mount: sel.mount ?? null }, missing };
+}
+
 export function emptyBuild(tree: CharacterTree): BuildSelection {
   return normalize({ character: tree.key, levels: {}, mount: null, innate: tree.defaultInnate, rank: 1 }, tree);
 }

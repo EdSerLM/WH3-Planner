@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import type { RosterBuffs } from '../App';
-import type { ComputedCard, StatKey, UnitData } from '../types';
+import type { BuildSelection, CharacterTree, ComputedCard, StatKey, UnitData } from '../types';
+import { buyNodes } from '../treeLogic';
 import { UnitBadgeStrip } from './ArmySetup';
 import { UnitBuffSummary } from './UnitBuffSummary';
 
@@ -19,10 +20,25 @@ interface Props {
   /** Clave del personaje y si va de señor o héroe (para pedir todo lo que su árbol podría dar) */
   character: string;
   kind: 'lord' | 'hero';
+  /** Árbol y build del personaje, para comprar desde aquí las habilidades que le faltan a una unidad */
+  tree: CharacterTree;
+  selection: BuildSelection;
+  onChange: (sel: BuildSelection) => void;
+}
+
+/** Color de cada fila del árbol (por su nombre): campaña, únicas, bufos al ejército… */
+function rowClass(label: string): string {
+  if (/campaña/i.test(label)) return 'row-campaign';
+  if (/únicas/i.test(label)) return 'row-unique';
+  if (/ejército/i.test(label)) return 'row-army';
+  if (/magia/i.test(label)) return 'row-magic';
+  if (/combate/i.test(label)) return 'row-combat';
+  if (/especialidad|acciones/i.test(label)) return 'row-special';
+  return 'row-basic';
 }
 
 /** Debajo del árbol: las unidades del roster que reciben bufos de este señor o héroe con lo que lleva comprado. */
-export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNames, character, kind }: Props) {
+export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNames, character, kind, tree, selection, onChange }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   // Por unidad: habilidades del árbol que podrían cambiarle la tarjeta (todas compradas)
   const [potential, setPotential] = useState<Record<string, string[]>>({});
@@ -62,6 +78,22 @@ export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNam
     const missing = (potential[id] ?? []).filter((x) => !have.includes(x));
     return { ...s, have, missing, total: have.length + missing.length };
   };
+  // Fila del árbol de cada habilidad (por su nombre), para pintarla con su color
+  const rowOf = useMemo(() => {
+    const m = new Map<string, string>();
+    tree.rows.forEach((r, i) => r.forEach((n) => { if (!m.has(n.name)) m.set(n.name, tree.rowLabels?.[i] ?? ''); }));
+    // Rasgos innatos y ocultos (p. ej. "Recipiente" de Archaón): no están en las filas
+    for (const n of tree.background) if (!m.has(n.name)) m.set(n.name, 'Innata');
+    return m;
+  }, [tree]);
+  const skillLi = (s: string, mark: string, extra = '', cls = '') => {
+    const row = rowOf.get(s);
+    return (
+      <li key={s + extra} className={cls + (row !== undefined ? ' ' + rowClass(row) : ' row-other')} title={row ? `Fila: ${row}` : 'Objeto, conjunto o montura'}>
+        {mark} {s}{extra}{row ? <span className="row-tag">{row}</span> : null}
+      </li>
+    );
+  };
   const card = selected ? rosterCards[selected] : undefined;
   const sel = selected ? info(selected) : undefined;
   const reachable = units.filter((u) => info(u.card).total > 0).length;
@@ -90,7 +122,8 @@ export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNam
             tip={(id) => {
               const s = info(id);
               if (!s.total) return `Ninguna habilidad del árbol de ${owner} le cambia la tarjeta`;
-              return [...s.now.map((x) => `✦ ${x}`), ...s.r7.map((x) => `✦ ${x} (rango 7+)`), ...s.missing.map((x) => `○ ${x} (sin comprar)`)].join('\n');
+              const row = (x: string) => (rowOf.get(x) ? ` · ${rowOf.get(x)}` : '');
+              return [...s.now.map((x) => `✦ ${x}${row(x)}`), ...s.r7.map((x) => `✦ ${x} (rango 7+)${row(x)}`), ...s.missing.map((x) => `○ ${x} (sin comprar)${row(x)}`)].join('\n');
             }}
             selected={selected}
             onPick={(id) => setSelected(selected === id ? null : id)}
@@ -100,11 +133,26 @@ export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNam
       {sel && (
         <div className="tech-unit-detail">
           <ul className="tech-unit-list small">
-            {sel.now.map((s) => <li key={s} className="ok">✦ {s}</li>)}
-            {sel.r7.map((s) => <li key={s} className="ok">✦ {s} (rango 7+)</li>)}
-            {sel.missing.map((s) => <li key={s} className="muted">○ {s}</li>)}
+            {sel.now.map((s) => skillLi(s, '✦', '', 'ok'))}
+            {sel.r7.map((s) => skillLi(s, '✦', ' (rango 7+)', 'ok'))}
+            {sel.missing.map((s) => skillLi(s, '○', '', 'off'))}
             {!sel.total && <li className="muted">Ninguna habilidad del árbol de {owner} le cambia la tarjeta.</li>}
           </ul>
+          {sel.missing.length > 0 && (() => {
+            // Las habilidades por su nombre en el árbol (las de monturas y objetos no se compran aquí)
+            const keys = tree.rows.flat().filter((n) => n.visible && !n.isMount && sel.missing.includes(n.name)).map((n) => n.key);
+            const res = keys.length ? buyNodes(selection, tree, keys) : null;
+            return (
+              <p className="small">
+                <button className="ghost" disabled={!res}
+                  onClick={() => res && onChange(res.sel)}
+                  title="Compra en el árbol las habilidades que le faltan a esta unidad (al máximo) y las previas que pidan">
+                  Comprar las {keys.length} que le faltan
+                </button>
+                {res && res.missing > 0 && <span className="muted"> · {res.missing} no caben o están bloqueadas por una excluyente</span>}
+              </p>
+            );
+          })()}
           {card && <UnitBuffSummary card={card} labels={labels} onClose={() => setSelected(null)} />}
         </div>
       )}

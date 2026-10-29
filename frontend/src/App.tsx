@@ -532,7 +532,8 @@ export default function App() {
               {leftView !== 'summary' && (
                 <CharUnits owner={currentTree.name} units={rosterUnits} rosterCards={rosterCards} buffs={rosterBuffs} labels={labels}
                   abilityNames={(result?.abilities ?? []).filter((a) => a.owner === currentTree.name).map((a) => a.name)}
-                  character={currentSel.character} kind={tab === 'lord' ? 'lord' : 'hero'} />
+                  character={currentSel.character} kind={tab === 'lord' ? 'lord' : 'hero'}
+                  tree={currentTree} selection={currentSel} onChange={updateSelection} />
               )}
             </>
           ) : currentSel ? (
