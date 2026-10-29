@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import type { ArmyState, CharacterSummary, ComputedCard, StatKey, TechNode, UnitData } from '../types';
-import { TechUnitStrip } from './ArmySetup';
+import { UnitBadgeStrip } from './ArmySetup';
 import { UnitBuffSummary } from './UnitBuffSummary';
 
 interface Props {
@@ -78,10 +78,11 @@ export function TechUnits({ nodes, have, units, characters, labels, onResearch }
         Solo cuenta stats y atributos de batalla; los efectos de campaña (coste, mantenimiento…) no.
         {units.length > list.length ? ` ${units.length - list.length} unidades no reciben nada de este árbol.` : ''}
       </p>
-      <TechUnitStrip
+      <UnitBadgeStrip
         units={list}
         chars={chars}
-        counts={counts}
+        badge={(id) => ({ text: `✓ ${counts[id].have}/${counts[id].total}`, full: counts[id].have === counts[id].total })}
+        tip={(id) => `${counts[id].have} de ${counts[id].total} tecnologías que le afectan investigadas.\nClic: investigar todas las suyas`}
         selected={selected}
         onPick={(id) => {
           setSelected(id);

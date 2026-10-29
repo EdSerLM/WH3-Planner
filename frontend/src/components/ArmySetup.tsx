@@ -359,19 +359,22 @@ export function RosterDuelStrip({ units, matchups, best }: { units: UnitData[]; 
   );
 }
 
-/** Tiras de señores, héroes y unidades en Tecnologías: cuántas de sus tecnologías llevas investigadas */
-export function TechUnitStrip({ units, chars = [], counts, selected, onPick }: {
+/** Tira de señores, héroes y unidades para elegir una (Tecnologías; unidades que reciben bufos de un personaje) */
+export function UnitBadgeStrip({ units, chars = [], badge, tip, selected, onPick }: {
   units: UnitData[];
   /** Personajes: `id` es "lord:<clave>" o "hero:<clave>" */
   chars?: { id: string; name: string; kind: 'lord' | 'hero'; art?: string }[];
-  counts: Record<string, { have: number; total: number }>;
+  /** Texto abajo de cada tarjeta; full = en verde */
+  badge: (id: string) => { text: string; full?: boolean };
+  /** Lo que dice el título al pasar el ratón, después del nombre */
+  tip: (id: string) => string;
   selected: string | null;
   onPick: (id: string) => void;
 }) {
   const list = [...units].sort((a, b) => groupIndex(a.group) - groupIndex(b.group) || (a.tier ?? 0) - (b.tier ?? 0) || a.cost - b.cost);
-  const techs = (id: string) => {
-    const c = counts[id];
-    return <span className={'ut-duels ut-techs' + (c.have === c.total ? ' full' : '')}>✓ {c.have}/{c.total}</span>;
+  const mark = (id: string) => {
+    const b = badge(id);
+    return <span className={'ut-duels ut-techs' + (b.full ? ' full' : '')}>{b.text}</span>;
   };
   return (
     <div className="army-strip pick-strip">
@@ -383,30 +386,29 @@ export function TechUnitStrip({ units, chars = [], counts, selected, onPick }: {
             key={c.id}
             className={'utile g-' + k + (c.art ? ' has-art' : '') + (selected === c.id ? ' sel' : '')}
             style={c.art ? { backgroundImage: `url(/units/${c.art}.png)` } : undefined}
-            title={`${c.name}\n${counts[c.id].have} de ${counts[c.id].total} tecnologías que le afectan investigadas.\nClic: investigar todas las suyas`}
+            title={`${c.name}\n${tip(c.id)}`}
             onClick={() => onPick(c.id)}
           >
             <span className="ut-cost">{c.kind === 'lord' ? 'Señor' : 'Héroe'}</span>
             <span className="ut-icon"><UnitIcon kind={k} cat={cat} /><NatureBadges kind={k} cat={cat} /></span>
             <span className="ut-name">{c.name}</span>
-            {techs(c.id)}
+            {mark(c.id)}
           </button>
         );
       })}
       {list.map((u) => {
-        const c = counts[u.card];
         return (
           <button
             key={u.card}
             className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (selected === u.card ? ' sel' : '')}
             style={artStyle(u)}
-            title={`${u.name}\n${c.have} de ${c.total} tecnologías que le afectan investigadas.\nClic: investigar todas las suyas`}
+            title={`${u.name}\n${tip(u.card)}`}
             onClick={() => onPick(u.card)}
           >
             <span className="ut-cost"><Tier t={u.tier} />{u.cost}</span>
             <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u.catIcon} /><NatureBadges kind={iconOf(u)} cat={u.catIcon} attrs={u.attrs} /></span>
             <span className="ut-name">{u.name}</span>
-            {techs(u.card)}
+            {mark(u.card)}
           </button>
         );
       })}

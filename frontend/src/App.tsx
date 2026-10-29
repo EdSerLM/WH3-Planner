@@ -19,7 +19,8 @@ import { TechSummary } from './components/TechSummary';
 import { UnitBuffSummary } from './components/UnitBuffSummary';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { emptyBuild } from './treeLogic';
-import { campaignForLord } from './campaign';
+import { campaignForLord, campaignUnits } from './campaign';
+import { CharUnits } from './components/CharUnits';
 import type { AbilityState, ArmyState, BuildSelection, CampaignFaction, CharacterSummary, CharacterTree, ComputedCard, ComputeResult, Meta, SavedBuild, UnitData } from './types';
 
 const STORAGE_KEY = 'wh3-planner:army';
@@ -299,6 +300,11 @@ export default function App() {
   const currentSel = tab === 'lord' ? army.lord : tab === 'techs' ? null : army.heroes[tab];
   const currentTree = currentSel ? trees[currentSel.character] : undefined;
   const currentInfo = result?.builds.find((b) => b.character === currentSel?.character);
+  // Roster que puede tener la facción de campaña elegida (todo si no hay filtro)
+  const rosterUnits = useMemo(() => {
+    const allowed = campaignUnits(campaigns.find((c) => c.key === army.campaign));
+    return allowed ? units.filter((u) => allowed.has(u.card)) : units;
+  }, [units, campaigns, army.campaign]);
 
   // Se enciende por personaje ("habilidad@personaje"): la misma habilidad puede estar en el árbol del señor y de un héroe
   const toggleAbility = (ab: AbilityState) =>
@@ -511,7 +517,10 @@ export default function App() {
               ) : leftView === 'spells' && currentTree.spellSlots?.length ? (
                 <SpellSlotsPanel tree={currentTree} selection={currentSel} onChange={updateSelection} />
               ) : leftView !== 'summary' ? (
-                <SkillTree tree={currentTree} selection={currentSel} onChange={updateSelection} info={currentInfo} />
+                <>
+                  <SkillTree tree={currentTree} selection={currentSel} onChange={updateSelection} info={currentInfo} />
+                  <CharUnits owner={currentTree.name} units={rosterUnits} rosterCards={rosterCards} buffs={rosterBuffs} labels={labels} />
+                </>
               ) : (
                 <BuildSummary
                   summary={currentInfo?.summary}
