@@ -40,8 +40,8 @@ function rowClass(label: string): string {
 /** Debajo del árbol: las unidades del roster que reciben bufos de este señor o héroe con lo que lleva comprado. */
 export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNames, character, kind, tree, selection, onChange }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
-  // Por unidad: habilidades del árbol que podrían cambiarle la tarjeta (todas compradas)
-  const [potential, setPotential] = useState<Record<string, string[]>>({});
+  // Por unidad: habilidades del árbol que podrían cambiarle la tarjeta (todas compradas): siempre y solo en rango 7+
+  const [potential, setPotential] = useState<Record<string, { now: string[]; r7: string[] }>>({});
   useEffect(() => {
     if (!units.length) { setPotential({}); return; }
     api.charPotential(character, kind, units.map((u) => u.card)).then(setPotential).catch(() => setPotential({}));
@@ -71,12 +71,15 @@ export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNam
 
   const list = units.filter((u) => skills[u.card]);
   const none = { now: [] as string[], r7: [] as string[] };
-  // Compradas (ahora o en rango 7+) y las que faltan de todas las que podrían afectarle
+  // Compradas y las que faltan, por separado: las que cuentan siempre y las que solo cuentan con la unidad en rango 7+
   const info = (id: string) => {
     const s = skills[id] ?? none;
+    const p = potential[id] ?? none;
     const have = [...s.now, ...s.r7];
-    const missing = (potential[id] ?? []).filter((x) => !have.includes(x));
-    return { ...s, have, missing, total: have.length + missing.length };
+    const missNow = p.now.filter((x) => !have.includes(x));
+    const missR7 = p.r7.filter((x) => !have.includes(x) && !missNow.includes(x));
+    const totalNow = s.now.length + missNow.length, totalR7 = s.r7.length + missR7.length;
+    return { ...s, have, missNow, missR7, missing: [...missNow, ...missR7], totalNow, totalR7, total: totalNow + totalR7 };
   };
   // Fila del árbol de cada habilidad (por su nombre), para pintarla con su color
   const rowOf = useMemo(() => {
@@ -107,7 +110,7 @@ export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNam
       {units.length > 0 && (
         <>
           <p className="muted small">
-            ✦ compradas / posibles = habilidades de {owner} que le cambian la tarjeta y cuántas de su árbol podrían hacerlo (R7 = solo con la unidad en rango 7 o más).
+            ✦ compradas / posibles = habilidades de {owner} que le cambian la tarjeta siempre y cuántas de su árbol podrían hacerlo; R7 = las mismas cuentas para las que solo valen con la unidad en rango 7 o más (o el rango que pidan).
             En gris: todavía no recibe nada. Clic en una unidad para ver cuáles son y todo lo que recibe. Solo cuenta lo que dan las habilidades del árbol
             todo el tiempo; las auras, habilidades de batalla, monturas y excluyentes que no elegiste no.
           </p>
@@ -117,13 +120,17 @@ export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNam
             badge={(id) => {
               const s = info(id);
               if (!s.total) return { text: '—' };
-              return { text: `✦ ${s.have.length}/${s.total}${s.r7.length ? ` (${s.r7.length} R7)` : ''}`, full: s.have.length === s.total };
+              const main = s.totalNow ? `✦ ${s.now.length}/${s.totalNow}` : '';
+              const r7 = s.totalR7 ? `R7 ${s.r7.length}/${s.totalR7}` : '';
+              return { text: [main, r7].filter(Boolean).join(' · '), full: s.have.length === s.total };
             }}
             tip={(id) => {
               const s = info(id);
               if (!s.total) return `Ninguna habilidad del árbol de ${owner} le cambia la tarjeta`;
               const row = (x: string) => (rowOf.get(x) ? ` · ${rowOf.get(x)}` : '');
-              return [...s.now.map((x) => `✦ ${x}${row(x)}`), ...s.r7.map((x) => `✦ ${x} (rango 7+)${row(x)}`), ...s.missing.map((x) => `○ ${x} (sin comprar)${row(x)}`)].join('\n');
+              const now = [...s.now.map((x) => `✦ ${x}${row(x)}`), ...s.missNow.map((x) => `○ ${x} (sin comprar)${row(x)}`)];
+              const r7 = [...s.r7.map((x) => `✦ ${x}${row(x)}`), ...s.missR7.map((x) => `○ ${x} (sin comprar)${row(x)}`)];
+              return [...now, ...(r7.length ? ['— Solo en rango 7+ —', ...r7] : [])].join('\n');
             }}
             selected={selected}
             onPick={(id) => setSelected(selected === id ? null : id)}
@@ -133,11 +140,18 @@ export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNam
       {sel && (
         <div className="tech-unit-detail">
           <ul className="tech-unit-list small">
+            {sel.totalNow > 0 && <li className="list-head">Siempre ({sel.now.length}/{sel.totalNow})</li>}
             {sel.now.map((s) => skillLi(s, '✦', '', 'ok'))}
-            {sel.r7.map((s) => skillLi(s, '✦', ' (rango 7+)', 'ok'))}
-            {sel.missing.map((s) => skillLi(s, '○', '', 'off'))}
+            {sel.missNow.map((s) => skillLi(s, '○', '', 'off'))}
             {!sel.total && <li className="muted">Ninguna habilidad del árbol de {owner} le cambia la tarjeta.</li>}
           </ul>
+          {sel.totalR7 > 0 && (
+            <ul className="tech-unit-list small">
+              <li className="list-head">Solo con la unidad en rango 7+ ({sel.r7.length}/{sel.totalR7})</li>
+              {sel.r7.map((s) => skillLi(s, '✦', '', 'ok'))}
+              {sel.missR7.map((s) => skillLi(s, '○', '', 'off'))}
+            </ul>
+          )}
           {sel.missing.length > 0 && (() => {
             // Las habilidades por su nombre en el árbol (las de monturas y objetos no se compran aquí)
             const keys = tree.rows.flat().filter((n) => n.visible && !n.isMount && sel.missing.includes(n.name)).map((n) => n.key);

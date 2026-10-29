@@ -81,16 +81,28 @@ app.post('/api/characters/potential', (req, res) => {
   const levels = Object.fromEntries(tree.rows.flat().filter((n) => !n.isMount).map((n) => [n.key, n.levels.length]));
   const build = { character: key, levels, rank: 50 };
   const isLord = req.body?.kind !== 'hero';
-  const r = compute({ lord: isLord ? build : null, heroes: isLord ? [] : [build], units: cards.map((card) => ({ card, count: 1, rank: 9 })), techs: [], activeAbilities: [], inAura: true } as ComputeRequest);
-  const inBattle = new Set(r.abilities.filter((a) => a.owner === tree.name).map((a) => a.name));
   const suffix = ` (${tree.name})`;
-  const out: Record<string, string[]> = {};
-  for (const c of r.cards) {
-    if (c.kind !== 'unit') continue;
-    const s = new Set<string>();
-    for (const l of Object.values(c.stats)) for (const x of l.contributions) if (x.from === tree.name && !inBattle.has(x.source)) s.add(x.source);
-    for (const a of c.attributes) if (a.from?.endsWith(suffix) && !inBattle.has(a.from.slice(0, -suffix.length))) s.add(a.from.slice(0, -suffix.length));
-    if (s.size) out[c.id] = [...s];
+  // Por unidad: nombres de las habilidades del árbol que le cambian la tarjeta con la unidad en ese rango
+  const skillsAt = (rank: number) => {
+    const r = compute({ lord: isLord ? build : null, heroes: isLord ? [] : [build], units: cards.map((card) => ({ card, count: 1, rank })), techs: [], activeAbilities: [], inAura: true } as ComputeRequest);
+    const inBattle = new Set(r.abilities.filter((a) => a.owner === tree.name).map((a) => a.name));
+    const m = new Map<string, Set<string>>();
+    for (const c of r.cards) {
+      if (c.kind !== 'unit') continue;
+      const s = new Set<string>();
+      for (const l of Object.values(c.stats)) for (const x of l.contributions) if (x.from === tree.name && !inBattle.has(x.source)) s.add(x.source);
+      for (const a of c.attributes) if (a.from?.endsWith(suffix) && !inBattle.has(a.from.slice(0, -suffix.length))) s.add(a.from.slice(0, -suffix.length));
+      m.set(c.id, s);
+    }
+    return m;
+  };
+  // Rango 1 (los que crecen por rango ya cuentan) y rango 9: lo que solo aparece en el 9 es de "rango 7+" (o el mínimo que pida)
+  const low = skillsAt(1), high = skillsAt(9);
+  const out: Record<string, { now: string[]; r7: string[] }> = {};
+  for (const [card, s] of high) {
+    const base = low.get(card) ?? new Set<string>();
+    const now = [...base], r7 = [...s].filter((x) => !base.has(x));
+    if (now.length || r7.length) out[card] = { now, r7 };
   }
   res.json(out);
 });
