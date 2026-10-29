@@ -1,10 +1,11 @@
 import { fmtStat } from '../statFormat';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
-import type { ArmyState, ComputedCard, DpsRow, UnitData } from '../types';
+import type { ArmyState, CampaignFaction, ComputedCard, DpsRow, UnitData } from '../types';
 import { GROUP_ORDER, groupIndex, groupInfo } from '../unitGroups';
 import { UnitIcon } from './UnitIcon';
-import { PickStrip, Tier, type MatchupCount } from './ArmySetup';
+import { PickStrip, RosterDuelStrip, Tier, type MatchupCount } from './ArmySetup';
+import { campaignUnits } from '../campaign';
 import { GroupIcon, StatImg } from '../gameIcons';
 
 interface Props {
@@ -12,6 +13,8 @@ interface Props {
   cards: ComputedCard[];
   units: UnitData[];
   ownName: string;
+  /** Facción de campaña elegida: limita el resto del roster que se compara */
+  campaign?: CampaignFaction;
 }
 
 interface Target { key: string; name: string; caste: string; group?: string; cost?: number; models?: number; tier?: number }
@@ -23,6 +26,15 @@ type GroupBy = '' | 'type' | 'tier';
 type Verdict = 'win' | 'even' | 'lose';
 /** Regimiento de Renombre: el juego los marca con "_ror" en la clave de la unidad (igual que el roster) */
 const isRor = (key: string) => /_ror/.test(key);
+
+/** ★ a las de más duelos ganados menos perdidos (empates incluidos), si hay con qué comparar */
+function bestOf(matchups: Record<string, MatchupCount>): Set<string> {
+  const scored = Object.entries(matchups).filter(([, m]) => m.win + m.even + m.lose > 0);
+  if (scored.length < 2) return new Set<string>();
+  const score = (m: MatchupCount) => m.win - m.lose;
+  const top = Math.max(...scored.map(([, m]) => score(m)));
+  return new Set(scored.filter(([, m]) => score(m) === top).map(([id]) => id));
+}
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
 
 const OWN = '__propia__';
@@ -85,7 +97,7 @@ const RES_ES: [ResKey, string][] = [
 ];
 const RES_ICON: Record<ResKey, string> = { ward: 'resWard', physical: 'resPhysical', missile: 'resMissile', magic: 'resMagic', flame: 'resFlame' };
 
-export function DpsPanel({ army, cards, units, ownName }: Props) {
+export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
   const [pick] = useState(() => loadJson(STORE_PICK, { attacker: '', dir: 'front' as AttackDir }));
   const [attacker, setAttacker] = useState<string>(pick.attacker);
   const [targets, setTargets] = useState<string[]>(() => loadTargets() ?? DEFAULT_TARGETS);
@@ -202,23 +214,45 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
     (key: string) => (!!view.noRor && isRor(key)) || (!view.single && singles.has(key)),
     [view.noRor, view.single, singles],
   );
-  const matchups = useMemo(() => {
+  const countDuels = useCallback((d: Record<string, Record<string, Verdict>>) => {
     const out: Record<string, MatchupCount> = {};
-    for (const [id, m] of Object.entries(duels)) {
+    for (const [id, m] of Object.entries(d)) {
       const c = { win: 0, even: 0, lose: 0 };
       for (const [target, v] of Object.entries(m)) if (!hidden(target)) c[v]++;
       out[id] = c;
     }
     return out;
-  }, [duels, hidden]);
-  // ★ a las de más duelos ganados menos perdidos (empates incluidos), si hay con qué comparar
-  const best = useMemo(() => {
-    const scored = Object.entries(matchups).filter(([, m]) => m.win + m.even + m.lose > 0);
-    if (scored.length < 2) return new Set<string>();
-    const score = (m: MatchupCount) => m.win - m.lose;
-    const top = Math.max(...scored.map(([, m]) => score(m)));
-    return new Set(scored.filter(([, m]) => score(m) === top).map(([id]) => id));
-  }, [matchups]);
+  }, [hidden]);
+  const matchups = useMemo(() => countDuels(duels), [duels, countDuels]);
+  const best = useMemo(() => bestOf(matchups), [matchups]);
+
+  // El resto del roster (lo que la facción de campaña puede tener y no está en el ejército): una de cada, en rango 0 y
+  // con los bufos de tu ejército, contra los mismos objetivos
+  const rest = useMemo(() => {
+    const allowed = campaignUnits(campaign);
+    const inArmy = new Set(army.units.map((u) => u.card));
+    return units.filter((u) => !inArmy.has(u.card) && (!allowed || allowed.has(u.card)) && (!view.noRor || !isRor(u.key + u.card)));
+  }, [units, campaign, army.units, view.noRor]);
+  const [restDuels, setRestDuels] = useState<Record<string, Record<string, Verdict>>>({});
+  useEffect(() => {
+    if (!targets.length || !rest.length || !cards.length) {
+      setRestDuels({});
+      return;
+    }
+    let stale = false;
+    const t = setTimeout(() => {
+      api.matchups({ ...army, units: rest.map((u) => ({ card: u.card, count: 1 })) }, targets, dir)
+        .then((r) => { if (!stale) setRestDuels(r.cards); })
+        .catch(() => { if (!stale) setRestDuels({}); });
+    }, 600);
+    return () => { stale = true; clearTimeout(t); };
+  }, [army, rest, targets, dir, cards.length]);
+  const restMatchups = useMemo(() => {
+    const keep = new Set(rest.map((u) => u.card));
+    return countDuels(Object.fromEntries(Object.entries(restDuels).filter(([id]) => keep.has(id))));
+  }, [restDuels, rest, countDuels]);
+  const restBest = useMemo(() => bestOf(restMatchups), [restMatchups]);
+  const [showRest, setShowRest] = useState(true);
 
   const groups = useMemo(
     () => [...new Set(factionUnits.map((u) => u.group ?? ''))].sort((a, b) => groupIndex(a) - groupIndex(b)),
@@ -304,6 +338,19 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
         </div>
       )}
       <PickStrip cards={cards} units={units} selected={attacker} onPick={setAttacker} matchups={matchups} best={best} />
+      {rest.length > 0 && (
+        <div className="dps-tools">
+          <button className="ghost small" onClick={() => setShowRest((v) => !v)}>
+            {showRest ? '▾' : '▸'} Resto del roster ({rest.length})
+          </button>
+          {showRest && (
+            <span className="small muted">
+              Una de cada, en rango 0 y con los bufos de tu ejército · solo para comparar: agrégala en Ejército para elegirla como atacante
+            </span>
+          )}
+        </div>
+      )}
+      {showRest && rest.length > 0 && <RosterDuelStrip units={rest} matchups={restMatchups} best={restBest} />}
       <div className="dps-tools">
         <span className="small muted">
           Clic en una carta para elegir el atacante · <span className="duel-w">ganados</span>·<span className="duel-e">parejos</span>·<span className="duel-l">perdidos</span> contra los objetivos de la tabla · ★ la que mejor sale

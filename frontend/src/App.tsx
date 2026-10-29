@@ -663,7 +663,7 @@ export default function App() {
         <div className="bottom-main">
           <ErrorBoundary label="el DPS" resetKey={faction}>
             {cards.length ? (
-              <DpsPanel army={army} cards={cards} units={units} ownName={factions.find((f) => f.key === faction)?.name ?? 'Mi facción'} />
+              <DpsPanel army={army} cards={cards} units={units} ownName={factions.find((f) => f.key === faction)?.name ?? 'Mi facción'} campaign={campaigns.find((c) => c.key === army.campaign)} />
             ) : (
               <p className="muted">Elige un señor y agrega unidades en la pestaña Ejército para comparar su DPS.</p>
             )}

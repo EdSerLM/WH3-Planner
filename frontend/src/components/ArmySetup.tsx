@@ -317,6 +317,44 @@ export interface MatchupCount { win: number; even: number; lose: number }
  * Franja del ejército para elegir con un clic (p. ej. el atacante del DPS): una carta por tarjeta, como en "Preparar
  * ejército". Con `matchups` cada carta muestra cuántos duelos gana/empata/pierde y ★ marca las que mejor salen.
  */
+/** Duelos ganados · parejos · perdidos de una carta contra los objetivos de la tabla del DPS */
+function DuelMarks({ m }: { m?: MatchupCount }) {
+  if (!m) return null;
+  return (
+    <span className="ut-duels" title={`Contra los objetivos de la tabla:\n✅ gana ${m.win} · ⚖️ parejo ${m.even} · ❌ pierde ${m.lose}`}>
+      <span className="w">{m.win}</span>·<span className="e">{m.even}</span>·<span className="l">{m.lose}</span>
+    </span>
+  );
+}
+const BestStar = ({ title = 'La que mejor sale contra los objetivos de la tabla (más duelos ganados menos perdidos)' }: { title?: string }) =>
+  <span className="ut-best" title={title}>★</span>;
+
+/**
+ * Unidades del roster que no están en el ejército, con sus duelos contra los mismos objetivos (rango 0, con los bufos
+ * del ejército). Solo informa: para elegirla como atacante hay que agregarla al ejército.
+ */
+export function RosterDuelStrip({ units, matchups, best }: { units: UnitData[]; matchups: Record<string, MatchupCount>; best: Set<string> }) {
+  const list = [...units].sort((a, b) => groupIndex(a.group) - groupIndex(b.group) || (a.tier ?? 0) - (b.tier ?? 0) || a.cost - b.cost);
+  return (
+    <div className="army-strip pick-strip roster-duels">
+      {list.map((u) => (
+        <div
+          key={u.card}
+          className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (best.has(u.card) ? ' best' : '')}
+          style={artStyle(u)}
+          title={`${u.name}\nNo está en tu ejército: agrégala en la pestaña Ejército para elegirla como atacante`}
+        >
+          <span className="ut-cost"><Tier t={u.tier} />{u.cost}</span>
+          {best.has(u.card) && <BestStar title="La del resto del roster que mejor sale contra los objetivos de la tabla" />}
+          <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u.catIcon} /><NatureBadges attrs={u.attrs} /></span>
+          <span className="ut-name">{u.name}</span>
+          <DuelMarks m={matchups[u.card]} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function PickStrip({ cards, units, selected, onPick, matchups, best }: {
   cards: ComputedCard[];
   units: UnitData[];
@@ -330,16 +368,8 @@ export function PickStrip({ cards, units, selected, onPick, matchups, best }: {
   const list = cards
     .filter((c) => c.kind === 'unit')
     .sort((a, b) => groupIndex(byCard.get(a.id)?.group) - groupIndex(byCard.get(b.id)?.group) || (byCard.get(a.id)?.tier ?? 0) - (byCard.get(b.id)?.tier ?? 0));
-  const marks = (id: string) => {
-    const m = matchups?.[id];
-    if (!m) return null;
-    return (
-      <span className="ut-duels" title={`Contra los objetivos de la tabla:\n✅ gana ${m.win} · ⚖️ parejo ${m.even} · ❌ pierde ${m.lose}`}>
-        <span className="w">{m.win}</span>·<span className="e">{m.even}</span>·<span className="l">{m.lose}</span>
-      </span>
-    );
-  };
-  const star = (id: string) => best?.has(id) && <span className="ut-best" title="La que mejor sale contra los objetivos de la tabla (más duelos ganados menos perdidos)">★</span>;
+  const marks = (id: string) => <DuelMarks m={matchups?.[id]} />;
+  const star = (id: string) => best?.has(id) && <BestStar />;
   return (
     <div className="army-strip pick-strip">
       {chars.map((c) => (
