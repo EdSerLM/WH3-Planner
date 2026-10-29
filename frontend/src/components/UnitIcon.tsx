@@ -62,6 +62,9 @@ function Shape({ k }: { k: string }) {
   }
 }
 
+// Naturaleza: el icono de atributo del juego (public/attrs). "Mortal" no es un atributo del juego: queda el SVG propio.
+const NATURE_IMG: Record<string, string> = { n_daemon: 'daemonic', n_undead: 'undead', n_construct: 'construct' };
+
 /**
  * Icono del tipo de unidad. Con `cat` (icono de categoría del juego, de ui_unit_groupings) usa el oficial;
  * si no lo hay o el archivo aún no se extrajo, el SVG genérico según `kind`.
@@ -74,5 +77,6 @@ export function UnitIcon({ kind, cat, size = 28, className }: { kind?: string; c
       <Shape k={k} />
     </svg>
   );
-  return <OfficialImg src={cat ? `/unitcat/${cat}.png` : undefined} size={size} title={ICON_ES[k]} fallback={svg} className={'unit-icon ' + (className ?? '')} />;
+  const src = cat ? `/unitcat/${cat}.png` : NATURE_IMG[k] ? `/attrs/${NATURE_IMG[k]}.png` : undefined;
+  return <OfficialImg src={src} size={size} title={ICON_ES[k]} fallback={svg} className={'unit-icon ' + (className ?? '')} />;
 }

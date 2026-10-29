@@ -7,7 +7,7 @@ import { groupIndex, groupInfo } from '../unitGroups';
 import { BuffMark, SpecialTags } from './ArmyPanel';
 import { UnitIcon } from './UnitIcon';
 import { attrIcon } from '../attrIcons';
-import { AttrImg, GroupIcon, StatImg, useAttrIndex } from '../gameIcons';
+import { AttrImg, GroupIcon, OfficialImg, StatImg, useAttrIndex } from '../gameIcons';
 
 // Icono genérico: el del juego (extractor) o, si no viene, según el grupo
 const ICON_BY_GROUP: Record<string, string> = {
@@ -25,10 +25,15 @@ export function natureOf(attrs: string[] = []): 'n_daemon' | 'n_undead' | 'n_con
   if (attrs.includes('Constructo')) return 'n_construct';
   return 'n_mortal';
 }
+// Marcas de dios: icono de atributo del juego (public/attrs/mark_<dios>.png); el emoji si aún no se extrajo
 const MARKS: Record<string, { icon: string; cls: string }> = {
   'Marca de Khorne': { icon: '🩸', cls: 'khorne' }, 'Marca de Nurgle': { icon: '🪰', cls: 'nurgle' },
   'Marca de Slaanesh': { icon: '💜', cls: 'slaanesh' }, 'Marca de Tzeentch': { icon: '🔷', cls: 'tzeentch' },
 };
+function MarkIcon({ mark, size = 14 }: { mark: string; size?: number }) {
+  const m = MARKS[mark];
+  return <OfficialImg src={`/attrs/mark_${m.cls}.png`} size={size} title={mark} fallback={<span title={mark}>{m.icon}</span>} />;
+}
 /** Atributos de la unidad como iconitos (máx. 6; el resto en "+n") */
 function AttrIcons({ attrs, max = 7 }: { attrs: { name: string; from?: string }[]; max?: number }) {
   const idx = useAttrIndex();
@@ -57,7 +62,7 @@ function NatureBadges({ attrs }: { attrs?: string[] }) {
   return (
     <span className="ut-nature">
       <span className={'nat ' + n}><UnitIcon kind={n} size={14} /></span>
-      {mark && <span className={'nat mark ' + MARKS[mark].cls} title={mark}>{MARKS[mark].icon}</span>}
+      {mark && <span className={'nat mark ' + MARKS[mark].cls} title={mark}><MarkIcon mark={mark} /></span>}
     </span>
   );
 }
@@ -463,7 +468,7 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building }: 
           const at = unit?.attrs ?? card?.attributes.map((a) => a.name) ?? [];
           const n = natureOf(at);
           const mark = at.find((a) => MARKS[a]);
-          return <span className={'ip-nature ' + n}><UnitIcon kind={n} size={14} /> {{ n_daemon: 'Demonio', n_undead: 'No muerto', n_construct: 'Constructo', n_mortal: 'Mortal' }[n]}{mark ? ` · ${MARKS[mark].icon} ${mark}` : ''}</span>;
+          return <span className={'ip-nature ' + n}><UnitIcon kind={n} size={14} /> {{ n_daemon: 'Demonio', n_undead: 'No muerto', n_construct: 'Constructo', n_mortal: 'Mortal' }[n]}{mark && <> · <MarkIcon mark={mark} /> {mark}</>}</span>;
         })()}
         {unit && <SpecialTags u={unit} upgradeRank={upgradeRank} building={building} />}
       </div>
