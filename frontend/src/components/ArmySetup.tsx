@@ -55,13 +55,16 @@ function AttrIcons({ attrs, max = 7 }: { attrs: { name: string; from?: string }[
   );
 }
 
-/** Iconos de naturaleza (y marca de dios) en la esquina de la carta */
-function NatureBadges({ attrs }: { attrs?: string[] }) {
+/**
+ * Iconos de naturaleza (y marca de dios) en la esquina de la carta. Demonio, No muertos y Constructo llevan su icono de
+ * atributo; las mortales, el de su categoría del juego (caballería, monstruo...), igual que en la batalla personalizada.
+ */
+function NatureBadges({ attrs, kind, cat }: { attrs?: string[]; kind?: string; cat?: string }) {
   const n = natureOf(attrs);
   const mark = (attrs ?? []).find((a) => MARKS[a]);
   return (
     <span className="ut-nature">
-      <span className={'nat ' + n}><UnitIcon kind={n} size={14} /></span>
+      <span className={'nat ' + n}>{n === 'n_mortal' ? <UnitIcon kind={kind} cat={cat} size={14} /> : <UnitIcon kind={n} size={14} />}</span>
       {mark && <span className={'nat mark ' + MARKS[mark].cls} title={mark}><MarkIcon mark={mark} /></span>}
     </span>
   );
@@ -182,7 +185,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
             title={`${c.name}\nDoble clic para editar su árbol`}
           >
             <span className="ut-cost">{c.kind === 'lord' ? 'Señor' : 'Héroe'}</span>
-            <span className="ut-icon"><UnitIcon kind={c.kind === 'lord' ? 'lord' : 'hero'} cat={c.kind === 'lord' ? 'commander' : 'hero'} /><NatureBadges attrs={c.attributes.map((a) => a.name)} /></span>
+            <span className="ut-icon"><UnitIcon kind={c.kind === 'lord' ? 'lord' : 'hero'} cat={c.kind === 'lord' ? 'commander' : 'hero'} /><NatureBadges kind={c.kind === 'lord' ? 'lord' : 'hero'} cat={c.kind === 'lord' ? 'commander' : 'hero'} attrs={c.attributes.map((a) => a.name)} /></span>
             <span className="ut-name">{c.name}</span>
             <AttrIcons attrs={c.attributes} />
           </button>
@@ -203,7 +206,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
               title={`${u?.name ?? sel.card}\nClic: ver y cambiar rango · clic derecho: quitar`}
             >
               <span className="ut-cost"><Tier t={u?.tier} />{u?.cost ?? ''}</span>
-              <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u?.catIcon} /><NatureBadges attrs={u?.attrs} /></span>
+              <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u?.catIcon} /><NatureBadges kind={iconOf(u)} cat={u?.catIcon} attrs={u?.attrs} /></span>
               <span className="ut-name">{u?.name ?? sel.card}</span>
               <AttrIcons attrs={unitCard(sel.card)?.attributes ?? (u?.attrs ?? []).map((name) => ({ name }))} />
               <span className="ut-marks">
@@ -280,7 +283,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
                           disabled={usedSlots >= 20}
                         >
                           <span className="ut-cost"><Tier t={u.tier} />{u.cost}</span>
-                          <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u.catIcon} /><NatureBadges attrs={u.attrs} /></span>
+                          <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u.catIcon} /><NatureBadges kind={iconOf(u)} cat={u.catIcon} attrs={u.attrs} /></span>
                           <span className="ut-name">{u.name}</span>
                           <AttrIcons attrs={rosterCards[u.card]?.attributes ?? (u.attrs ?? []).map((name) => ({ name }))} />
                           <span className="ut-marks">
@@ -346,7 +349,7 @@ export function RosterDuelStrip({ units, matchups, best }: { units: UnitData[]; 
         >
           <span className="ut-cost"><Tier t={u.tier} />{u.cost}</span>
           {best.has(u.card) && <BestStar title="La del resto del roster que mejor sale contra los objetivos de la tabla" />}
-          <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u.catIcon} /><NatureBadges attrs={u.attrs} /></span>
+          <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u.catIcon} /><NatureBadges kind={iconOf(u)} cat={u.catIcon} attrs={u.attrs} /></span>
           <span className="ut-name">{u.name}</span>
           <DuelMarks m={matchups[u.card]} />
         </div>
@@ -382,7 +385,7 @@ export function PickStrip({ cards, units, selected, onPick, matchups, best }: {
         >
           <span className="ut-cost">{c.kind === 'lord' ? 'Señor' : 'Héroe'}</span>
           {star(c.id)}
-          <span className="ut-icon"><UnitIcon kind={c.kind === 'lord' ? 'lord' : 'hero'} cat={c.kind === 'lord' ? 'commander' : 'hero'} /><NatureBadges attrs={c.attributes.map((a) => a.name)} /></span>
+          <span className="ut-icon"><UnitIcon kind={c.kind === 'lord' ? 'lord' : 'hero'} cat={c.kind === 'lord' ? 'commander' : 'hero'} /><NatureBadges kind={c.kind === 'lord' ? 'lord' : 'hero'} cat={c.kind === 'lord' ? 'commander' : 'hero'} attrs={c.attributes.map((a) => a.name)} /></span>
           <span className="ut-name">{c.name}</span>
           {marks(c.id)}
         </button>
@@ -399,7 +402,7 @@ export function PickStrip({ cards, units, selected, onPick, matchups, best }: {
           >
             <span className="ut-cost"><Tier t={u?.tier} />{u?.cost ?? ''}</span>
             {star(c.id)}
-            <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u?.catIcon} /><NatureBadges attrs={u?.attrs} /></span>
+            <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u?.catIcon} /><NatureBadges kind={iconOf(u)} cat={u?.catIcon} attrs={u?.attrs} /></span>
             <span className="ut-name">{c.name}</span>
             {c.count > 1 && <span className="ut-count">×{c.count}</span>}
             {marks(c.id)}
@@ -498,7 +501,7 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building }: 
           const at = unit?.attrs ?? card?.attributes.map((a) => a.name) ?? [];
           const n = natureOf(at);
           const mark = at.find((a) => MARKS[a]);
-          return <span className={'ip-nature ' + n}><UnitIcon kind={n} size={14} /> {{ n_daemon: 'Demonio', n_undead: 'No muerto', n_construct: 'Constructo', n_mortal: 'Mortal' }[n]}{mark && <> · <MarkIcon mark={mark} /> {mark}</>}</span>;
+          return <span className={'ip-nature ' + n}>{n !== 'n_mortal' && <UnitIcon kind={n} size={14} />} {{ n_daemon: 'Demonio', n_undead: 'No muerto', n_construct: 'Constructo', n_mortal: 'Mortal' }[n]}{mark && <> · <MarkIcon mark={mark} /> {mark}</>}</span>;
         })()}
         {unit && <SpecialTags u={unit} upgradeRank={upgradeRank} building={building} />}
       </div>

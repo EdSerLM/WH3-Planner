@@ -585,7 +585,7 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .army-strip .utile .ut-icon .unit-icon { width: 34px; height: 34px; }
 .ut-nature { position: absolute; top: 0; right: 0; display: flex; flex-direction: column; gap: 2px; }
 .ut-nature .nat { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #120e12; border: 1px solid #3a3040; cursor: help; font-size: 10px; }
-.ut-nature .nat .unit-icon { width: 13px !important; height: 13px !important; filter: none !important; }
+.ut-nature .nat .unit-icon, .utile.has-art .ut-icon .ut-nature .nat .unit-icon { position: static; width: 13px !important; height: 13px !important; filter: none !important; opacity: 1; }
 .nat.n_daemon .unit-icon, .ip-nature.n_daemon .unit-icon { color: #e0567a; }
 .nat.n_undead .unit-icon, .ip-nature.n_undead .unit-icon { color: #9fd6c2; }
 .nat.n_construct .unit-icon, .ip-nature.n_construct .unit-icon { color: #c9b27a; }
