@@ -13,6 +13,10 @@ interface Props {
   labels: Record<StatKey, string>;
   /** Investiga esas tecnologías (y sus requisitos) */
   onResearch: (techs: string[]) => void;
+  /** Señor y héroes del ejército ("lord:<clave>" / "hero:<clave>"): se ponen primero y se marcan sus tecnologías */
+  armyChars?: string[];
+  /** Por tecnología, a cuántos de tus personajes les sirve (para resaltarlas en el árbol) */
+  onMatch?: (m: Record<string, string[]>) => void;
 }
 
 /** "lord:<clave>" / "hero:<clave>" para personajes; la carta para unidades */
@@ -22,7 +26,7 @@ const charId = (c: CharacterSummary) => `${c.type}:${c.key}`;
  * Tecnologías por señor, héroe y unidad: qué tecnologías del árbol cambian su tarjeta,
  * lo que ya le suman las investigadas y, al elegir uno, se investigan todas las suyas.
  */
-export function TechUnits({ nodes, have, units, characters, labels, onResearch }: Props) {
+export function TechUnits({ nodes, have, units, characters, labels, onResearch, armyChars = [], onMatch }: Props) {
   const [data, setData] = useState<{ hits: Record<string, string[]>; art: Record<string, string> }>({ hits: {}, art: {} });
   const [selected, setSelected] = useState<string | null>(null);
   const [card, setCard] = useState<ComputedCard | null>(null);
@@ -59,10 +63,24 @@ export function TechUnits({ nodes, have, units, characters, labels, onResearch }
     return () => clearTimeout(t);
   }, [selected, researched]);
 
+  // Tu señor y héroes: qué tecnologías del árbol les cambian la tarjeta
+  const nameById = new Map(characters.map((c) => [charId(c), c.name]));
+  const mine = [...new Set(armyChars)].filter((id) => nameById.has(id));
+  const armyKey = mine.join('|');
+  const match = useMemo(() => {
+    const m: Record<string, string[]> = {};
+    for (const id of armyKey ? armyKey.split('|') : []) for (const t of affect[id] ?? []) (m[t] ??= []).push(nameById.get(id) ?? id);
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [affect, armyKey]);
+  useEffect(() => { onMatch?.(match); }, [match]); // eslint-disable-line react-hooks/exhaustive-deps
+  const matchTechs = Object.keys(match);
+  const missingMine = matchTechs.filter((t) => !have.has(t));
+
   const list = units.filter((u) => affect[u.card]?.length);
   const chars = characters
     .filter((c) => affect[charId(c)]?.length)
-    .sort((a, b) => Number(b.type === 'lord') - Number(a.type === 'lord') || Number(b.legendary) - Number(a.legendary) || a.name.localeCompare(b.name, 'es'))
+    .sort((a, b) => Number(mine.includes(charId(b))) - Number(mine.includes(charId(a))) || Number(b.type === 'lord') - Number(a.type === 'lord') || Number(b.legendary) - Number(a.legendary) || a.name.localeCompare(b.name, 'es'))
     .map((c) => ({ id: charId(c), name: c.name, kind: c.type, art: data.art[charId(c)] }));
   const counts = Object.fromEntries(
     [...list.map((u) => u.card), ...chars.map((c) => c.id)].map((id) => [id, { have: affect[id].filter((t) => have.has(t)).length, total: affect[id].length }]),
@@ -81,10 +99,33 @@ export function TechUnits({ nodes, have, units, characters, labels, onResearch }
         Solo cuenta stats y atributos de batalla; los efectos de campaña (coste, mantenimiento…) no.
         {units.length > list.length ? ` ${units.length - list.length} unidades no reciben nada de este árbol.` : ''}
       </p>
+      {mine.length > 0 && (
+        <div className="tech-army">
+          <b>★ Tu señor y héroes:</b>{' '}
+          {mine.map((id) => {
+            const all = affect[id] ?? [];
+            const got = all.filter((t) => have.has(t)).length;
+            return (
+              <span key={id} className={'tech-army-char' + (all.length && got === all.length ? ' ok' : '')} title={all.map((t) => (have.has(t) ? '✓ ' : '○ ') + (nameOf.get(t) ?? t)).join('\n') || 'Ninguna tecnología de este árbol le cambia la tarjeta'}>
+                {nameById.get(id)} {all.length ? `✓ ${got}/${all.length}` : '—'}
+              </span>
+            );
+          })}
+          {matchTechs.length > 0 ? (
+            <button className="ghost small" disabled={!missingMine.length} onClick={() => onResearch(matchTechs)}
+              title="Investiga todas las tecnologías que les cambian la tarjeta a tu señor y héroes (con sus requisitos)">
+              {missingMine.length ? `Investigar las ${missingMine.length} que les faltan` : 'Ya tienen todas'}
+            </button>
+          ) : (
+            <span className="muted small"> ninguna tecnología de este árbol les cambia la tarjeta</span>
+          )}
+          {matchTechs.length > 0 && <span className="muted small"> · ★ en el árbol = les sirve (número = a cuántos)</span>}
+        </div>
+      )}
       <UnitBadgeStrip
         units={list}
         chars={chars}
-        badge={(id) => ({ text: `✓ ${counts[id].have}/${counts[id].total}`, full: counts[id].have === counts[id].total })}
+        badge={(id) => ({ text: `${mine.includes(id) ? '★ ' : ''}✓ ${counts[id].have}/${counts[id].total}`, full: counts[id].have === counts[id].total })}
         tip={(id) => `${counts[id].have} de ${counts[id].total} tecnologías que le afectan investigadas.\nClic: investigar todas las suyas`}
         selected={selected}
         onPick={(id) => {

@@ -14,6 +14,8 @@ interface Props {
   characters: CharacterSummary[];
   campaign?: CampaignFaction;
   labels: Record<StatKey, string>;
+  /** Señor y héroes del ejército ("lord:<clave>" / "hero:<clave>") */
+  armyChars?: string[];
 }
 
 const TARGET: Record<string, string> = { army: 'ejército', chars: 'personajes', self: 'propio', lord: 'señor', none: '' };
@@ -32,7 +34,9 @@ function isAvailable(n: TechNode, byKey: Map<string, TechNode>, have: Set<string
   return ok >= Math.min(n.parentsNeeded, n.parents.length) && n.requires.every((r) => have.has(byKey.get(r)!.tech));
 }
 
-export function TechTree({ faction, treeKey, variant, researched, onChange, units, characters, campaign, labels }: Props) {
+export function TechTree({ faction, treeKey, variant, researched, onChange, units, characters, campaign, labels, armyChars }: Props) {
+  // Tecnologías que le sirven a tu señor y héroes (las calcula TechUnits): se marcan con ★
+  const [match, setMatch] = useState<Record<string, string[]>>({});
   const [trees, setTrees] = useState<TechTreeSummary[]>([]);
   const [tree, setTree] = useState<TechTreeData | null>(null);
   const [onlyBattle, setOnlyBattle] = useState(false);
@@ -197,7 +201,7 @@ export function TechTree({ faction, treeKey, variant, researched, onChange, unit
           {tree.nodes.map((n) => {
             const got = have.has(n.tech);
             const avail = !got && isAvailable(n, byKey, have);
-            const cls = ['tech', got ? 'got' : avail ? 'avail' : 'locked', n.battle ? 'battle' : '', onlyBattle && !n.battle ? 'dim' : ''].join(' ');
+            const cls = ['tech', got ? 'got' : avail ? 'avail' : 'locked', n.battle ? 'battle' : '', onlyBattle && !n.battle ? 'dim' : '', match[n.tech] ? 'match' : ''].join(' ');
             return (
               <button
                 key={n.key}
@@ -210,6 +214,7 @@ export function TechTree({ faction, treeKey, variant, researched, onChange, unit
                 onMouseLeave={() => setHover(null)}
               >
                 <span className="tech-name">{got ? '✓ ' : ''}{n.battle ? '⚔ ' : ''}{n.name}</span>
+                {match[n.tech] && <span className="tech-match" title={`Le sirve a: ${match[n.tech].join(', ')}`}>★{match[n.tech].length}</span>}
               </button>
             );
           })}
@@ -226,6 +231,8 @@ export function TechTree({ faction, treeKey, variant, researched, onChange, unit
         characters={characters}
         labels={labels}
         onResearch={(techs) => researchNodes(tree.nodes.filter((n) => techs.includes(n.tech)))}
+        armyChars={armyChars}
+        onMatch={setMatch}
       />
       {hover && <TechTip hover={hover} byKey={byKey} have={have} />}
     </div>

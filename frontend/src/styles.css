@@ -660,3 +660,9 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .utile.has-art.g-lord, .utile.has-art.g-hero { border-color: var(--gold); }
 .army-strip .utile { aspect-ratio: 104 / 158; min-height: 120px; }
 .army-strip .utile.has-art .ut-name { font-size: 10px; bottom: 28px; }
+/* Tecnologías que le sirven a tu señor y héroes */
+.tech.match { border-color: #d9b44a; box-shadow: 0 0 0 1px #d9b44a55; }
+.tech .tech-match { float: right; margin-left: 4px; font-size: 10px; color: #f0cf6a; font-weight: 700; }
+.tech-army { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 6px 0; padding: 6px 8px; border: 1px solid #5a4a22; border-radius: 6px; background: #1f1a12; font-size: 13px; }
+.tech-army-char { padding: 1px 6px; border-radius: 8px; background: #2c2618; }
+.tech-army-char.ok { color: var(--green); }

@@ -10,6 +10,8 @@ interface Props {
   units: UnitData[];
   characters: CharacterSummary[];
   labels: Record<StatKey, string>;
+  /** Señor y héroes del ejército ("lord:<clave>" / "hero:<clave>") */
+  armyChars?: string[];
 }
 
 // Color por gran grupo (supercluster) del juego
@@ -25,7 +27,7 @@ const STEP = 21.3; // separación de la cuadrícula del juego en px
  * Pirámide Negra (Legiones No Muertas): grafo de nodos vecinos. Se puede tomar un nodo si algún vecino ya está tomado
  * (empezando por el origen); las puertas piden haber gastado cierto número de puntos.
  */
-export function PyramidGraph({ faction, researched, onChange, units, characters, labels }: Props) {
+export function PyramidGraph({ faction, researched, onChange, units, characters, labels, armyChars }: Props) {
   const [graphs, setGraphs] = useState<{ key: string; name: string }[]>([]);
   const [g, setG] = useState<GraphData | null>(null);
   const [onlyBattle, setOnlyBattle] = useState(true);
@@ -216,7 +218,7 @@ export function PyramidGraph({ faction, researched, onChange, units, characters,
         Clic: tomar el nodo (y el camino más corto desde lo que ya tienes) · Clic derecho: quitarlo (y lo que quede desconectado) · ⚔ = bufo de batalla ·
         🔒 = puerta que pide puntos gastados. Los bufos de batalla se suman a las tarjetas como las tecnologías.
       </p>
-      <TechUnits nodes={g.nodes.filter((n) => n.key !== g.origin)} have={have} units={units} characters={characters} labels={labels} onResearch={takeMany} />
+      <TechUnits nodes={g.nodes.filter((n) => n.key !== g.origin)} have={have} units={units} characters={characters} labels={labels} onResearch={takeMany} armyChars={armyChars} />
       {hover && <NodeTip hover={hover} g={g} />}
     </div>
   );

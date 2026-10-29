@@ -472,9 +472,11 @@ export default function App() {
                 characters={characters}
                 campaign={campaigns.find((c) => c.key === army.campaign)}
                 labels={labels}
+                armyChars={[...(army.lord ? [`lord:${army.lord.character}`] : []), ...army.heroes.map((h) => `hero:${h.character}`)]}
               />
               {/* Pirámide Negra (Legiones No Muertas) y otros grafos del juego: se investigan como tecnologías */}
-              <PyramidGraph faction={faction} researched={army.techs ?? []} onChange={(p) => setArmy((a) => ({ ...a, ...p }))} units={rosterUnits} characters={characters} labels={labels} />
+              <PyramidGraph faction={faction} researched={army.techs ?? []} onChange={(p) => setArmy((a) => ({ ...a, ...p }))} units={rosterUnits} characters={characters} labels={labels}
+                armyChars={[...(army.lord ? [`lord:${army.lord.character}`] : []), ...army.heroes.map((h) => `hero:${h.character}`)]} />
             </>
           ) : (
           <>
