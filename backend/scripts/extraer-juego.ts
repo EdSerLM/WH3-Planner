@@ -576,6 +576,7 @@ if (existsSync(dbPath)) {
   }
   dumpRosterTables(p);
   dumpCouncilTables(p);
+  dumpGloryTables(p);
   closeSync(p.fd);
 }
 
@@ -694,6 +695,85 @@ function dumpCouncilTables(p: Pack) {
   };
   writeFileSync(join(BACKEND, `data/raw/diag_consejo_${sc}.json`), JSON.stringify(out, null, 1));
   console.log(`Volcado para revisar los cargos de ${sc}: ${posKeys.size} cargos, ${groups.size} grupos, ${bundleKeys.size} paquetes de efectos -> backend/data/raw/diag_consejo_${sc}.json`);
+}
+/**
+ * Volcado para revisar la Gloria demoníaca (Demonios del Caos / Daniel) antes de programarla:
+ * recursos de gloria, umbrales que desbloquean piezas y conjuntos de los dones, y los efectos de campaña.
+ * Busca en amplio (clave con "_dae_" o "glory", piezas "daemon_prince") porque aún no sabemos cómo se llaman.
+ */
+function dumpGloryTables(p: Pack) {
+  const load = (t: string) => {
+    try {
+      return loadTables(p, [t])[t];
+    } catch (err) {
+      console.warn(`  (volcado: no pude leer ${t}: ${(err as Error).message})`);
+      return [];
+    }
+  };
+  const isDae = (k: unknown) => /_dae_|daemon_prince|glory/i.test(String(k ?? ''));
+  const allResources = load('pooled_resources_tables');
+  const resKeys = new Set(allResources.filter((r) => isDae(r.key)).map((r) => r.key as string));
+  const setJunctions = load('pooled_resource_set_resource_junctions_tables');
+  const resSets = new Set(setJunctions.filter((r) => resKeys.has(r.pooled_resource)).map((r) => r.set as string));
+  // Operaciones que ponen o quitan piezas de los dones de Daniel, y los conjuntos de operaciones donde están
+  const armoryOps = load('campaign_operation_armory_items_tables').filter((r) => isDae(r.armory_item));
+  const armoryOpKeys = new Set(armoryOps.map((r) => r.key as string));
+  const armoryElems = load('campaign_operation_set_armory_item_elements_tables').filter((r) => armoryOpKeys.has(r.operation_armory_item));
+  const opSets = new Set(armoryElems.map((r) => r.operation_set as string));
+  // Umbrales de gloria: los de los recursos de gloria o los que disparan esas operaciones
+  const thresholds = load('pooled_resource_threshold_operation_sets_tables')
+    .filter((r) => resSets.has(r.pooled_resource_set) || opSets.has(r.operation_set_group) || isDae(r.key));
+  for (const t of thresholds) opSets.add(t.operation_set_group);
+  const bundleElems = load('campaign_operation_set_effect_bundle_elements_tables').filter((r) => opSets.has(r.operation_set));
+  const bundleOpKeys = new Set(bundleElems.map((r) => r.operation_effect_bundle as string));
+  const bundleOps = load('campaign_operation_effect_bundles_tables').filter((r) => bundleOpKeys.has(r.key));
+  const unlockElems = load('campaign_operation_unlock_pooled_resource_threshold_elements_tables').filter((r) => opSets.has(r.operation_set));
+  const unlockKeys = new Set(unlockElems.map((r) => r.operation_unlock_pooled_resource_threshold as string));
+  const scaled = load('pooled_resource_scaled_effects_tables').filter((r) => resKeys.has(r.pooled_resource));
+  const groupRes = load('campaign_group_pooled_resources_tables').filter((r) => resKeys.has(r.resource));
+  const thresholdKeys = new Set(thresholds.map((r) => r.key as string));
+  const groupThresholds = load('campaign_group_pooled_resource_threshold_operation_sets_tables')
+    .filter((r) => thresholdKeys.has(r.pooled_resource_threshold_operation_set));
+  const groups = new Set([...groupRes, ...groupThresholds].map((r) => r.campaign_group as string));
+  const groupEffects = load('campaign_group_pooled_resource_effects_tables').filter((r) => groups.has(r.campaign_group));
+  const bundleKeys = new Set([...bundleOps.map((r) => r.effect_bundle), ...groupEffects.map((r) => r.effect_bundle)] as string[]);
+  const effects = load('effect_bundles_to_effects_junctions_tables').filter((r) => bundleKeys.has(r.effect_bundle_key));
+  const scaledEffectKeys = new Set(scaled.map((r) => r.effects as string));
+  const effectKeys = new Set([...effects.map((r) => `effects_description_${r.effect_key}`), ...[...scaledEffectKeys].map((k) => `effects_description_${k}`)]);
+  const tokens = [...resKeys, ...bundleKeys, ...thresholdKeys].filter((k) => k && k.length > 3);
+  const texts: Record<string, string> = {};
+  for (const [k, v] of spGlobal) if (effectKeys.has(k) || tokens.some((t) => k.endsWith(`_${t}`))) texts[k] = v;
+  const out = {
+    pooled_resources: allResources.filter((r) => resKeys.has(r.key)),
+    // Claves de todos los recursos del juego, por si la gloria se llama distinto
+    todas_las_claves_de_recursos: allResources.map((r) => r.key as string).sort(),
+    pooled_resource_set_resource_junctions: setJunctions.filter((r) => resSets.has(r.set)),
+    pooled_resource_factor_junctions: load('pooled_resource_factor_junctions_tables').filter((r) => resKeys.has(r.resource)),
+    pooled_resource_scaled_effects: scaled,
+    pooled_resource_threshold_operation_sets: thresholds,
+    campaign_operation_unlock_pooled_resource_threshold_elements: unlockElems,
+    campaign_operation_unlock_pooled_resource_thresholds: load('campaign_operation_unlock_pooled_resource_thresholds_tables').filter((r) => unlockKeys.has(r.key)),
+    campaign_operation_set_armory_item_elements: armoryElems,
+    campaign_operation_armory_items: armoryOps,
+    campaign_operation_armory_item_category_sets: load('campaign_operation_armory_item_category_sets_tables'),
+    campaign_operation_set_effect_bundle_elements: bundleElems,
+    campaign_operation_effect_bundles: bundleOps,
+    campaign_group_pooled_resources: groupRes,
+    campaign_group_pooled_resource_threshold_operation_sets: groupThresholds,
+    campaign_group_pooled_resource_effects: groupEffects,
+    campaign_group_member_criteria_pooled_resources: load('campaign_group_member_criteria_pooled_resources_tables').filter((r) => resKeys.has(r.pooled_resource)),
+    agent_subtypes_to_armory_item_sets: load('agent_subtypes_to_armory_item_sets_tables').filter((r) => isDae(r.agent_subtype) || isDae(r.armory_item_set)),
+    armory_item_sets: load('armory_item_sets_tables').filter((r) => isDae(Object.values(r)[0])),
+    armory_item_categories: load('armory_item_categories_tables'),
+    armory_item_category_sets: load('armory_item_category_sets_tables'),
+    effect_bonus_value_armory_item_category_junctions: load('effect_bonus_value_armory_item_category_junctions_tables'),
+    pooled_resource_effect_constraints: load('pooled_resource_effect_constraints_tables').filter((r) => isDae(r.key) || isDae(r.set)),
+    effect_bundles: load('effect_bundles_tables').filter((r) => bundleKeys.has(r.key)),
+    effect_bundles_to_effects_junctions: effects,
+    textos: texts,
+  };
+  writeFileSync(join(BACKEND, 'data/raw/diag_gloria_demoniaca.json'), JSON.stringify(out, null, 1));
+  console.log(`Volcado de la Gloria demoníaca: ${resKeys.size} recursos, ${thresholds.length} umbrales, ${armoryOps.length} operaciones de dones, ${bundleKeys.size} paquetes de efectos -> backend/data/raw/diag_gloria_demoniaca.json`);
 }
 // 5) Iconos -------------------------------------------------------------
 const wantedIcons = new Set<string>();
