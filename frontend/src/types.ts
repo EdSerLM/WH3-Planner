@@ -208,6 +208,8 @@ export interface ArmyState {
   techs?: string[];
   techTree?: string;
   techVariant?: string;
+  /** Cuánto lleva cargada cada pasiva que crece en batalla ("habilidad@personaje" -> 0-100 %; sin valor = 100) */
+  abilityScale?: Record<string, number>;
 }
 
 /** Grafo de iniciativas (Pirámide Negra): cada nodo se investiga como una tecnología (clave en `tech`) */
@@ -300,6 +302,8 @@ export interface AbilityState {
   overcast?: { name: string; unlocked: boolean; mana?: number; finalMana?: number };
   /** Textos de esos cambios con la habilidad que los da */
   mods?: string[];
+  /** Cuánto lleva cargada (0-100 %) */
+  scale?: number;
 }
 
 export interface SummaryLine {

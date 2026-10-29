@@ -5,6 +5,8 @@ import { AbilityImg } from '../gameIcons';
 interface Props {
   abilities: AbilityState[];
   inAura: boolean;
+  /** Cambia cuánto lleva cargada una pasiva (0-100 %) */
+  onScale?: (id: string, pct: number) => void;
 }
 
 /** Valor base → final (si las habilidades lo cambian) */
@@ -19,7 +21,7 @@ function BaseFinal({ label, base, final, unit = '' }: { label: string; base?: nu
 }
 
 /** Pasivas del señor y los héroes (siempre activas; las de aura dependen de "En auras" junto al ejército). */
-export function AbilitiesPanel({ abilities, inAura }: Props) {
+export function AbilitiesPanel({ abilities, inAura, onScale }: Props) {
   const passives = abilities.filter((a) => a.hasBattleStats && a.mode !== 'none' && a.passive);
   // Hechizos (con coste de maná): cómo quedan con lo comprado en el árbol
   const spells = abilities.filter((a) => (a.mana ?? 0) > 0 || a.spell);
@@ -33,6 +35,13 @@ export function AbilitiesPanel({ abilities, inAura }: Props) {
             <AbilityImg icon={a.icon} title={a.name} /> <b>{a.name}</b> <AbilityIcons a={a} />
             <span className="muted small"> · {a.owner}{a.range ? ` · ${a.range} m` : ''}{a.mode === 'allies' && !inAura ? ' · fuera del aura' : ''}</span>
             <div className="small muted">{[...a.stats, ...a.attributes].join(', ')}</div>
+            {onScale && (
+              <label className="small scale-row" title="Para pasivas que crecen en batalla (p. ej. El Gemelo Deforme de Vilitch sube mientras lucha o lanza hechizos): cuánto lleva cargada. 100 % = el valor completo del juego.">
+                Cargada{' '}
+                <input type="range" min={0} max={100} step={10} value={a.scale ?? 100} onChange={(e) => onScale(a.id, Number(e.target.value))} />
+                {' '}<b>{a.scale ?? 100}%</b>
+              </label>
+            )}
           </li>
         ))}
       </ul>

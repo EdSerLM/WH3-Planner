@@ -687,3 +687,5 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .gain-lo { color: #e0806a; }
 .gain-none { color: #888; }
 .ip-gain { margin: 4px 0; padding: 4px 6px; border-radius: 6px; background: #1d1820; font-size: 12px; font-weight: 600; }
+.abilities .scale-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.abilities .scale-row input { flex: 1; max-width: 140px; }

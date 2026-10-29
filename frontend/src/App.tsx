@@ -560,7 +560,8 @@ export default function App() {
                   </p>
                 )}
               </div>
-              <AbilitiesPanel abilities={result?.abilities ?? []} inAura={army.inAura} />
+              <AbilitiesPanel abilities={result?.abilities ?? []} inAura={army.inAura}
+                onScale={(id, pct) => setArmy((a) => ({ ...a, abilityScale: { ...(a.abilityScale ?? {}), [id]: pct } }))} />
             </>
           )}
         </aside>

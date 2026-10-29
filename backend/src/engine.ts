@@ -432,6 +432,8 @@ export interface AbilityState {
   overcast?: { name: string; unlocked: boolean; mana?: number; finalMana?: number };
   /** Textos de esos cambios con la habilidad que los da */
   mods?: string[];
+  /** Cuánto lleva cargada (0-100 %) */
+  scale?: number;
 }
 
 export interface SummaryLine {
@@ -502,7 +504,9 @@ export function compute(req: ComputeRequest): ComputeResult {
   // Habilidades
   const abilityStates: AbilityState[] = [];
   const enemyDebuffs: ComputeResult['enemyDebuffs'] = [];
-  const allyAbilities: { ability: AbilityInfo; owner: string; build: ResolvedBuild; selfOnly: boolean; cond: string }[] = [];
+  const allyAbilities: { ability: AbilityInfo; owner: string; build: ResolvedBuild; selfOnly: boolean; cond: string; scale: number }[] = [];
+  /** Cuánto lleva cargada (0-1): pasivas que crecen en batalla, como "El Gemelo Deforme" de Vilitch */
+  const scaleOf = (key: string, b: ResolvedBuild) => Math.max(0, Math.min(100, req.abilityScale?.[`${key}@${b.tree.key}`] ?? 100)) / 100;
   // Encendidas por personaje ("habilidad@personaje"); la clave sola (ejércitos viejos) enciende la de todos
   const isActive = (key: string, b: ResolvedBuild) => active.has(`${key}@${b.tree.key}`) || active.has(key);
   for (const b of builds) {
@@ -516,7 +520,9 @@ export function compute(req: ComputeRequest): ComputeResult {
       } else if (ability.mode === 'allies' || ability.mode === 'self') {
         isOn = ability.passive ? (ability.mode === 'self' || inAura) : isActive(ability.key, b);
         if (isOn && hasBattleStats) {
-          allyAbilities.push({ ability, owner: b.tree.name, build: b, selfOnly: ability.mode === 'self', cond: ability.passive ? (ability.mode === 'self' ? 'pasiva' : 'aura') : 'activa' });
+          const scale = scaleOf(ability.key, b);
+          const cond = ability.passive ? (ability.mode === 'self' ? 'pasiva' : 'aura') : 'activa';
+          if (scale > 0) allyAbilities.push({ ability, owner: b.tree.name, build: b, selfOnly: ability.mode === 'self', cond: scale < 1 ? `${cond} al ${Math.round(scale * 100)}%` : cond, scale });
         }
       }
       abilityStates.push({
@@ -527,6 +533,7 @@ export function compute(req: ComputeRequest): ComputeResult {
         effects: ability.stats.map((s) => ({ stat: s.stat, how: s.how, v: s.v })),
         spell: ability.spell || undefined, magical: ability.magicalAttacks || undefined, flaming: ability.flamingAttacks || undefined,
         ...abilityMods(ability, effectsOf(b)),
+        scale: Math.round(scaleOf(ability.key, b) * 100),
       });
     }
   }
@@ -564,7 +571,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     for (const x of allyAbilities) {
       if (x.selfOnly && x.build !== b) continue;
       if (!targetAllowed(x.ability, x.owner, { kind: isLord ? 'lord' : 'hero' }, b.warnings)) continue;
-      applyAbility(lines, x.ability, x.owner, x.cond, attributes);
+      applyAbility(lines, x.ability, x.owner, x.cond, attributes, x.scale);
       if (x.ability.magicalAttacks) magical = true;
       if (x.ability.flamingAttacks) flaming = true;
     }
@@ -654,7 +661,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     for (const x of allyAbilities) {
       if (x.selfOnly) continue;
       if (!targetAllowed(x.ability, x.owner, { kind: 'unit', unit: u }, notes)) continue;
-      applyAbility(lines, x.ability, x.owner, x.cond, attributes);
+      applyAbility(lines, x.ability, x.owner, x.cond, attributes, x.scale);
       if (x.ability.magicalAttacks) magical = true;
       if (x.ability.flamingAttacks) flaming = true;
     }
@@ -846,7 +853,7 @@ function targetAllowed(a: AbilityInfo, owner: string, t: AbilityTarget, notes: s
 }
 
 function applyAbility(
-  lines: Record<StatKey, StatLine>, a: AbilityInfo, owner: string, cond: string, attributes: { name: string; from?: string }[],
+  lines: Record<StatKey, StatLine>, a: AbilityInfo, owner: string, cond: string, attributes: { name: string; from?: string }[], scale = 1,
 ) {
   for (const s of a.stats) {
     const stat = ABILITY_STAT_MAP[s.stat];
@@ -854,6 +861,8 @@ function applyAbility(
     let value = s.v;
     // "Debilidad al fuego -20" = resistencia al fuego -20
     if (s.stat === 'stat_weakness_flame') value = s.v;
+    // A medio cargar: los multiplicadores se acercan a ×1 y las sumas se reducen en proporción
+    if (scale !== 1) value = s.how === 'mult' ? Math.round((1 + (value - 1) * scale) * 1000) / 1000 : Math.round(value * scale * 10) / 10;
     contribute(lines, stat, { source: a.name, from: owner, value, how: s.how === 'mult' ? 'mult' : 'add', conditional: cond });
   }
   for (const at of a.attributes) attributes.push({ name: at, from: `${a.name} (${owner})` });

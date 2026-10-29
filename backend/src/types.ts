@@ -392,6 +392,8 @@ export interface ComputeRequest {
   activeAbilities?: string[]; // habilidades activas encendidas (afectan a aliados / a sí mismo)
   techs?: string[]; // tecnologías investigadas (claves de tecnología)
   inAura?: boolean; // las unidades están dentro de las auras (35 m)
+  /** Cuánto lleva cargada cada pasiva que se acumula en batalla ("habilidad@personaje" -> 0-100 %; sin valor = 100) */
+  abilityScale?: Record<string, number>;
   campaign?: string; // facción de campaña del Caos (solo filtra el roster en la interfaz; se guarda con el build)
 }
 
