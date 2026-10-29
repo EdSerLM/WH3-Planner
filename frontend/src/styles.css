@@ -680,3 +680,10 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .row-basic { --rowc: #9a9a9a; }
 .row-other { --rowc: #6a6a6a; }
 .tech-unit-list .list-head { flex-basis: 100%; font-weight: 700; color: var(--muted, #aaa); border: 0; padding: 0; }
+/* Rentabilidad de tus bufos en cada unidad (contra las de su tipo) */
+.utile .ut-marks .gain { font-size: 10px; font-weight: 700; }
+.gain-hi { color: #6fd36f; }
+.gain-mid { color: #d8c070; }
+.gain-lo { color: #e0806a; }
+.gain-none { color: #888; }
+.ip-gain { margin: 4px 0; padding: 4px 6px; border-radius: 6px; background: #1d1820; font-size: 12px; font-weight: 600; }

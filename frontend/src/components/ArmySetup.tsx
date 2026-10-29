@@ -103,6 +103,43 @@ interface Props {
 
 type Focus = { kind: 'unit'; card: string } | { kind: 'char'; id: string } | null;
 
+/**
+ * Cuánto mejoran tus bufos (señor, héroes, tecnologías) a una unidad: suma de los % que suben sus stats
+ * (los puntos de resistencia cuentan como %). No es su fuerza total: es cuánto aprovecha los bufos.
+ */
+interface Gain { total: number; parts: { label: string; pct: number }[]; rank: number; of: number; verdict: 'hi' | 'mid' | 'lo' | 'none' }
+const GAIN_STATS: [StatKey, string][] = [
+  ['ma', 'Ataque'], ['md', 'Defensa'], ['armour', 'Armadura'], ['charge', 'Carga'], ['dmg', 'Daño base'], ['ap', 'Daño perforante'],
+  ['hp', 'Salud'], ['speed', 'Velocidad'], ['ld', 'Liderazgo'], ['missileDmg', 'Proyectiles'], ['ammo', 'Munición'], ['range', 'Alcance'],
+];
+const GAIN_RES: [StatKey, string][] = [['resPhysical', 'Res. física'], ['resMissile', 'Res. proyectiles'], ['resMagic', 'Res. hechizos'], ['resFlame', 'Res. fuego'], ['resWard', 'Salvación']];
+function buffGain(c?: ComputedCard): { total: number; parts: { label: string; pct: number }[] } | null {
+  if (!c) return null;
+  const parts: { label: string; pct: number }[] = [];
+  for (const [k, label] of GAIN_STATS) {
+    const l = c.stats[k];
+    if (l && l.base > 0 && l.final !== l.base) parts.push({ label, pct: ((l.final - l.base) / l.base) * 100 });
+  }
+  const r = c.stats.reload; // la recarga baja = mejor
+  if (r && r.base > 0 && r.final !== r.base) parts.push({ label: 'Recarga', pct: ((r.base - r.final) / r.base) * 100 });
+  for (const [k, label] of GAIN_RES) {
+    const l = c.stats[k];
+    if (l && l.final !== l.base) parts.push({ label, pct: l.final - l.base });
+  }
+  return { total: parts.reduce((s, p) => s + p.pct, 0), parts: parts.sort((a, b) => b.pct - a.pct) };
+}
+const GAIN_MARK = { hi: '▲', mid: '■', lo: '▼', none: '·' } as const;
+const GAIN_TEXT = {
+  hi: 'Rentable: tus bufos la mejoran más que a la mayoría de su tipo',
+  mid: 'Normal: tus bufos la mejoran como a otras de su tipo',
+  lo: 'Poco: otras de su tipo aprovechan más tus bufos',
+  none: 'No vale la pena por bufos: no le llega ninguno',
+} as const;
+function gainTitle(g: Gain, group: string) {
+  return `${GAIN_TEXT[g.verdict]}\nTotal +${Math.round(g.total)}% · puesto ${g.rank} de ${g.of} (${group})` +
+    (g.parts.length ? '\n' + g.parts.map((p) => `${p.label} +${Math.round(p.pct)}%`).join(', ') : '');
+}
+
 export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, campaign, compact, onChange, onEditChar }: Props) {
   const [q, setQ] = useState('');
   const [showRoR, setShowRoR] = useState(false);
@@ -113,6 +150,26 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
   const allowed = useMemo(() => campaignUnits(campaign), [campaign]);
   const byCard = useMemo(() => new Map(units.map((u) => [u.card, u])), [units]);
   const anyBuffs = Object.keys(buffs).length > 0;
+  // Rentabilidad de tus bufos: cada unidad contra las de su mismo tipo (grupo) que puedes reclutar
+  const gains = useMemo(() => {
+    const out = new Map<string, Gain>();
+    if (!anyBuffs) return out;
+    const byGroup = new Map<string, { card: string; total: number; parts: Gain['parts'] }[]>();
+    for (const u of units) {
+      if (allowed && !allowed.has(u.card)) continue;
+      const g = buffGain(rosterCards[u.card]) ?? { total: 0, parts: [] };
+      byGroup.set(u.group, [...(byGroup.get(u.group) ?? []), { card: u.card, ...g }]);
+    }
+    for (const list of byGroup.values()) {
+      list.sort((a, b) => b.total - a.total);
+      list.forEach((x, i) => {
+        const third = list.length / 3;
+        const verdict: Gain['verdict'] = x.total <= 0 ? 'none' : list.length < 3 ? 'mid' : i < third ? 'hi' : i >= list.length - third ? 'lo' : 'mid';
+        out.set(x.card, { total: x.total, parts: x.parts, rank: list.findIndex((y) => y.total === x.total) + 1, of: list.length, verdict });
+      });
+    }
+    return out;
+  }, [units, rosterCards, allowed, anyBuffs]);
 
   const roster = useMemo(() => {
     const qq = q.trim().toLowerCase();
@@ -253,6 +310,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
             buffs={focus?.kind === 'unit' ? buffs[focus.card] : undefined}
             upgradeRank={focus?.kind === 'unit' ? campaign?.upgrades[focus.card] : undefined}
             building={focus?.kind === 'unit' ? campaign?.buildings?.[focus.card] : undefined}
+            gain={focus?.kind === 'unit' ? gains.get(focus.card) : undefined}
           />
           <div className="roster-area">
             <div className="roster-tools">
@@ -289,6 +347,11 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
                           <AttrIcons attrs={rosterCards[u.card]?.attributes ?? (u.attrs ?? []).map((name) => ({ name }))} />
                           <span className="ut-marks">
                             <BuffMark b={b} />
+                            {gains.get(u.card) && (
+                              <span className={'gain gain-' + gains.get(u.card)!.verdict} title={gainTitle(gains.get(u.card)!, groupInfo(g).es)}>
+                                {GAIN_MARK[gains.get(u.card)!.verdict]}
+                              </span>
+                            )}
                             {/_ror/.test(u.key + u.card) && <span title="Regimiento de Renombre">🏅</span>}
                             {u.campaignOnly && <span title="Solo en campaña">🗺️</span>}
                             {(u.excl?.length ?? 0) > 0 && <span title={`Solo: ${u.excl!.join(', ')}`}>🔒</span>}
@@ -499,8 +562,8 @@ function baseOf(u: UnitData | undefined, k: StatKey | 'ws'): number | undefined 
   return x[k];
 }
 
-function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building }: {
-  focus: Focus; unit?: UnitData; card?: ComputedCard; inArmy: boolean; buffs?: RosterBuffs[string]; upgradeRank?: number; building?: string[];
+function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building, gain }: {
+  focus: Focus; unit?: UnitData; card?: ComputedCard; inArmy: boolean; buffs?: RosterBuffs[string]; upgradeRank?: number; building?: string[]; gain?: Gain;
 }) {
   const attrIdx = useAttrIndex();
   if (!focus || (!unit && !card)) {
@@ -554,6 +617,12 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building }: 
     <aside className="infopanel">
       {(unit?.art ?? card?.art) && <img className="ip-art" src={`/units/${unit?.art ?? card?.art}.png`} alt="" />}
       <div className="ip-name">{name}</div>
+      {gain && unit && (
+        <div className={'ip-gain gain-' + gain.verdict} title={gainTitle(gain, groupInfo(unit.group).es)}>
+          {GAIN_MARK[gain.verdict]} {gain.verdict === 'none' ? 'No le llega ningún bufo' : `Bufos: +${Math.round(gain.total)}% · ${gain.rank}.º de ${gain.of} en ${groupInfo(unit.group).es}`}
+          <div className="small muted">{GAIN_TEXT[gain.verdict]}</div>
+        </div>
+      )}
       <div className="ip-caste">
         <UnitIcon kind={unit ? iconOf(unit) : card?.kind === 'lord' ? 'lord' : 'hero'} cat={unit ? unit.catIcon : card?.kind === 'lord' ? 'commander' : 'hero'} size={16} /> {caste}
         {' · '}
