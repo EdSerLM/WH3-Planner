@@ -9,6 +9,7 @@ import type { ComputedCard, DpsTarget, StatKey, UnitData } from './types.js';
  *            así que la armadura de más de 100 sigue contando hasta 200.
  *  Resistencias: se suman (salvación + física + fuego si es flamígero), tope 90%. Los ataques mágicos
  *            ignoran la física; la resistencia a hechizos no aplica a ataques normales.
+ *  Base y perforante se redondean a entero al aplicar el golpe (Feature Focus #2: Damage, de Creative Assembly).
  *  Daño por golpe sin superar la vida por modelo. DPS = Modelos × Acierto × Daño por golpe ÷ Intervalo.
  *  Tiempo para matar = Vida total ÷ DPS.  Eficiencia = DPS por cada 1000 de coste.
  */
@@ -24,6 +25,16 @@ export function armourReduction(a: number): number {
   if (a <= 100) return (0.75 * a) / 100;
   if (lo >= 100) return 1;
   return (((100 - lo) * (lo + 100)) / 2 + (a - 100) * 100) / (a - lo) / 100;
+}
+
+/**
+ * Daño de un golpe: base (ya con la armadura) y perforante, con las resistencias, y cada parte redondeada a entero al
+ * aplicarlo, como explica Creative Assembly (Feature Focus #2: Damage: 12,123 base -> 12 y 48,285 perforante -> 48).
+ * Se redondea sobre la tirada media de armadura, no golpe a golpe.
+ */
+function roundedHit(base: number, ap: number, res: number): number {
+  const k = 1 - res / 100;
+  return Math.round(base * k) + Math.round(ap * k);
 }
 
 export interface DpsRow {
@@ -106,12 +117,11 @@ export function meleeDps(att: ComputedCard, t: DpsTarget, dir: AttackDir = 'fron
   const apRatio = dmg + ap > 0 ? ap / (dmg + ap) : 0;
   const bonusBase = bonus * (1 - apRatio), bonusAp = bonus * apRatio;
   const armourRed = armourReduction(t.armour);
-  let perHit = (dmg + bonusBase) * (1 - armourRed) + ap + bonusAp;
   // Resistencias: se suman, tope 90% (la debilidad al fuego puede hacerlas negativas)
   const physical = att.magicalAttacks ? 0 : t.res.physical;
   const flame = att.flamingAttacks ? t.res.flame : 0;
   const res = Math.max(-100, Math.min(90, t.res.ward + physical + flame));
-  perHit = perHit * (1 - res / 100);
+  let perHit = roundedHit((dmg + bonusBase) * (1 - armourRed), ap + bonusAp, res);
   // Sin daño en área el golpe no pasa de la vida de un modelo. Con daño en área el daño del golpe se reparte entre
   // varios modelos: no se pierde en uno solo, pero tampoco se multiplica (los datos no dicen si se copia a cada uno)
   const splash = splashTargets(att, t);
@@ -156,12 +166,11 @@ export function missileDps(att: ComputedCard, t: DpsTarget, dir: AttackDir = 'fr
   const dmg = total * (1 - apRatio), ap = total * apRatio;
   const bonusBase = bonus * (1 - apRatio), bonusAp = bonus * apRatio;
   const armourRed = armourReduction(t.armour);
-  let perHit = (dmg + bonusBase) * (1 - armourRed) + ap + bonusAp;
   const physical = att.magicalAttacks ? 0 : t.res.physical;
   const flame = att.flamingAttacks ? t.res.flame : 0;
   const missileRes = t.res.missile ?? 0;
   const res = Math.max(-100, Math.min(90, t.res.ward + physical + flame + missileRes));
-  perHit = Math.min(perHit * (1 - res / 100), t.hpPerModel);
+  const perHit = Math.min(roundedHit((dmg + bonusBase) * (1 - armourRed), ap + bonusAp, res), t.hpPerModel);
   const shield = dir === 'front' ? Math.min(100, t.shield ?? 0) : 0;
   const shots = m?.shots || 1;
   const reload = s('reload');

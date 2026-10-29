@@ -652,7 +652,8 @@ function CalcLines({ d, hit, perHit, res, dps, ttk, large, hpPerModel, you }: {
   const raw = Math.round((35 + d.ma + d.bonus - d.md) * 10) / 10;
   const def = you ? 'tu defensa' : 'defensa';
   const base = d.dmg + d.bonusBase, ap = d.ap + d.bonusAp;
-  const uncapped = (base * (1 - d.armourRed / 100) + ap) * (1 - res / 100);
+  // Como el juego: base y perforante se redondean a entero al aplicar el golpe
+  const uncapped = Math.round(base * (1 - d.armourRed / 100) * (1 - res / 100)) + Math.round(ap * (1 - res / 100));
   const resParts = [
     d.res.ward ? `salvación ${d.res.ward}%` : '',
     d.res.physical && !d.res.magicalIgnoresPhysical ? `física ${d.res.physical}%` : '',
@@ -673,8 +674,8 @@ function CalcLines({ d, hit, perHit, res, dps, ttk, large, hpPerModel, you }: {
         </li>
         <li>
           <b>Daño por proyectil</b>: {fmt1(base)} base × (1 − {d.armourRed}%) + {fmt1(ap)} perforante
-          {res ? `, ${res > 0 ? '−' : '+'}${Math.abs(res)}% (${parts.join(' + ')}${res >= 90 ? ', tope 90%' : ''})` : ''} = <b>{perHit}</b>
-          {hpPerModel && uncapped > perHit + 0.05 ? ` (tope: vida de un modelo, ${hpPerModel})` : ''}
+          {res ? `, ${res > 0 ? '−' : '+'}${Math.abs(res)}% (${parts.join(' + ')}${res >= 90 ? ', tope 90%' : ''})` : ''} = <b>{perHit}</b> <span className="muted">(cada parte redondeada a entero)</span>
+          {hpPerModel && uncapped > perHit ? ` (tope: vida de un modelo, ${hpPerModel})` : ''}
           {d.res.magicalIgnoresPhysical ? ' · tus ataques mágicos ignoran su resistencia física' : ''}
         </li>
         {rg.shield > 0 && (
@@ -711,8 +712,8 @@ function CalcLines({ d, hit, perHit, res, dps, ttk, large, hpPerModel, you }: {
       </li>
       <li>
         <b>Daño por golpe</b>: {fmt1(base)} base × (1 − {d.armourRed}%) + {fmt1(ap)} perforante
-        {res ? `, ${res > 0 ? '−' : '+'}${Math.abs(res)}% (${resParts.join(' + ')}${res >= 90 ? ', tope 90%' : ''})` : ''} = <b>{perHit}</b>
-        {hpPerModel && uncapped > perHit + 0.05
+        {res ? `, ${res > 0 ? '−' : '+'}${Math.abs(res)}% (${resParts.join(' + ')}${res >= 90 ? ', tope 90%' : ''})` : ''} = <b>{perHit}</b> <span className="muted">(cada parte redondeada a entero)</span>
+        {hpPerModel && uncapped > perHit
           ? (d.splash && d.splash.n > 1 ? ` (tope: ${d.splash.n} modelos × ${hpPerModel} de vida)` : ` (tope: vida de un modelo, ${hpPerModel})`)
           : ''}
         {d.splash && d.splash.n > 1 ? ` · daño en área: cada golpe se reparte hasta entre ${d.splash.n} modelos` : ''}
