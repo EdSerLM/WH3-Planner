@@ -543,7 +543,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     let flaming = !!base.is_flaming;
     const isLord = b === lordBuild;
     for (const { effect, skill, owner, build } of effects) {
-      if (effect.target === 'army' && effect.forNames && !namedMatch(effect.forNames, b.tree.name)) continue;
+      if ((effect.target === 'army' || effect.target === 'chars') && effect.forNames && !namedMatch(effect.forNames, b.tree.name)) continue;
       if (effect.kind === 'attribute' && effect.attribute) {
         if ((effect.target === 'self' && build === b) || (effect.target === 'army' && !effect.units && effect.unitList === undefined) || charMatch(effect, b, isLord) || armyListMatch(effect, b)) {
           attributes.push({ name: effect.attribute, from: `${skill} (${owner})` });

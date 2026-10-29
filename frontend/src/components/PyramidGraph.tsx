@@ -168,6 +168,10 @@ export function PyramidGraph({ faction, researched, onChange, units, characters,
         <span className="muted">Con bufos de batalla: {battleGot.length}</span>
         <label><input type="checkbox" checked={onlyBattle} onChange={(e) => setOnlyBattle(e.target.checked)} /> Resaltar los de batalla</label>
         <label>Zoom <input type="range" min={1} max={2.6} step={0.1} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} /></label>
+        <button className="ghost" onClick={() => takeMany(g.nodes.filter((n) => n.battle).map((n) => n.tech))} title="Toma todos los nodos que dan bufos de batalla (y el camino hasta ellos)">
+          + Todos los de batalla
+        </button>
+        <button className="ghost" onClick={() => takeMany(g.nodes.map((n) => n.tech))}>+ Todos</button>
         <button className="ghost" onClick={clear}>Limpiar</button>
       </div>
       {msg && <div className="warn small">{msg}</div>}

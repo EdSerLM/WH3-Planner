@@ -8,7 +8,7 @@ import {
   officialCount, officialCharacterName, translateAbilityStat, translateAttribute, translateEffect,
 } from './i18n.js';
 import type {
-  AbilityInfo, CharacterStats, CharacterSummary, ItemInfo, CharacterTree, ExclusiveGroup, ParsedEffect, RawAbility, RawNode, SkillNode, SkillsFile, UnitData, UnitsFile,
+  AbilityInfo, CharacterStats, CharacterSummary, ItemInfo, CharacterTree, ExclusiveGroup, ParsedEffect, RawAbility, RawNode, SkillNode, SkillsFile, StatKey, UnitData, UnitsFile,
 } from './types.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -228,9 +228,38 @@ function limitToNamedUnits(p: ParsedEffect, key: string, text: string): ParsedEf
   return { ...p, attribute: attr[0].toUpperCase() + attr.slice(1), forNames: names };
 }
 
+/** Personajes concretos que nombran algunos efectos al final: "Ataque cuerpo a cuerpo: +5 (Nagash)" (nodos de la Pirámide Negra) */
+const CHAR_SCOPES = ['Nagash'];
+/** Stat por su nombre en español (los efectos con alcance a un personaje vienen del juego como campaña, sin stat) */
+const STAT_BY_LABEL: Record<string, StatKey> = {
+  'Ataque cuerpo a cuerpo': 'ma', 'Defensa cuerpo a cuerpo': 'md', Armadura: 'armour', 'Bonificación de carga': 'charge',
+  Velocidad: 'speed', 'Fuerza del arma': 'dmg', Liderazgo: 'ld', 'Puntos de golpe': 'hp',
+  'Salvación especial': 'resWard', 'Resistencia a los hechizos': 'resMagic', 'Resistencia física': 'resPhysical',
+  'Resistencia a los proyectiles': 'resMissile', 'Resistencia al fuego': 'resFlame', 'Puntos de golpe de barrera': 'barrier',
+};
+const RES_STATS = new Set<StatKey>(['resWard', 'resMagic', 'resPhysical', 'resMissile', 'resFlame']);
+
+/**
+ * "Ataque cuerpo a cuerpo: +5 (Nagash)" / "Atributo: X (Nagash)": el juego lo da como efecto de campaña sin stat,
+ * pero es un bufo de batalla para ese personaje. Lo pasamos a batalla, solo para personajes con ese nombre.
+ */
+function characterScoped(p: ParsedEffect, text: string): ParsedEffect {
+  if (p.kind !== 'campaign' || p.target !== 'none' || !text) return p;
+  const who = CHAR_SCOPES.find((n) => text.trimEnd().endsWith(`(${n})`));
+  if (!who) return p;
+  const body = text.trimEnd().slice(0, -`(${who})`.length).trim();
+  const attr = /^Atributo:\s*(.+)$/.exec(body);
+  if (attr) return { ...p, kind: 'attribute', target: 'chars', attribute: attr[1], forNames: [who] };
+  const m = /^([^:]+):\s*([+-]?\d+(?:[.,]\d+)?)(%?)$/.exec(body);
+  const stat = m ? STAT_BY_LABEL[m[1].trim()] : undefined;
+  if (!m || !stat) return p;
+  const value = parseFloat(m[2].replace(',', '.'));
+  return { ...p, kind: 'battle', target: 'chars', stat, value, pct: !!m[3] && !RES_STATS.has(stat), exact: false, forNames: [who] };
+}
+
 function gameEffect(e: GameEffect, first: boolean, keyText: string): ParsedEffect {
   const x = e.s as GameEffect['s'] & { who?: 'lord' | 'hero' | 'wizard' };
-  return limitToNamedUnits({
+  return limitToNamedUnits(characterScoped({
     who: x.who,
     key: e.k,
     text: first ? e.d : '',
@@ -248,7 +277,7 @@ function gameEffect(e: GameEffect, first: boolean, keyText: string): ParsedEffec
     action: x.action,
     exact: true,
     scope: x.target === 'army' ? scopeFromText(keyText) : undefined,
-  }, e.k, keyText);
+  }, keyText), e.k, keyText);
 }
 
 function gameEffects(list: GameEffect[]): ParsedEffect[] {
