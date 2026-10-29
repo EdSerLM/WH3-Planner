@@ -1,5 +1,5 @@
 import { fmtStat } from '../statFormat';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import type { ArmyState, ComputedCard, DpsRow, UnitData } from '../types';
 import { GROUP_ORDER, groupIndex, groupInfo } from '../unitGroups';
@@ -97,8 +97,9 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
   const [factionUnits, setFactionUnits] = useState<Target[]>([]);
   const [groupFilter, setGroupFilter] = useState('');
   // grouped (booleano) es de versiones anteriores: equivale a agrupar por tipo
-  // noRor: sin Regimientos de Renombre; verdict: solo los duelos con ese resultado
-  const [view, setView] = useState<{ sort: SortState; grouped: boolean; groupBy?: GroupBy; noRor?: boolean; verdict?: Verdict | '' }>(() =>
+  // noRor: sin Regimientos de Renombre; verdict: solo los duelos con ese resultado;
+  // single: mostrar los objetivos de un solo modelo (ocultos por defecto: el duelo no los calcula bien)
+  const [view, setView] = useState<{ sort: SortState; grouped: boolean; groupBy?: GroupBy; noRor?: boolean; single?: boolean; verdict?: Verdict | '' }>(() =>
     loadJson(STORE_VIEW, { sort: { key: 'ttk', dir: 1 } as SortState, grouped: false }),
   );
   const groupBy: GroupBy = view.groupBy ?? (view.grouped ? 'type' : '');
@@ -190,15 +191,26 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
     }, 400);
     return () => { stale = true; clearTimeout(t); };
   }, [army, targets, dir, cards.length]);
+  // Objetivos de un solo modelo (gigantes, dragones, personajes...), por la ficha de cada fila o la lista de la facción
+  const singles = useMemo(() => {
+    const out = new Set<string>();
+    for (const u of factionUnits) if (u.models === 1) out.add(u.key);
+    for (const r of rows) if (r.info?.models === 1) out.add(r.target);
+    return out;
+  }, [factionUnits, rows]);
+  const hidden = useCallback(
+    (key: string) => (!!view.noRor && isRor(key)) || (!view.single && singles.has(key)),
+    [view.noRor, view.single, singles],
+  );
   const matchups = useMemo(() => {
     const out: Record<string, MatchupCount> = {};
     for (const [id, m] of Object.entries(duels)) {
       const c = { win: 0, even: 0, lose: 0 };
-      for (const [target, v] of Object.entries(m)) if (!view.noRor || !isRor(target)) c[v]++;
+      for (const [target, v] of Object.entries(m)) if (!hidden(target)) c[v]++;
       out[id] = c;
     }
     return out;
-  }, [duels, view.noRor]);
+  }, [duels, hidden]);
   // ★ a las de más duelos ganados menos perdidos (empates incluidos), si hay con qué comparar
   const best = useMemo(() => {
     const scored = Object.entries(matchups).filter(([, m]) => m.win + m.even + m.lose > 0);
@@ -215,18 +227,18 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
   const options = useMemo(
     () => factionUnits
       .filter((u) => !groupFilter || (u.group ?? '') === groupFilter)
-      .filter((u) => !view.noRor || !isRor(u.key))
+      .filter((u) => !hidden(u.key))
       .sort((a, b) => groupIndex(a.group) - groupIndex(b.group) || a.name.localeCompare(b.name, 'es')),
-    [factionUnits, groupFilter, view.noRor],
+    [factionUnits, groupFilter, hidden],
   );
   const isCharacter = (o: Target) => o.group === 'Lords' || o.group === 'Heroes' || /Señor|Héroe/.test(o.caste);
   const add = (key: string) => key && !targets.includes(key) && setTargets([...targets, key]);
   const addAll = () => setTargets([...new Set([...targets, ...options.filter((o) => !isCharacter(o)).map((o) => o.key)])].slice(0, 60));
 
-  // Filas visibles: sin Regimientos de Renombre si se pide, y solo el resultado elegido
+  // Filas visibles: sin Regimientos de Renombre ni de un solo modelo si se pide, y solo el resultado elegido
   const shown = useMemo(
-    () => rows.filter((r) => (!view.noRor || !isRor(r.target)) && (!view.verdict || r.duel?.verdict === view.verdict)),
-    [rows, view.noRor, view.verdict],
+    () => rows.filter((r) => !hidden(r.target) && (!view.verdict || r.duel?.verdict === view.verdict)),
+    [rows, hidden, view.verdict],
   );
   const sorted = useMemo(() => {
     const { key, dir } = view.sort;
@@ -252,7 +264,8 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
 
   const maxDps = Math.max(1, ...shown.map((r) => r.dps));
   const finite = shown.filter((r) => Number.isFinite(r.timeToKill)).map((r) => r.timeToKill);
-  const count = (v: Verdict) => rows.filter((r) => (!view.noRor || !isRor(r.target)) && r.duel?.verdict === v).length;
+  const count = (v: Verdict) => rows.filter((r) => !hidden(r.target) && r.duel?.verdict === v).length;
+  const hiddenSingles = rows.filter((r) => singles.has(r.target)).length;
   const fastest = finite.length > 1 ? Math.min(...finite) : undefined;
   const slowest = finite.length > 1 ? Math.max(...finite) : undefined;
 
@@ -369,6 +382,9 @@ export function DpsPanel({ army, cards, units, ownName }: Props) {
         </label>
         <label title="Oculta los Regimientos de Renombre de la tabla y de la lista para agregar objetivos">
           <input type="checkbox" checked={!!view.noRor} onChange={(e) => setView((v) => ({ ...v, noRor: e.target.checked }))} /> Sin Regimientos de Renombre
+        </label>
+        <label title="Unidades de un solo modelo (gigantes, dragones, carros únicos, señores y héroes): el duelo las calcula mal, por eso están ocultas por defecto">
+          <input type="checkbox" checked={!!view.single} onChange={(e) => setView((v) => ({ ...v, single: e.target.checked }))} /> Mostrar unidades de un solo modelo{!view.single && hiddenSingles > 0 ? ` (${hiddenSingles} oculta${hiddenSingles === 1 ? '' : 's'})` : ''}
         </label>
         <button className="ghost" onClick={() => setOpen(open.size ? new Set() : new Set(shown.map((r) => r.target)))}>
           {open.size ? 'Cerrar fichas' : 'Abrir todas las fichas'}
