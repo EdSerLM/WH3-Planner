@@ -319,6 +319,12 @@ section.left { min-width: 0; }
 .tech-grid .tech { position: relative; z-index: 1; }
 /* Efectos acumulados de tecnologías */
 .tech-summary h4 { margin: 10px 0 4px; }
+/* Tecnologías por unidad (debajo del árbol) */
+.tech-units { margin-top: 14px; }
+.utile .ut-techs { color: #c9b98a; }
+.utile .ut-techs.full { color: var(--green); }
+.tech-unit-list { display: flex; flex-wrap: wrap; gap: 4px 14px; list-style: none; padding: 0; margin: 6px 0; }
+.tech-unit-list .ok { color: var(--green); }
 .tech-sum { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
 .tech-sum li { padding: 3px 6px; border-radius: 6px; background: #221f18; }
 .tech-sum.battle li { border-left: 3px solid #c9a24a; }

@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
-import type { TechNode, TechTreeData, TechTreeSummary } from '../types';
+import type { CampaignFaction, StatKey, TechNode, TechTreeData, TechTreeSummary, UnitData } from '../types';
+import { campaignUnits } from '../campaign';
+import { TechUnits } from './TechUnits';
 
 interface Props {
   faction: string;
@@ -8,6 +10,9 @@ interface Props {
   variant?: string;
   researched: string[];
   onChange: (p: { techs?: string[]; techTree?: string; techVariant?: string }) => void;
+  units: UnitData[];
+  campaign?: CampaignFaction;
+  labels: Record<StatKey, string>;
 }
 
 const TARGET: Record<string, string> = { army: 'ejército', chars: 'personajes', self: 'propio', lord: 'señor', none: '' };
@@ -26,7 +31,7 @@ function isAvailable(n: TechNode, byKey: Map<string, TechNode>, have: Set<string
   return ok >= Math.min(n.parentsNeeded, n.parents.length) && n.requires.every((r) => have.has(byKey.get(r)!.tech));
 }
 
-export function TechTree({ faction, treeKey, variant, researched, onChange }: Props) {
+export function TechTree({ faction, treeKey, variant, researched, onChange, units, campaign, labels }: Props) {
   const [trees, setTrees] = useState<TechTreeSummary[]>([]);
   const [tree, setTree] = useState<TechTreeData | null>(null);
   const [onlyBattle, setOnlyBattle] = useState(false);
@@ -53,6 +58,11 @@ export function TechTree({ faction, treeKey, variant, researched, onChange }: Pr
 
   const byKey = useMemo(() => new Map((tree?.nodes ?? []).map((n) => [n.key, n])), [tree]);
   const have = useMemo(() => new Set(researched), [researched]);
+  // Unidades que puede tener la facción de campaña elegida (todas si no hay filtro)
+  const rosterUnits = useMemo(() => {
+    const allowed = campaignUnits(campaign);
+    return allowed ? units.filter((u) => allowed.has(u.card)) : units;
+  }, [units, campaign]);
   const inTree = useMemo(() => (tree?.nodes ?? []).filter((n) => have.has(n.tech)), [tree, have]);
 
   // Líneas de requisitos (padre -> hijo), medidas sobre los botones ya dibujados
@@ -92,7 +102,8 @@ export function TechTree({ faction, treeKey, variant, researched, onChange }: Pr
   const cols = Math.max(...tree.nodes.map((n) => n.col)) + 1;
   const rows = Math.max(...tree.nodes.map((n) => n.row)) - tree.minRow + 1;
 
-  const research = (n: TechNode) => {
+  /** Investiga esos nodos y sus requisitos */
+  const researchNodes = (list: TechNode[]) => {
     const next = new Set(have);
     const visit = (k: string, depth = 0) => {
       const x = byKey.get(k)!;
@@ -100,9 +111,10 @@ export function TechTree({ faction, treeKey, variant, researched, onChange }: Pr
       next.add(x.tech);
       for (const p of prerequisites(x, byKey, next)) visit(p, depth + 1);
     };
-    visit(n.key);
+    for (const n of list) visit(n.key);
     onChange({ techs: [...next] });
   };
+  const research = (n: TechNode) => researchNodes([n]);
   const forget = (n: TechNode) => {
     // Quitar la tecnología y todo lo que ya no cumple requisitos
     const next = new Set(have);
@@ -206,6 +218,13 @@ export function TechTree({ faction, treeKey, variant, researched, onChange }: Pr
         Clic: investigar (también sus requisitos) · Clic derecho: quitar · ⚔ = da bufos de batalla. Los bufos se suman a las tarjetas de tus tropas y personajes
         (aparecen como "Tecnologías" en el desglose de cada stat).
       </p>
+      <TechUnits
+        nodes={tree.nodes}
+        have={have}
+        units={rosterUnits}
+        labels={labels}
+        onResearch={(techs) => researchNodes(tree.nodes.filter((n) => techs.includes(n.tech)))}
+      />
       {hover && <TechTip hover={hover} byKey={byKey} have={have} />}
     </div>
   );

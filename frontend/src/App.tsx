@@ -462,6 +462,9 @@ export default function App() {
                 variant={army.techVariant}
                 researched={army.techs ?? []}
                 onChange={(p) => setArmy((a) => ({ ...a, ...p }))}
+                units={units}
+                campaign={campaigns.find((c) => c.key === army.campaign)}
+                labels={labels}
               />
               {/* Pirámide Negra (Legiones No Muertas) y otros grafos del juego: se investigan como tecnologías */}
               <PyramidGraph faction={faction} researched={army.techs ?? []} onChange={(p) => setArmy((a) => ({ ...a, ...p }))} />

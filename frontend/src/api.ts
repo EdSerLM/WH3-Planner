@@ -33,6 +33,8 @@ export const api = {
   graphs: (faction: string) => req<{ key: string; name: string }[]>(`/api/graphs?faction=${encodeURIComponent(faction)}`),
   graph: (key: string) => req<GraphData>(`/api/graphs/${encodeURIComponent(key)}`),
   techSummary: (techs: string[]) => req<TechSummaryData>('/api/tech-summary', { method: 'POST', body: JSON.stringify({ techs }) }),
+  techUnits: (techs: string[], units: string[]) =>
+    req<Record<string, string[]>>("/api/techs/units", { method: "POST", body: JSON.stringify({ techs, units }) }),
   techTrees: (faction: string) => req<TechTreeSummary[]>(`/api/techs?faction=${encodeURIComponent(faction)}`),
   techTree: (key: string, variant?: string) =>
     req<TechTreeData>(`/api/techs/${encodeURIComponent(key)}${variant ? `?variant=${encodeURIComponent(variant)}` : ''}`),

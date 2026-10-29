@@ -42,6 +42,25 @@ app.get('/api/techs', (req, res) => res.json(listTechTrees(String(req.query.fact
 // Efectos acumulados de lo investigado (tecnologías y nodos de la Pirámide)
 app.post('/api/tech-summary', (req, res) => res.json(techSummary(Array.isArray(req.body?.techs) ? req.body.techs.map(String) : [])));
 
+// Qué tecnologías cambian la tarjeta de cada unidad (stats o atributos), con el mismo motor que las tarjetas.
+// Se prueba cada tecnología sola en rango 9 para que cuenten también las de "rango 7+".
+app.post('/api/techs/units', (req, res) => {
+  const techs: string[] = Array.isArray(req.body?.techs) ? req.body.techs.map(String) : [];
+  const cards: string[] = Array.isArray(req.body?.units) ? req.body.units.map(String) : [];
+  const out: Record<string, string[]> = Object.fromEntries(cards.map((c) => [c, []]));
+  const units = cards.map((card) => ({ card, count: 1, rank: 9 }));
+  for (const t of new Set(techs)) {
+    const r = compute({ lord: null, heroes: [], units, techs: [t], activeAbilities: [], inAura: true } as ComputeRequest);
+    for (const c of r.cards) {
+      if (c.kind !== 'unit' || !out[c.id]) continue;
+      const hit = Object.values(c.stats).some((l) => l.contributions.some((x) => x.from === 'Tecnologías')) ||
+        c.attributes.some((a) => a.from?.endsWith('(Tecnologías)'));
+      if (hit) out[c.id].push(t);
+    }
+  }
+  res.json(out);
+});
+
 // Grafos de iniciativas (Pirámide Negra): se investigan como tecnologías
 app.get('/api/graphs', (req, res) => res.json(listGraphs(String(req.query.faction ?? DEFAULT_FACTION))));
 app.get('/api/graphs/:key', (req, res) => {

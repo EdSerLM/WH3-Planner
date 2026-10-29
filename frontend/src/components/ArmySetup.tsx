@@ -359,6 +359,37 @@ export function RosterDuelStrip({ units, matchups, best }: { units: UnitData[]; 
   );
 }
 
+/** Tiras de unidades en Tecnologías: cuántas de sus tecnologías llevas investigadas */
+export function TechUnitStrip({ units, counts, selected, onPick }: {
+  units: UnitData[];
+  counts: Record<string, { have: number; total: number }>;
+  selected: string | null;
+  onPick: (card: string) => void;
+}) {
+  const list = [...units].sort((a, b) => groupIndex(a.group) - groupIndex(b.group) || (a.tier ?? 0) - (b.tier ?? 0) || a.cost - b.cost);
+  return (
+    <div className="army-strip pick-strip">
+      {list.map((u) => {
+        const c = counts[u.card];
+        return (
+          <button
+            key={u.card}
+            className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (selected === u.card ? ' sel' : '')}
+            style={artStyle(u)}
+            title={`${u.name}\n${c.have} de ${c.total} tecnologías que le afectan investigadas.\nClic: investigar todas las suyas`}
+            onClick={() => onPick(u.card)}
+          >
+            <span className="ut-cost"><Tier t={u.tier} />{u.cost}</span>
+            <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u.catIcon} /><NatureBadges kind={iconOf(u)} cat={u.catIcon} attrs={u.attrs} /></span>
+            <span className="ut-name">{u.name}</span>
+            <span className={'ut-duels ut-techs' + (c.have === c.total ? ' full' : '')}>✓ {c.have}/{c.total}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function PickStrip({ cards, units, selected, onPick, matchups, best }: {
   cards: ComputedCard[];
   units: UnitData[];
