@@ -1,4 +1,4 @@
-import { abilities, artOfUnit, getCharacter, getUnit, targetFlagText, techEffects, unitInList } from './data.js';
+import { abilities, abilityByDisplayName, artOfUnit, getCharacter, getUnit, targetFlagText, techEffects, unitInList, unitUpgradeEffects } from './data.js';
 import { translateAttribute } from './i18n.js';
 import { MAX_RANK, autoRank, effectiveLevel, isFreeLevel, pointsAtRank, pointsFor } from './rankRules.js';
 import { unitRank } from './types.js';
@@ -242,6 +242,8 @@ function effectsOf(b: ResolvedBuild): { effect: ParsedEffect; skill: string }[] 
   const worn = wornItems(b);
   for (const it of b.tree.items ?? []) if (worn.has(it.key)) for (const e of it.effects) out.push({ effect: e, skill: it.name });
   for (const st of b.tree.itemSets ?? []) if (st.items.every((k) => worn.has(k))) for (const e of st.effects) out.push({ effect: e, skill: `Conjunto: ${st.name}` });
+  // Acción de héroe en su ejército (Formación de asalto...): solo si su árbol la desbloqueó; el valor sube con sus habilidades
+  for (const { effect, skill } of heroActionEffects(b)) out.push({ effect, skill });
   return out;
 }
 
@@ -250,7 +252,11 @@ function skillLabel(node: SkillNode): string {
   return /\[HIDDEN\]/i.test(node.name) || node.name === node.skillKey ? 'Inicial' : node.name;
 }
 
-function abilitiesOf(b: ResolvedBuild): { ability: AbilityInfo; skill: string }[] {
+/**
+ * Habilidades de un personaje. `armyRemoved`: habilidades que otro personaje del ejército reemplaza (p. ej. la
+ * "Vista hiperaumentada" del Acechador de Caminos reemplaza "El Ojo de Kurnous" del Señor de los Claros).
+ */
+function abilitiesOf(b: ResolvedBuild, armyRemoved?: Set<string>): { ability: AbilityInfo; skill: string }[] {
   const seen = new Set<string>();
   const out: { ability: AbilityInfo; skill: string }[] = [];
   const add = (key: string, skill: string) => {
@@ -294,7 +300,7 @@ function abilitiesOf(b: ResolvedBuild): { ability: AbilityInfo; skill: string }[
     if (m) replaced.add(m[1]);
     if (effect.ability && /^(Mejora la habilidad|Upgrades)/i.test(effect.text || effect.textEn || '')) upgraded.add(effect.ability);
   }
-  const kept = out.filter((x) => !removedKeys.has(x.ability.key) && !replaced.has(x.ability.nameEn ?? x.ability.name));
+  const kept = out.filter((x) => !removedKeys.has(x.ability.key) && !armyRemoved?.has(x.ability.key) && !replaced.has(x.ability.nameEn ?? x.ability.name));
   // Misma habilidad repetida con otra clave (la innata y la de la habilidad, o la normal y la mejorada): una sola.
   // Los hechizos vinculados son otra habilidad aunque se llamen igual que el hechizo del saber.
   const bound = (k: string) => /_spell_bound_/.test(k);
@@ -461,6 +467,22 @@ export function compute(req: ComputeRequest): ComputeResult {
   // Efectos de todos los personajes
   const effects: { effect: ParsedEffect; skill: string; owner: string; build: ResolvedBuild | null }[] =
     builds.flatMap((b) => effectsOf(b).map((x) => ({ ...x, owner: b.tree.name, build: b })));
+  // Acciones de héroe de batalla: "solo un héroe puede aplicar este efecto a la vez" -> la misma acción de dos héroes
+  // cuenta una vez por ejército (la de mayor valor); acciones distintas sí se suman
+  {
+    const best = new Map<string, number>();
+    effects.forEach((x, i) => {
+      if (!x.skill.startsWith('Acción: ') || x.effect.kind !== 'battle') return;
+      const id = `${x.skill}|${x.effect.key}|${x.effect.stat}`;
+      const j = best.get(id);
+      if (j === undefined || (x.effect.value ?? 0) > (effects[j].effect.value ?? 0)) best.set(id, i);
+    });
+    const keep = new Set(best.values());
+    for (let i = effects.length - 1; i >= 0; i--) {
+      const x = effects[i];
+      if (x.skill.startsWith('Acción: ') && x.effect.kind === 'battle' && !keep.has(i)) effects.splice(i, 1);
+    }
+  }
   // Tecnologías investigadas: aplican a todos los ejércitos y personajes de la facción
   for (const t of req.techs ?? []) {
     const te = techEffects(t);
@@ -490,8 +512,11 @@ export function compute(req: ComputeRequest): ComputeResult {
   const scaleOf = (key: string, b: ResolvedBuild) => Math.max(0, Math.min(100, req.abilityScale?.[`${key}@${b.tree.key}`] ?? 100)) / 100;
   // Encendidas por personaje ("habilidad@personaje"); la clave sola (ejércitos viejos) enciende la de todos
   const isActive = (key: string, b: ResolvedBuild) => active.has(`${key}@${b.tree.key}`) || active.has(key);
+  // Reemplazos entre personajes del ejército: una habilidad que dice "Reemplaza: X" quita X aunque la tenga otro
+  const armyRemoved = new Set<string>();
+  for (const b of builds) for (const { effect } of effectsOf(b)) if (effect.disable) armyRemoved.add(effect.disable);
   for (const b of builds) {
-    for (const { ability, skill } of abilitiesOf(b)) {
+    for (const { ability, skill } of abilitiesOf(b, armyRemoved)) {
       const statLines = ability.stats.filter((s) => ABILITY_STAT_MAP[s.stat]);
       const hasBattleStats = statLines.length > 0 || ability.magicalAttacks || ability.flamingAttacks || ability.attributes.length > 0;
       let isOn = false;
@@ -517,6 +542,28 @@ export function compute(req: ComputeRequest): ComputeResult {
         scale: Math.round(scaleOf(ability.key, b) * 100),
       });
     }
+  }
+
+  // La misma habilidad de varios personajes (p. ej. "Aullido del bosque" de dos Espíritus del bosque) no se acumula:
+  // cuenta una vez, la de más fuerza. Lo que sí se suma son efectos distintos (rasgos, habilidades del árbol, objetos).
+  {
+    const seen = new Map<string, number>();
+    const merged: typeof allyAbilities = [];
+    for (const x of allyAbilities) {
+      if (x.selfOnly) { merged.push(x); continue; }
+      const sig = `${x.ability.name}|${x.ability.stats.map((s) => `${s.stat}:${s.how}:${s.v}`).join(',')}`;
+      const i = seen.get(x.ability.key) ?? seen.get(sig);
+      if (i === undefined) {
+        seen.set(x.ability.key, merged.length); seen.set(sig, merged.length);
+        merged.push({ ...x });
+        continue;
+      }
+      const cur = merged[i];
+      const owners = `${cur.owner} / ${x.owner}`;
+      merged[i] = x.scale > cur.scale ? { ...x, owner: owners } : { ...cur, owner: owners };
+    }
+    for (const m of merged) if (m.owner.includes(' / ')) m.cond = `${m.cond}, no se acumula`;
+    allyAbilities.splice(0, allyAbilities.length, ...merged);
   }
 
   const cards: ComputedCard[] = [];
@@ -587,6 +634,22 @@ export function compute(req: ComputeRequest): ComputeResult {
     let flaming = !!u.flaming;
     const notes: string[] = [];
     const rank = unitRank(sel);
+    // Mejoras de unidad compradas en campaña (aspecto del Abedul/Roble/Sauce, mejoras de Ogros...): a la propia unidad
+    for (const upKey of sel.upgrades ?? []) {
+      const up = unitUpgradeEffects(u.key, upKey);
+      if (!up) continue;
+      for (const e of up.effects) {
+        if (e.kind === 'battle' && e.stat && e.value !== undefined && (e.target === 'self' || e.target === 'army')) {
+          contribute(lines, e.stat, { source: up.name, from: 'Mejora de unidad', value: e.value, how: e.pct ? 'pct' : 'add' }, e.exact);
+        } else if (e.kind === 'attribute' && e.attribute) {
+          attributes.push({ name: e.attribute, from: `${up.name} (mejora de unidad)` });
+          if (/flam/i.test(e.attribute)) flaming = true;
+          if (/mágic/i.test(e.attribute)) magical = true;
+        }
+      }
+    }
+    // Pasivas que le dan los bufos (una vez cada una aunque varias fuentes la den)
+    const grantedPassives = new Set<string>();
     // Copias por rango que sí aplican (se juntan en una sola línea al final)
     const perRankAcc = new Map<string, { stat: StatKey; c: Contribution; n: number; exact?: boolean }>();
     for (const { effect, skill, owner } of effects) {
@@ -616,6 +679,14 @@ export function compute(req: ComputeRequest): ComputeResult {
         attributes.push({ name: effect.attribute, from: `${skill} (${owner})` });
         if (/flam/i.test(effect.attribute)) flaming = true;
         if (/mágic/i.test(effect.attribute)) magical = true;
+        // "Habilidad: X" que da un bufo (Da Plan, tecnologías...): si es una pasiva sobre sí misma, sus stats cuentan en la tarjeta
+        if (/^Habilidad/.test(effect.attribute)) {
+          const ab = abilityByDisplayName(effect.attribute);
+          if (ab && ab.passive && ab.mode === 'self' && !grantedPassives.has(ab.key)) {
+            grantedPassives.add(ab.key);
+            applyAbility(lines, ab, `${skill} (${owner})`, 'habilidad pasiva', attributes);
+          }
+        }
         continue;
       }
       if (effect.kind !== 'battle' || !effect.stat || effect.value === undefined) continue;
@@ -845,4 +916,23 @@ function applyAbility(
   for (const at of a.attributes) attributes.push({ name: at, from: `${a.name} (${owner})` });
   if (a.flamingAttacks) attributes.push({ name: 'Ataques flamígeros', from: `${a.name} (${owner})` });
   if (a.magicalAttacks) attributes.push({ name: 'Ataques mágicos', from: `${a.name} (${owner})` });
+}
+
+/** Efectos de la acción de héroe elegida, con el valor que le dan las habilidades compradas */
+export function heroActionEffects(b: { tree: CharacterTree; selection: BuildSelection; activeNodes: { node: SkillNode; level: number }[] }): { effect: ParsedEffect; skill: string }[] {
+  const a = b.tree.heroActions?.find((x) => x.key === b.selection.heroAction);
+  if (!a) return [];
+  const active = new Map(b.activeNodes.map(({ node, level }) => [node.skillKey, { node, level }]));
+  const enabled = b.activeNodes.some(({ node, level }) => node.levels[level - 1]?.effects.some((e) => a.enable.includes(e.key)));
+  if (!enabled) return [];
+  const out: { effect: ParsedEffect; skill: string }[] = [];
+  for (const o of a.outcomes) {
+    const add = Math.max(0, ...(a.buffs ?? []).filter((x) => x.o === o.key && active.get(x.sk)?.level === x.lv).map((x) => x.v));
+    const total = o.base + add;
+    for (const e of o.effects) {
+      const text = e.text ? e.text.replace(/([+-]?)(\d+(?:[.,]\d+)?)/, (_m, sg) => `${sg || (total >= 0 ? '+' : '')}${Math.abs(total)}`) : e.text;
+      out.push({ effect: { ...e, value: e.value !== undefined ? total : e.value, text }, skill: `Acción: ${a.name}` });
+    }
+  }
+  return out;
 }

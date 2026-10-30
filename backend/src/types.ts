@@ -116,6 +116,8 @@ export interface SkillsFile {
 }
 
 export interface UnitData {
+  /** Mejoras de campaña que puede comprar la unidad (aspectos de Dríades y Árboles, mejoras de Ogros, genes...) */
+  upgrades?: { key: string; name: string; category: string; categoryName: string; banned?: string[]; texts: string[] }[];
   key: string;
   card: string;
   name: string;
@@ -287,7 +289,23 @@ export interface CharacterTree extends CharacterSummary {
   spellSlots?: SpellSlot[];
   /** Iniciativas del personaje (Senda a la Gloria, Ofrenda a las Fauces, Libros de Nagash...) */
   initiativeSets?: InitiativeSet[];
+  /** Unidad del personaje (cuenta para los requisitos de Da Plan) */
+  unit?: string;
+  /** Acciones de héroe en su ejército que desbloquea su árbol */
+  heroActions?: HeroAction[];
 }
+
+/** Acción de héroe "Ayudar al ejército" (Formación de asalto, Guardia mortífera, Afilar armas...): da efectos a su ejército */
+export interface HeroAction {
+  key: string; name: string; icon?: string;
+  /** Efectos de habilidad que la desbloquean */
+  enable: string[];
+  /** Resultados: valor base y efectos (con el valor base) */
+  outcomes: { key: string; base: number; effects: ParsedEffect[] }[];
+  /** Habilidades que suben el valor: en el nivel lv de la habilidad sk, +v al resultado o */
+  buffs?: { sk: string; lv: number; o: string; v: number }[];
+}
+
 
 export interface InitiativeSet {
   key: string; category: string; name: string;
@@ -300,7 +318,19 @@ export interface InitiativeSet {
   max: number;
   /** false = solo informativo (devociones / ascenso a Príncipe Demonio) */
   selectable: boolean;
-  items: { key: string; name: string; requirement?: string; locked: boolean; effects: ParsedEffect[] }[];
+  items: {
+    key: string; name: string; requirement?: string; locked: boolean; effects: ParsedEffect[];
+    /** Da Plan: unidades que pide (conjunto y número), imagen de la táctica, nivel y turnos de duración/recarga */
+    need?: { s: string; n: number }[]; img?: string; tier?: number; duration?: number; cooldown?: number;
+    /** Unidades a las que bonifican sus efectos (para el filtro por unidad) */
+    benefits?: string[];
+    /** Piezas en filas: fila (objeto, cráneo, provincia...) y etiqueta corta del nivel */
+    group?: string; level?: string;
+  }[];
+  /** Da Plan: conjuntos de unidades que piden las tácticas (nombre, icono y unidades que cuentan) */
+  unitSets?: Record<string, { n: string; icon?: string; units: string[] }>;
+  /** Mostrar en filas por objeto con un nivel por pieza; nombres de las secciones (tier 1, 2...) */
+  rows?: boolean; sections?: string[];
 }
 
 export interface SpellSlot {
@@ -371,6 +401,8 @@ export interface BuildSelection {
   levels: Record<string, number>; // nodo -> nivel comprado
   mount?: string | null; // nodo de montura elegido
   innate?: string | null; // nodo del rasgo innato elegido (undefined = el de por defecto)
+  /** Acción de héroe elegida en su ejército (clave de HeroAction) */
+  heroAction?: string | null;
   rank?: number; // rango del personaje (1-50); por defecto 50
   items?: string[]; // objetos equipados (claves de ancillary)
 }
@@ -382,6 +414,8 @@ export interface ArmyUnitSelection {
   rank?: number;
   /** Obsoleto: antes era el interruptor "R7+". Se sigue leyendo en ejércitos guardados. */
   rank7?: boolean;
+  /** Mejoras de unidad elegidas (claves de unit_purchasable_effects) */
+  upgrades?: string[];
 }
 
 /** Rango efectivo de una unidad seleccionada (0-9) */

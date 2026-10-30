@@ -800,15 +800,20 @@ const abilityDir = join(FRONTEND, 'public/abilities'), attrDir = join(FRONTEND, 
 const unitCatDir = join(FRONTEND, 'public/unitcat'), statDir = join(FRONTEND, 'public/stats');
 for (const d of [abilityDir, attrDir, flagDir, unitCatDir, statDir]) mkdirSync(d, { recursive: true });
 // Dones del Príncipe Demonio y ofrendas de la Gloria demoníaca: cualquier .png de interfaz con el nombre del don, e iconos de paquetes de efectos
-const armoryDir = join(FRONTEND, 'public/armory'), bundleDir = join(FRONTEND, 'public/bundles');
-for (const d of [armoryDir, bundleDir]) mkdirSync(d, { recursive: true });
+const armoryDir = join(FRONTEND, 'public/armory'), bundleDir = join(FRONTEND, 'public/bundles'), daPlanDir = join(FRONTEND, 'public/daplan'), mechDir = join(FRONTEND, 'public/mech');
+for (const d of [armoryDir, bundleDir, daPlanDir, mechDir]) mkdirSync(d, { recursive: true });
 const wantedArmory = new Set<string>((allSkills?.characters ?? []).flatMap((c: any) => (c.armory?.items ?? []).map((i: any) => String(i.k).toLowerCase())));
+// Objetos de la Forja de Daith: icono con el nombre del objeto (con o sin el nivel _1.._4)
+for (const c of allSkills?.characters ?? []) for (const st of c.initiatives ?? []) if (st.cat === 'FORGE')
+  for (const i of st.items ?? []) { const k = String(i.k).toLowerCase(); wantedArmory.add(k); wantedArmory.add(k.replace(/_\d$/, '')); }
+// Iconos de las piezas de mecánicas (rituales, Caldero de Grom, plagas...): cualquier .png de interfaz con ese nombre
+const wantedMechIcons = new Set<string>((allSkills?.characters ?? []).flatMap((c: any) => (c.initiatives ?? []).filter((s: any) => s.cat !== 'DA_PLAN').flatMap((s: any) => (s.items ?? []).map((i: any) => i.img).filter(Boolean))));
 const wantedBundleIcons = new Set<string>((allSkills?.characters ?? []).flatMap((c: any) => (c.initiatives ?? []).flatMap((s: any) => (s.track ?? []).map((t: any) => t.icon).filter(Boolean))));
 const wantedAbilityIcons = new Set<string>(Object.values<any>(allSkills?.abilities ?? {}).map((a) => String(a.img ?? '').toLowerCase()).filter(Boolean));
 const attrKeys = new Set([...attrKeyByName.values()].map((k) => k.toLowerCase()));
 const attrFound = new Set<string>(), attrFromBundle = new Set<string>();
 const uiIndex: string[] = [];
-const INDEX_RE = /^ui\/(battle ui\/ability_icons|common ui\/unit_category|skins\/default\/(icon_|modifier_icon|unit_attribute)|campaign ui\/effect_bundles|common ui\/.*attribute|units\/category|battle ui\/unit_category)/;
+const INDEX_RE = /^ui\/(battle ui\/ability_icons|common ui\/unit_category|skins\/default\/(icon_|modifier_icon|unit_attribute)|campaign ui\/effect_bundles|campaign ui\/ancillaries|common ui\/.*attribute|units\/category|battle ui\/unit_category)/;
 for (const f of packs) {
   let p: Pack;
   try {
@@ -830,6 +835,9 @@ for (const f of packs) {
       const base = name.slice(name.lastIndexOf('/') + 1, -4);
       if (wantedArmory.has(base)) writeFileSync(join(armoryDir, `${base}.png`), readEntry(p, e));
       if (name.startsWith('ui/campaign ui/effect_bundles/') && wantedBundleIcons.has(base)) writeFileSync(join(bundleDir, `${base}.png`), readEntry(p, e));
+      if (wantedMechIcons.has(base)) writeFileSync(join(mechDir, `${base}.png`), readEntry(p, e));
+      // Da Plan (Gorbad): imágenes de las tácticas y de los conjuntos de unidades
+      if (name.startsWith('ui/skins/default/dlc26_greenskins_da_plan/')) writeFileSync(join(daPlanDir, `${base}.png`), readEntry(p, e));
     }
     if (portraitFiles.has(name)) { writeFileSync(join(cardDir, `${portraitFiles.get(name)}.png`), readEntry(p, e)); continue; }
     if (name.startsWith('ui/portraits/') && /\.png$/.test(name)) uiIndex.push(`${f}\t${name}`);

@@ -507,7 +507,7 @@ export default function App() {
                 ) : null}
                 {currentTree.initiativeSets?.length ? (
                   <button className={leftView === 'initiatives' ? 'active' : ''} onClick={() => setLeftView('initiatives')} title="Regalos del Caos, devociones y otras mecánicas del personaje">
-                    {currentTree.initiativeSets.some((s) => s.category.startsWith('PATH_TO_GLORY')) ? '🌟 Senda a la Gloria' : currentTree.initiativeSets.some((s) => s.category === 'COURT') ? '🌳 Consejo' : currentTree.initiativeSets.some((s) => s.category === 'PATRONAGE') ? '🦅 Corte del Rey Fénix' : currentTree.initiativeSets.some((s) => s.category === 'GLORY') ? '🔥 Gloria demoníaca' : currentTree.initiativeSets.some((s) => s.category === 'DA_PLAN') ? '📜 Da Plan' : currentTree.initiativeSets.some((s) => s.category === 'DANCE') ? '💃 Danza Eterna' : '🌟 Mecánicas'}
+                    {mechTabLabel(currentTree.initiativeSets, army.campaign)}
                   </button>
                 ) : null}
                 <button className={leftView === 'summary' ? 'active' : ''} onClick={() => setLeftView('summary')}>Efectos acumulados</button>
@@ -515,7 +515,14 @@ export default function App() {
               {leftView === 'gifts' && currentTree.armory ? (
                 <ArmoryPanel tree={currentTree} selection={currentSel} onChange={updateSelection} />
               ) : leftView === 'initiatives' && currentTree.initiativeSets?.length ? (
-                <InitiativesPanel tree={currentTree} selection={currentSel} onChange={updateSelection} campaign={army.campaign} />
+                <InitiativesPanel
+                  tree={currentTree} selection={currentSel} onChange={updateSelection} campaign={army.campaign}
+                  army={tab === 'lord' ? {
+                    units: army.units, roster: rosterUnits, used: usedSlots,
+                    charUnits: [army.lord, ...army.heroes].map((b) => (b ? trees[b.character]?.unit : undefined)).filter((u): u is string => !!u),
+                    onUnits: (u) => setArmy((a) => ({ ...a, units: u })),
+                  } : undefined}
+                />
               ) : leftView === 'spells' && currentTree.spellSlots?.length ? (
                 <SpellSlotsPanel tree={currentTree} selection={currentSel} onChange={updateSelection} />
               ) : leftView !== 'summary' ? (
@@ -700,4 +707,17 @@ export default function App() {
       </footer>
     </div>
   );
+}
+
+// Nombre de la pestaña de mecánicas según las que tiene el personaje (en la facción de campaña elegida)
+const MECH_TAB: [RegExp, string][] = [
+  [/^PATH_TO_GLORY/, '🌟 Senda a la Gloria'], [/^COURT$/, '🌳 Consejo'], [/^PATRONAGE$/, '🦅 Corte del Rey Fénix'], [/^GLORY$/, '🔥 Gloria demoníaca'],
+  [/^DA_PLAN$/, '📜 Da Plan'], [/^DANCE$/, '💃 Danza Eterna'], [/^FORGE$/, '⚒️ Forja de Daith'], [/^CLOAK$/, '💀 Capa de Cráneos'],
+  [/^GUNNERY$/, '🔫 Escuela de Artillería'], [/^KISLEV$/, '❄️ Kislev'], [/^HELLFORGE$/, '🔥 Forja Infernal'], [/^GLOTTKIN$/, '🌿 Rituales Podridos'],
+  [/^COOKING$/, '🍲 Caldero de Grom'], [/^PLAGUE$/, '🧪 Plagas de Nurgle'], [/^OFFER_TO_THE_MAW$/, '🍖 Ofrenda a las Fauces'], [/BOOKS_OF_NAGASH/, '📕 Libros de Nagash'],
+];
+function mechTabLabel(sets: { category: string; faction?: string }[], campaign?: string) {
+  const mine = sets.filter((s) => !s.faction || !campaign || s.faction === campaign || s.category === 'COURT');
+  const labels = MECH_TAB.filter(([re]) => mine.some((s) => re.test(s.category))).map(([, l]) => l);
+  return labels.length === 0 ? '🌟 Mecánicas' : labels.length <= 2 ? labels.join(' / ') : `${labels[0]} +${labels.length - 1}`;
 }

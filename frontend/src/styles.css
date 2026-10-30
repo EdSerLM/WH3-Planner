@@ -721,3 +721,96 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .glory-gift-name { position: absolute; left: 0; right: 0; bottom: 0; font-size: 8px; line-height: 1.05; color: #e8dcc8; background: rgba(0,0,0,.7); padding: 1px; }
 .glory-lock { position: absolute; left: 2px; bottom: 12px; font-size: 13px; }
 .glory-effects { margin-top: 8px; padding: 6px 8px; border-left: 3px solid #6b4a2e; background: #17111a; border-radius: 4px; }
+
+/* Forja de Daith (Heraldas de Ariel) */
+.forge { padding: 8px; border: 1px solid #3a2f24; border-radius: 8px; background: radial-gradient(circle at top, #231c16, #120e0c); margin-bottom: 10px; }
+.forge-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.forge-slot { border: 1px solid #3c3126; border-radius: 6px; padding: 6px 8px; background: #17120f; }
+.forge-slot h4 { margin: 0 0 6px; color: #e6c98a; }
+.forge-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.forge-obj { flex: 0 0 120px; font-size: 12px; color: var(--fam); font-weight: 600; }
+.forge-pieces { display: flex; gap: 5px; }
+.forge-piece { position: relative; width: 48px; height: 48px; flex: 0 0 48px; padding: 0; border: 1px solid #4a3c2c; border-radius: 4px; background: #1e1814;
+  cursor: pointer; overflow: hidden; filter: grayscale(.85) brightness(.7); }
+.forge-piece:hover { filter: none; }
+.forge-piece.on { filter: none; border: 2px solid var(--fam); box-shadow: 0 0 8px var(--fam); }
+.forge-piece img { width: 100%; height: 100%; object-fit: contain; }
+.forge-emoji { position: absolute; inset: 0; align-items: center; justify-content: center; font-size: 22px; }
+.forge-lvl { position: absolute; right: 2px; bottom: 1px; font-size: 11px; font-weight: 800; color: #f1e3c0; text-shadow: 0 1px 3px #000; }
+
+/* Da Plan (Gorbad) */
+.daplan { padding: 8px; border: 1px solid #2f3a24; border-radius: 8px; background: radial-gradient(circle at top, #1d2416, #0f120c); margin-bottom: 10px; }
+.daplan-tier h4 { margin: 8px 0 4px; color: #b8d07a; }
+.daplan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.daplan-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; text-align: center; cursor: pointer;
+  border: 1px solid #3d4a2c; border-radius: 6px; background: #161b11; color: inherit; font: inherit; }
+.daplan-card:hover:not(:disabled) { border-color: #8fb04a; }
+.daplan-card.on { border: 2px solid #9ccf3f; box-shadow: 0 0 10px #6f9a2a; background: #1f2a14; }
+.daplan-card.warn { border-color: #d9a441; }
+.daplan-card.blocked, .daplan-card:disabled { opacity: .5; cursor: not-allowed; filter: grayscale(.7); }
+.daplan-img { position: relative; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; }
+.daplan-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; z-index: 1; }
+.daplan-emoji { font-size: 34px; }
+.daplan-name { font-size: 12px; color: #e8e0c0; }
+.daplan-req { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; }
+.daplan-chip { display: inline-flex; align-items: center; gap: 2px; font-size: 10px; padding: 1px 4px; border-radius: 8px; background: #2a1a16; color: #e7b5a0; border: 1px solid #5a3328; }
+.daplan-chip.ok { background: #1c2b14; color: #b9e08a; border-color: #4a6a2a; }
+.daplan-chip img { width: 16px; height: 16px; object-fit: contain; }
+.daplan-why { font-size: 10px; color: #e6a06a; }
+.daplan-add { font-size: 10px; color: #9fd0ff; }
+.daplan-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 6px; }
+.daplan-filter select { max-width: 260px; }
+.daplan-eff { margin: 2px 0 0; padding-left: 14px; text-align: left; font-size: 10.5px; line-height: 1.25; color: #d9cfa4; align-self: stretch; }
+.daplan-for { font-size: 10.5px; color: #ffd36a; font-weight: 700; }
+.daplan-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.ip-attr-desc { font-size: 11px; color: #a99f8c; margin: 1px 0 3px 20px; line-height: 1.25; }
+.ip-abil { list-style: none; padding: 0; margin: 2px 0 6px; }
+.ip-abil > li { border-left: 3px solid #6b4a2e; background: #17131a; border-radius: 4px; padding: 4px 6px; margin-bottom: 5px; }
+.ip-abil-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ip-abil ul { margin: 2px 0 0; padding-left: 18px; font-size: 11.5px; color: #e6d6a8; }
+
+/* Panel común de mecánicas */
+.mech { display: flex; flex-direction: column; gap: 10px; }
+.mech-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; position: sticky; top: 0; z-index: 3; padding: 6px; background: #120f14ee; border: 1px solid #2c2430; border-radius: 6px; }
+.mech-filter select { max-width: 260px; }
+.mech-set { padding: 8px; border: 1px solid #3a2f24; border-radius: 8px; background: radial-gradient(circle at top, #1f1a16, #110e0c); }
+.mech-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.mech-head h3 { margin: 0; color: #e6c98a; }
+.mech-help { margin: 2px 0 6px; }
+.mech-tier h4 { margin: 8px 0 4px; color: #c9b27a; }
+.mech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.mech-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; text-align: center; cursor: pointer;
+  border: 1px solid #4a3c2c; border-radius: 6px; background: #18130f; color: inherit; font: inherit; }
+.mech-card:hover:not(:disabled) { border-color: #c9a74a; }
+.mech-card.on { border: 2px solid #e0b84a; box-shadow: 0 0 10px #a8822a; background: #2a2114; }
+.mech-card.warn { border-color: #d9a441; }
+.mech-card.blocked, .mech-card:disabled:not(.info) { opacity: .5; cursor: not-allowed; filter: grayscale(.7); }
+.mech-card.info { cursor: default; }
+.mech-img { position: relative; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.mech-img img { width: 100%; height: 100%; object-fit: contain; }
+.mech-emoji { font-size: 28px; align-items: center; justify-content: center; }
+.mech-name { font-size: 12.5px; color: #f0e6c8; }
+.mech-cond { font-size: 10.5px; color: #a99f8c; }
+.mech-cond.warn { color: #e6a06a; }
+.mech-req { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; }
+.mech-chip { display: inline-flex; align-items: center; gap: 2px; font-size: 10px; padding: 1px 4px; border-radius: 8px; background: #2a1a16; color: #e7b5a0; border: 1px solid #5a3328; }
+.mech-chip.ok { background: #1c2b14; color: #b9e08a; border-color: #4a6a2a; }
+.mech-chip img { width: 16px; height: 16px; object-fit: contain; }
+.mech-eff { margin: 2px 0 0; padding-left: 14px; text-align: left; font-size: 10.5px; line-height: 1.25; color: #d9cfa4; align-self: stretch; }
+.mech-for { font-size: 10.5px; color: #ffd36a; font-weight: 700; }
+.mech-why { font-size: 10px; color: #e6a06a; }
+.mech-add { font-size: 10px; color: #9fd0ff; }
+.mech-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
+.mech-row { border: 1px solid #3c3126; border-radius: 6px; padding: 6px 8px; background: #17120f; }
+.mech-row.on { border-color: #c9a74a; }
+.mech-row-head { display: flex; gap: 6px; align-items: center; font-size: 12.5px; color: #e6c98a; margin-bottom: 4px; }
+.mech-pieces { display: flex; gap: 5px; flex-wrap: wrap; }
+.mech-piece { position: relative; min-width: 48px; height: 48px; padding: 0 4px; border: 1px solid #4a3c2c; border-radius: 4px; background: #1e1814; color: inherit;
+  cursor: pointer; overflow: hidden; filter: grayscale(.85) brightness(.75); display: flex; align-items: center; justify-content: center; }
+.mech-piece:hover:not(:disabled) { filter: none; }
+.mech-piece.on { filter: none; border: 2px solid #e0b84a; box-shadow: 0 0 8px #a8822a; }
+.mech-piece .mech-img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mech-piece .mech-emoji { font-size: 20px; }
+.mech-lvl { position: relative; z-index: 1; margin-left: auto; align-self: flex-end; font-size: 11px; font-weight: 800; color: #f1e3c0; text-shadow: 0 1px 3px #000; }
+.mech-sub { position: absolute; left: 2px; top: 2px; right: 2px; font-size: 8px; line-height: 1; color: #e8dcc8; text-align: left; z-index: 1; }
+.mech-piece:has(.mech-sub) { min-width: 86px; }

@@ -138,6 +138,31 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info }: Pro
               </button>
             </label>
           )}
+          {(tree.heroActions?.length ?? 0) > 0 && (() => {
+            const nodes = [...tree.rows.flat(), ...tree.background];
+            const lv = (sk: string) => { const n = nodes.find((x) => x.skillKey === sk); return n ? levelOf(selection, n) : 0; };
+            const enabledBy = (a: NonNullable<CharacterTree['heroActions']>[number]) =>
+              nodes.find((n) => { const l = levelOf(selection, n); return l > 0 && n.levels[l - 1]?.effects.some((e) => a.enable.includes(e.key)); });
+            const total = (a: NonNullable<CharacterTree['heroActions']>[number], o: { key: string; base: number }) =>
+              o.base + Math.max(0, ...(a.buffs ?? []).filter((x) => x.o === o.key && lv(x.sk) === x.lv).map((x) => x.v));
+            const summary = (a: NonNullable<CharacterTree['heroActions']>[number]) =>
+              a.outcomes.flatMap((o) => o.effects.map((e) => e.text).filter(Boolean).map((t) => t.replace(/([+-]?)(\d+(?:[.,]\d+)?)/, (_m, sg) => `${sg || '+'}${total(a, o)}`))).join(' · ');
+            const cur = tree.heroActions!.find((a) => a.key === selection.heroAction);
+            return (
+              <label title="Acción de héroe «Ayudar al ejército»: el héroe hace una a la vez y da su efecto a todo su ejército. Solo aparecen activas las que desbloquea su árbol.">
+                Acción en el ejército:{' '}
+                <select value={selection.heroAction ?? ''} onChange={(e) => onChange({ ...selection, heroAction: e.target.value || null })}>
+                  <option value="">Ninguna</option>
+                  {tree.heroActions!.map((a) => (
+                    <option key={a.key} value={a.key} disabled={!enabledBy(a)}>
+                      {a.name}{enabledBy(a) ? ` — ${summary(a)}` : ' (compra su habilidad)'}
+                    </option>
+                  ))}
+                </select>
+                {cur && !enabledBy(cur) && <span className="warn small"> No cuenta: compra «{cur.name}» en el árbol</span>}
+              </label>
+            );
+          })()}
           <span className="muted small legend">
             <i className="lg bought" /> comprada <i className="lg auto" /> por rango (gratis) <i className="lg rank" /> requiere rango <i className="lg blocked" /> excluida
           </span>

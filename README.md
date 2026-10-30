@@ -29,6 +29,21 @@ Abre <http://localhost:5173>.
 Para levantar cada uno por separado: `npm run dev:back` y `npm run dev:front`.
 Prueba del motor de bufos (reproduce un build real y compara números): `npm test`.
 
+## Usarlo en el celular (sin servidor)
+
+La app también se publica como **web estática** en GitHub Pages: el mismo motor del backend corre en el navegador
+con los datos de `backend/data/raw`, así que no hace falta tener la PC prendida.
+
+- Dirección: <https://edserlm.github.io/WH3-Planner/>
+- Se actualiza sola en cada `git push` a `main` (workflow `.github/workflows/pages.yml`).
+- **Una sola vez:** en GitHub, *Settings → Pages → Build and deployment → Source: GitHub Actions*.
+  El repo tiene que ser público (o tener GitHub Pro para Pages en repos privados).
+- En el celular: ábrela y usa *Agregar a la pantalla de inicio* para tenerla como app. La primera vez descarga
+  unos 3 MB de datos (comprimidos); después funciona sin conexión.
+- Los ejércitos guardados en el celular se quedan en el navegador del celular (no se comparten con la PC).
+
+Probarla en la PC: `npm run build:static` y servir `frontend/dist` bajo `/WH3-Planner/`.
+
 ## Estructura
 
 ```

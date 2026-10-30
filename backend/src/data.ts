@@ -37,6 +37,8 @@ interface GameEffect { k: string; d: string; s: { kind: string; target: string; 
 interface GameSkill { sk: string; n: string; nEn?: string; d?: string; img?: string; bgSkill?: boolean; lv: { e: GameEffect[]; ab?: string[]; ur?: number; ar?: number }[] }
 interface GameCharacter {
   key: string; subtype: string; name: string; nameEn: string; unit: string; type: 'lord' | 'hero'; legendary: boolean;
+  /** Acciones de héroe que desbloquea su árbol */
+  acts?: string[] | null;
   subcultures: string[]; home: string; nodes: GameNode[]; bg: GameNode[]; stats: CharacterStats | null; mounts?: Record<string, CharacterStats>;
   items?: { k: string; rank?: number; quest?: boolean }[];
   /** Dones del Príncipe Demonio (Daniel): piezas por ranura */
@@ -50,7 +52,7 @@ interface GameCharacter {
   /** Espacios de hechizo elegibles (Kairos): cada uno se abre con una habilidad del árbol */
   spellSlots?: { k: string; n: string; r: string; o: number; by: string; ef: string; opts: { k: string; lore: string; lk: string; n: string; e: GameEffect[] }[] }[] | null;
   /** Iniciativas del personaje (Senda a la Gloria, Ofrenda a las Fauces, Libros de Nagash...) */
-  initiatives?: { k: string; cat: string; n: string; fac?: string; max?: number; god?: string; top?: number; track?: { at: number; kind: string; key: string; n?: string; icon?: string }[]; items: { k: string; n: string; req?: string; locked?: boolean; e: GameEffect[] }[] }[] | null;
+  initiatives?: { k: string; cat: string; n: string; fac?: string; max?: number; god?: string; top?: number; track?: { at: number; kind: string; key: string; n?: string; icon?: string }[]; items: { k: string; n: string; req?: string; locked?: boolean; e: GameEffect[]; need?: { s: string; n: number }[]; img?: string; tier?: number; dur?: number; cd?: number; g?: string; l?: string }[]; rows?: boolean; secs?: string[]; usets?: Record<string, { n: string; icon?: string; units: string[] }> }[] | null;
 }
 interface GameSkillsFile {
   source: string; format: number; subcultures: { key: string; name: string }[]; characters: GameCharacter[];
@@ -60,6 +62,12 @@ interface GameSkillsFile {
   itemSets?: { key: string; n: string; items: string[]; e: GameEffect[] }[];
   graphs?: GameGraph[];
   targetFlags?: Record<string, string>;
+  /** Mejoras de unidad compradas en campaña (aspectos de Dríades y Árboles, mejoras de Ogros, genes de Moulder...) */
+  heroActions?: Record<string, { n: string; img?: string; en: string[]; out: { k: string; v: number; d?: string; e: string; s: GameEffect['s'][] }[]; buffs?: { sk: string; lv: number; o: string; v: number }[] }>;
+  /** Habilidades propias de cada unidad (claves) y descripción de cada atributo (nombre en español -> texto del juego) */
+  unitAbilities?: Record<string, string[]>;
+  attrDesc?: Record<string, string>;
+  unitUpgrades?: Record<string, { k: string; cat: string; catN: string; n: string; x?: boolean; ban?: string[]; e: GameEffect[] }[]>;
 }
 interface GameTechTree {
   key: string; name: string; subcultures: string[];
@@ -282,7 +290,14 @@ function characterScoped(p: ParsedEffect, text: string): ParsedEffect {
   return { ...p, kind: 'battle', target: 'chars', stat, value, pct: !!m[3] && !RES_STATS.has(stat), exact: false, forNames: [who] };
 }
 
+/** Bonos solo para unidades de reclutamiento aliado (p. ej. favores de Kislev, tecnologías de Tzeentch): el planificador no
+ * modela el reclutamiento aliado, así que se muestran como texto y no se aplican a las unidades del roster */
+export const ALLIED_ONLY = /allied_recruitment/;
+
 function gameEffect(e: GameEffect, first: boolean, keyText: string): ParsedEffect {
+  if (ALLIED_ONLY.test(e.k)) {
+    return { key: e.k, text: first ? (e.d && !/a las unidades de reclutamiento aliado/.test(e.d) ? `${e.d} (solo unidades de reclutamiento aliado)` : e.d) : '', kind: 'other', target: 'none', exact: true } as ParsedEffect;
+  }
   const x = e.s as GameEffect['s'] & { who?: 'lord' | 'hero' | 'wizard' };
   return limitToNamedUnits(characterScoped({
     who: x.who,
@@ -606,13 +621,28 @@ function buildGameTree(c: GameCharacter, faction: string): CharacterTree {
       ...tree.spellSlots.flatMap((s) => s.options.map((o): ItemInfo => ({ key: o.key, name: `${o.name} (${o.lore})`, category: 'spell_slot', effects: o.effects }))),
     ];
   }
+  if (c.acts?.length && gameFile?.heroActions) {
+    // Acciones de héroe: el nombre de la habilidad que la desbloquea (está en español en el árbol)
+    const nodes = [...tree.rows.flat(), ...tree.background];
+    tree.heroActions = c.acts.map((k) => gameFile!.heroActions![k]).filter(Boolean).map((a, i) => {
+      const key = c.acts![i];
+      const byNode = nodes.find((n) => n.levels.some((l) => l.effects.some((e) => a.en.includes(e.key))));
+      return {
+        key, name: byNode?.name ?? a.n, icon: a.img, enable: a.en, buffs: a.buffs,
+        outcomes: a.out.map((o) => ({ key: o.k, base: o.v, effects: gameEffects(o.s.map((s, j) => ({ k: o.e, d: j === 0 ? o.d ?? '' : '', s }))) })),
+      };
+    });
+  }
   if (c.initiatives?.length) {
     // Iniciativas del personaje: los dones se eligen (hasta "max"); las devociones/ascensos solo se informan
     tree.initiativeSets = c.initiatives.map((s) => ({
       key: s.k, category: s.cat, name: s.n, faction: s.fac, max: s.max ?? 0,
       god: s.god, top: s.top, track: s.track?.map((t) => ({ ...t, art: t.kind === 'unit' ? artOfUnit(t.key) : undefined })), selectable: s.cat !== 'PATH_TO_GLORY_MARK',
-      items: s.items.map((i) => ({ key: i.k, name: i.n, requirement: i.req, locked: !!i.locked, effects: gameEffects(i.e) })),
+      items: s.items.map((i) => ({ key: i.k, name: i.n, requirement: i.req, locked: !!i.locked, effects: gameEffects(i.e), need: i.need, img: i.img, tier: i.tier, duration: i.dur, cooldown: i.cd, group: i.g, level: i.l,
+        benefits: [...new Set(i.e.flatMap((e) => (e.s.u !== undefined && !ALLIED_ONLY.test(e.k) ? gameFile?.unitLists[e.s.u] ?? [] : [])))] })),
+      unitSets: s.usets, rows: s.rows, sections: s.secs,
     }));
+    tree.unit = c.unit;
     tree.items = [
       ...(tree.items ?? []),
       ...tree.initiativeSets.filter((s) => s.selectable).flatMap((s) => s.items.map((i): ItemInfo => ({ key: i.key, name: i.name, category: 'char_initiative', effects: i.effects }))),
@@ -894,6 +924,9 @@ function asRosterUnit(u: AllUnitsFile['units'][number]): UnitData & { subculture
     ...u,
     card: u.key,
     cardArt: u.card,
+    upgrades: (gameFile?.unitUpgrades?.[u.key] ?? []).map((r) => ({
+      key: r.k, name: r.n, category: r.cat, categoryName: r.catN, banned: r.ban, texts: r.e.map((e) => e.d).filter(Boolean),
+    })),
     // "art" lo pone npm run extraer cuando la carta propia no existe (retrato del personaje o carta de la unidad base)
     art: artOf((u as { art?: string }).art) ?? artOf(u.card),
     nameEn: u.name,
@@ -1020,3 +1053,35 @@ export const sources = {
   /** Falta correr npm run extraer (o copiar los datos del juego a esta computadora) */
   missingGameData: !gameFile || !allUnitsFile,
 };
+
+/** Efectos de una mejora de unidad comprada en campaña (aspecto de Dríade, mejora de Ogro...) */
+export function unitUpgradeEffects(unitKey: string, upgradeKey: string): { name: string; effects: ParsedEffect[] } | undefined {
+  const r = gameFile?.unitUpgrades?.[unitKey]?.find((x) => x.k === upgradeKey);
+  return r ? { name: r.n, effects: gameEffects(r.e) } : undefined;
+}
+
+// ---------- Qué hacen las habilidades de una unidad (ficha de la unidad) ----------
+const abilityByName = new Map<string, AbilityInfo>();
+for (const a of Object.values(abilities)) if (!abilityByName.has(a.name.toLowerCase())) abilityByName.set(a.name.toLowerCase(), a);
+
+/**
+ * Habilidades de la unidad (las suyas del juego y las que le dan los bufos como "Habilidad: X") y la descripción
+ * de sus atributos. names = atributos que muestra la ficha (propios y de bufos).
+ */
+/** Habilidad por su nombre en pantalla ("Habilidad: X" que dan los bufos a las unidades) */
+export function abilityByDisplayName(name: string): AbilityInfo | undefined {
+  return abilityByName.get(name.replace(/^(?:Habilidad(?: pasiva)?|Hechizo(?: vinculado)?):\s*"?|"$/g, '').toLowerCase());
+}
+
+export function unitAbilityInfo(unitKey: string, names: string[]): { abilities: AbilityInfo[]; attrs: Record<string, string> } {
+  const out = new Map<string, AbilityInfo>();
+  for (const k of gameFile?.unitAbilities?.[unitKey] ?? []) if (abilities[k]) out.set(abilities[k].name, abilities[k]);
+  for (const n of names) {
+    const m = /^(?:Habilidad(?: pasiva)?|Hechizo(?: vinculado)?):\s*"?(.+?)"?$/.exec(n);
+    const a = m ? abilityByName.get(m[1].toLowerCase()) : undefined;
+    if (a && !out.has(a.name)) out.set(a.name, a);
+  }
+  const desc = gameFile?.attrDesc ?? {};
+  const attrNames = new Set([...names, ...[...out.values()].flatMap((a) => a.attributes)]);
+  return { abilities: [...out.values()], attrs: Object.fromEntries([...attrNames].filter((n) => desc[n]).map((n) => [n, desc[n]])) };
+}

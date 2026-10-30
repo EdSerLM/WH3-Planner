@@ -42,6 +42,15 @@ export const SKILL_TABLES = [
   'campaign_operation_set_armory_item_elements_tables', 'campaign_operation_armory_items_tables',
   // Da Plan de Gorbad (tácticas con unidades requeridas) y Danza Eterna de la Máscara (tempos)
   'initiative_unit_set_requirements_tables',
+  // Mejoras de unidad compradas en campaña (aspectos de Dríades y Árboles, mejoras de Ogros, genes de Moulder...)
+  'unit_purchasable_effects_tables', 'unit_purchasable_effect_sets_tables', 'faction_banned_unit_purchasable_effects_tables',
+  // Forja de Daith (Heraldas de Ariel): rituales que forjan y mejoran objetos (nivel 1-4)
+  'rituals_tables', 'ritual_payload_ancillaries_tables',
+  // Acciones de héroe en su ejército (Instrucción, Formación de asalto...): acción -> resultados con efecto y valor; mejoras por habilidad
+  'agent_actions_tables', 'action_results_additional_outcomes_tables', 'effect_bonus_value_id_action_results_additional_outcomes_junctions_tables',
+  // Más mecánicas: rituales con paquetes de efectos, Caldero de Grom y plagas de Nurgle
+  'ritual_payload_effect_bundles_tables', 'cooking_recipes_tables', 'cooking_ingredients_tables', 'cooking_recipe_required_ingredient_groups_tables',
+  'cooking_recipe_required_ingredients_tables', 'plague_components_tables', 'plague_effect_setups_tables', 'plague_effects_tables',
   // Corte del Rey Fénix (Altos Elfos): patronazgo de una provincia de Ulthuan, niveles 1-3
   'patronage_slots_tables',
   // Cargos de la corte (Consejo de los Elfos, Congregación de los Antiguos, Drycha, Hermanas del Crepúsculo)
@@ -82,8 +91,9 @@ const BASIC_ATTR: Record<string, string> = { unit_is_magical: 'Ataques mágicos'
 const SELF_SCOPE = /^character_to_character_own/;
 // "character_to_force_own_factionwide" (todos los ejércitos de la facción) también cuenta: incluye el ejército del personaje
 // (p. ej. Estandartes de Middenheim de Boris: +4 ataque a las unidades del Culto de Ulric)
-const ARMY_SCOPE = /^(general_to_force_own|character_to_force_own|agent_to_parent_army_own|faction_to_force_own)/;
-const LORD_SCOPE = /^(agent_to_parent_army_general_own|character_to_army_general_own)/;
+// force_to_force_own: plagas de Nurgle (el ejército infectado se bonifica a sí mismo)
+const ARMY_SCOPE = /^(general_to_force_own|character_to_force_own|agent_to_parent_army_own|faction_to_force_own|force_to_force_own)/;
+const LORD_SCOPE = /^(agent_to_parent_army_general_own|character_to_army_general_own|force_to_general_own)/;
 // Tecnologías: "a todos los personajes de la facción" (señores y héroes; a veces solo unos)
 const CHARS_SCOPE = /^faction_to_character_own/;
 const whoOf = (sc: string) => (/heroes_only|_agents/.test(sc) ? 'hero' : /lords_only|armytext/.test(sc) ? 'lord' : /wizard/.test(sc) ? 'wizard' : null);
@@ -265,8 +275,8 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       const st = UNITSET_STATS[r.bonus_value_id];
       if (st && tgt !== 'none') {
         out.push({ kind: 'battle', target: tgt, who, stat: st[0], value, pct: st[1], u: listed ? listId(members(r.unit_set)) : null, rank: rankOfSet(r.unit_set) });
-      } else if (r.bonus_value_id === 'unit_flaming_attack_mod' && tgt !== 'none') {
-        out.push({ kind: 'attribute', target: tgt, who, attribute: 'Ataques flamígeros', u: listed ? listId(members(r.unit_set)) : null });
+      } else if ((r.bonus_value_id === 'unit_flaming_attack_mod' || r.bonus_value_id === 'unit_is_magical') && tgt !== 'none') {
+        out.push({ kind: 'attribute', target: tgt, who, attribute: r.bonus_value_id === 'unit_is_magical' ? 'Ataques mágicos' : 'Ataques flamígeros', u: listed ? listId(members(r.unit_set)) : null });
       }
     }
     for (const r of bBasic.get(key) ?? []) {
@@ -613,6 +623,13 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     wh_dlc05_wef_wood_elves: 'Consejo de los Elfos', wh_dlc05_wef_argwylon: 'Congregación de los Antiguos',
     wh2_dlc16_wef_drycha: 'Hablantes de Drycha', wh2_dlc16_wef_sisters_of_twilight: 'Corte de las Hermanas del Crepúsculo',
   };
+  // Nombres de los cargos que el juego no trae en sus textos (Drycha y las Hermanas)
+  const COURT_POS_ES: Record<string, string> = {
+    drycha_speaker_lost: 'Hablante de los Perdidos', drycha_speaker_forgotten: 'Hablante de los Olvidados',
+    drycha_speaker_embittered: 'Hablante de los Resentidos', drycha_speaker_wild: 'Hablante de lo Salvaje',
+    sisters_consort_to_the_queen: 'Consorte de la Reina', sisters_darkweaver: 'Tejedor Oscuro', sisters_highweaver: 'Alto Tejedor',
+    sisters_isha: 'Sacerdote de Isha', sisters_kurnous: 'Sacerdote de Kurnous', sisters_loec: 'Sacerdote de Loec',
+  };
   const locAny = (k?: string | null) => (k && k !== 'placeholder'
     ? L(`campaign_localised_strings_string_${k}`) ?? L(`ui_text_replacements_localised_text_${k}`) ?? L(`random_localisation_strings_string_${k}`) ?? null
     : null);
@@ -626,15 +643,21 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     const item = (r: Row) => {
       const bs = [...new Set(bundlesOf(r.ministerial_position_key))];
       if (!bs.length) return null;
-      const n = locAny(r.localised_string_key) ?? L(`effect_bundles_localised_title_${bs[0]}`) ?? r.ministerial_position_key;
+      const e = bs.flatMap((b) => effRows(bundleEff.get(b) ?? [], 'effect_key'));
+      // Muchos cargos no tienen nombre en el texto del juego: nombre propio + el título que da el cargo
+      const title = e.map((x) => /t[ií]tulo:\s*"([^"]+)"/i.exec(x.d ?? '')?.[1]).find(Boolean);
+      const pos = String(r.ministerial_position_key);
+      let n = locAny(r.localised_string_key) ?? COURT_POS_ES[pos.replace(/^wh\d?_(main|dlc\d+)_minister_wef_/, '')] ?? L(`effect_bundles_localised_title_${bs[0]}`)
+        ?? (pos === 'faction_leader' ? 'Líder de la facción' : pos);
+      if (title && !n.includes(title)) n = `${n} («${title}»)`;
       const req = locAny(r.localised_description_key) ?? L(`effect_bundles_localised_description_${bs[0]}`) ?? undefined;
-      return strip({ k: `court:${fk}:${r.ministerial_position_key}`, n, req, e: bs.flatMap((b) => effRows(bundleEff.get(b) ?? [], 'effect_key')) });
+      return strip({ k: `court:${fk}:${r.ministerial_position_key}`, n, req: req && !/^\[HIDDEN\]$/.test(req) ? req : undefined, e });
     };
     const items = offices.sort((a, b) => (a.y_coordinate - b.y_coordinate) || (a.x_coordinate - b.x_coordinate)).map(item).filter(Boolean) as Row[];
     if (!items.length) continue;
     const leaderRow = rows.find((r) => r.ministerial_position_key === 'faction_leader');
     const leaderItem = leaderRow ? item(leaderRow) : null;
-    if (leaderItem) leaderItem.n = `Líder de la facción: ${leaderItem.n}`;
+    if (leaderItem && !/^Líder de la facción/.test(leaderItem.n)) leaderItem.n = `Líder de la facción: ${leaderItem.n}`;
     const forbidden = new Map(offices.map((r) => [`court:${fk}:${r.ministerial_position_key}`, new Set((courtForbidden.get(r.ministerial_position_key) ?? []).map((x) => x.agent_subtype as string))]));
     courts.push({
       fac: fk, sc: fac.get(fk)!.subculture, leaderItem, forbidden,
@@ -710,20 +733,37 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
 
   // ---------------- Da Plan (Gorbad) y Danza Eterna (Máscara de Slaanesh) ----------------
   const iniReq = group('initiative_unit_set_requirements_tables', 'initiative');
+  // Nombres de los conjuntos de unidades de Da Plan (el juego no los traduce: solo muestra el icono)
+  const USET_ES: Record<string, string> = {"grn_wolf_riders": "Jinetez de Lobo", "wh2_dlc11_grn_all_orc_infantry": "Infantería orca", "grn_archers": "Arqueros", "grn_infantry_goblin": "Infantería goblin", "grn_trolls_all": "Trolls", "grn_arachnarok": "Aracnarok", "grn_spider_riders": "Jinetez de Araña", "grn_characters": "Personajes", "grn_gorbad_ironclaw": "Gorbad Garra'ierro", "grn_waaagh_wyvern": "Serpiente Alada", "grn_black_orcs": "Orcos Negros", "mp_cap_unit_grn_inf_orc_boyz": "Guerreroz Orkoz", "grn_cav_orc": "Caballería orca", "grn_fanatics": "Fanáticos", "wh2_dlc15_grn_veh_snotling_pump_wagon_all": "Vagonetas Snotling", "grn_large_monsters": "Monstruos grandes", "grn_giants": "Gigantes", "mp_cap_unit_grn_mon_squig_herd": "Rebaño de Garrapatos", "mp_cap_unit_grn_art_doom_diver_catapult": "Katapultas de Goblins Voladorez", "mp_cap_unit_grn_cav_goblin_wolf_rider_archers": "Arqueros Jinetez de Lobo", "grn_river_trolls_and_hag": "Trolls de Río y Bruja", "grn_dlc06_night_goblins": "Goblins Nocturnos", "grn_dlc06_grn_inf_nasty_skukers": "Merodeadores odiosos", "grn_dlc06_squigs": "Garrapatos", "grn_cha_black_orc_big_boss": "Gran Jefe Orco Negro", "grn_poison": "Unidades venenosas", "grn_artillery": "Artillería", "wh2_dlc15_grn_mon_rogue_idol": "Ídolo Errático", "wh2_dlc11_grn_all_ranged_cavalry_chariots": "Caballería y carros a distancia", "grn_shaman": "Chamanes", "grn_cha_night_goblin_shaman": "Chamán Goblin Nocturno", "grn_night_goblin_archers": "Arqueros Goblins Nocturnos", "grn_mon_colossal_squig": "Garrapato Colosal", "grn_spear_infantry": "Infantería con lanzas", "mp_cap_unit_grn_inf_orc_arrer_boyz": "Arkeroz Orkoz", "grn_dlc06_savage_orc_infantry": "Orkoz Zalvajez"};
+
   const unitSetName = (k: string) => L(`unit_sets_localised_name_${k}`) ?? L(`unit_sets_onscreen_name_${k}`) ?? k.replace(/^(wh\d?_(main|dlc\d+)_)?(grn_)?/, '').replace(/_/g, ' ');
   const iniItemsOf = (set: string) => (iniSetItems.get(set) ?? []).map((it) => {
     const ini = iniBy.get(it.item);
     if (!ini) return null;
-    const req = (iniReq.get(it.item) ?? []).map((r) => `${r.required_number} × ${unitSetName(r.unit_set)}`);
+    const req = (iniReq.get(it.item) ?? []).map((r) => `${r.required_number} × ${USET_ES[r.unit_set] ?? unitSetName(r.unit_set)}`);
     return strip({
       k: it.item, n: L(`initiatives_localised_name_${it.item}`) ?? it.item.replace(/^.*_(da_plan|tempo_\d)_/, '').replace(/_/g, ' '),
       req: [req.length ? `Requiere en el ejército: ${req.join(', ')}` : '', L(`initiatives_localised_description_${it.item}`) ?? ''].filter(Boolean).join(' · ') || undefined,
       e: effRows(iniEff.get(ini.effects) ?? [], 'effect'),
     });
   }).filter(Boolean) as Row[];
+  const iconBase = (p: unknown) => (typeof p === 'string' && p ? p.replace(/\\/g, '/').split('/').pop()!.replace(/\.png$/i, '').toLowerCase() : undefined);
   const daPlan: Row[] = (() => {
     const items = iniItemsOf('wh3_dlc26_force_initiative_grn_da_plan');
-    return items.length ? [{ k: 'daplan:grn', cat: 'DA_PLAN', fac: 'wh3_dlc26_grn_gorbad_ironclaw', n: 'Da Plan: tácticas del ejército', max: 0, items }] : [];
+    if (!items.length) return [];
+    // Cada táctica pide unidades de ciertos conjuntos: se guardan los conjuntos (nombre, icono y unidades) una vez
+    const usets: Record<string, Row> = {};
+    for (const it of items) {
+      const ini = iniBy.get(it.k)!;
+      const reqs = iniReq.get(it.k) ?? [];
+      it.need = reqs.map((r) => ({ s: r.unit_set, n: r.required_number }));
+      for (const r of reqs) usets[r.unit_set] ??= strip({ n: USET_ES[r.unit_set] ?? unitSetName(r.unit_set), icon: iconBase(r.icon_path), units: members(r.unit_set) });
+      it.img = iconBase(ini.image_path);
+      it.tier = Number(/_(\d)$/.exec(it.k)?.[1] ?? 0) || undefined;
+      it.dur = ini.duration || undefined;
+      it.cd = ini.cooldown || undefined;
+    }
+    return [{ k: 'daplan:grn', cat: 'DA_PLAN', fac: 'wh3_dlc26_grn_gorbad_ironclaw', n: 'Da Plan: tácticas del ejército', max: 0, items, usets }];
   })();
   const DANCE_ES: Record<string, string> = { elves: 'Danza de la Envidia', final_battle: 'Danza del Orgullo', khorne: 'Danza del Exceso', nurgle: 'Danza de la Avaricia' };
   const dances: Row[] = [];
@@ -737,12 +777,235 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     ...(scs.includes('wh3_main_sc_sla_slaanesh') ? dances : []),
   ];
 
+  // ---------------- Forja de Daith (Heraldas de Ariel, Hermanas del Crepúsculo) ----------------
+  // Cada ritual DAITH_* forja un objeto (nivel 1) o lo mejora (2-4). Un conjunto por ranura; se elige objeto y nivel.
+  const ritualAnc = group('ritual_payload_ancillaries_tables', 'payload');
+  const ancRows = by('ancillaries_tables', 'key');
+  const forgeAncEff = group('ancillary_to_effects_tables', 'ancillary');
+  const FORGE_FAM: Record<string, string> = { dragon: 'del Dragón', dreaming: 'del Ensueño', eagle: 'del Águila', twilight: 'del Crepúsculo' };
+  const FORGE_OBJ: Record<string, string> = {
+    cuirass: 'Coraza', mask: 'Máscara', pendant: 'Colgante', spear: 'Lanza', boots: 'Botas', bow: 'Arco', cloak: 'Capa', ring: 'Anillo',
+    quiver: 'Carcaj', vambraces: 'Brazales', helm: 'Yelmo', horn: 'Cuerno', standard: 'Estandarte',
+  };
+  const FORGE_SLOT: Record<string, string> = { weapon: 'Arma', armour: 'Armadura', talisman: 'Talismán', enchanted_item: 'Objeto encantado', arcane_item: 'Objeto arcano' };
+  const ROMAN4 = ['I', 'II', 'III', 'IV'];
+  const forgeBySlot = new Map<string, Row[]>();
+  for (const r of T['rituals_tables'].filter((x) => /^DAITH_/.test(x.category ?? '')).sort((a, b) => String(a.key).localeCompare(String(b.key)))) {
+    const m = /_forge_([a-z]+)_([a-z]+)_level_(\d)$/.exec(r.key);
+    if (!m) continue;
+    for (const pa of ritualAnc.get(r.completion_payload) ?? []) {
+      const anc = ancRows.get(pa.ancillary);
+      if (!anc) continue;
+      const lvl = Number(m[3]);
+      const base = L(`ancillaries_onscreen_name_${anc.key}`) ?? `${FORGE_OBJ[m[2]] ?? m[2]} ${FORGE_FAM[m[1]] ?? m[1]}`;
+      const slot = anc.category as string;
+      forgeBySlot.set(slot, [...(forgeBySlot.get(slot) ?? []), strip({
+        k: anc.key, n: `${base}${/\b(I|II|III|IV)$/.test(base) ? '' : ` ${ROMAN4[lvl - 1] ?? lvl}`}`,
+        req: `Forja de Daith · nivel ${lvl}${lvl === 4 ? ' (reforjado)' : ''}`,
+        e: effRows(forgeAncEff.get(anc.key) ?? [], 'effect'),
+      })]);
+    }
+  }
+  const forgeSets: Row[] = [...forgeBySlot].map(([slot, items]) => ({
+    k: `forge:${slot}`, cat: 'FORGE', fac: 'wh2_dlc16_wef_sisters_of_twilight', n: `Forja de Daith · ${FORGE_SLOT[slot] ?? slot}`, max: 1, items,
+  }));
+  const forgeFor = (scs: string[]): Row[] => (scs.includes('wh_dlc05_sc_wef_wood_elves') ? forgeSets : []);
+
+  // ---------------- Más mecánicas de campaña (rituales, Caldero de Grom, plagas de Nurgle) ----------------
+  // Cada pieza: k, n (nombre), g/l (fila y etiqueta corta si va en filas por nivel), tier (sección), req, img (icono), e (efectos)
+  const payBundles = group('ritual_payload_effect_bundles_tables', 'payload');
+  const ritualEff = (r: Row) => {
+    const bs = [r.completion_payload, r.start_payload, r.self_payload].filter(Boolean)
+      .flatMap((p) => (payBundles.get(p) ?? []).map((b) => b.effect_bundle as string));
+    if (r.effects_while_performing) bs.push(r.effects_while_performing);
+    return [...new Set(bs)].flatMap((b) => effRows(bundleEff.get(b) ?? [], 'effect_key'));
+  };
+  const ritualDur = (r: Row) => Math.max(0, ...[r.completion_payload, r.start_payload].flatMap((p) => (payBundles.get(p) ?? []).map((b) => b.duration ?? 0)));
+  const pretty = (s: string) => s.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+  const ROMAN = ['0', 'I', 'II', 'III', 'IV', 'V'];
+  const ritualsOf = (cats: string[]) => T['rituals_tables'].filter((r) => cats.includes(r.category)).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || String(a.key).localeCompare(String(b.key)));
+  const ritualItem = (r: Row, extra: Row = {}) => strip({
+    k: r.key, n: L(`rituals_display_name_${r.key}`) ?? extra.n ?? pretty(String(r.key).replace(/^wh\d?_(main|dlc\d+)_(ritual_)?/, '')),
+    req: L(`rituals_description_${r.key}`) ?? undefined, img: iconBase(r.icon), e: ritualEff(r), dur: ritualDur(r) || undefined, ...extra,
+  });
+  const mech: { sets: Row[]; who: (sub: string, type: string, scs: string[]) => boolean }[] = [];
+  const isLord = (t: string) => t === 'general';
+
+  // Capa de Cráneos y Trono de Cráneos (Despojacráneos, Khorne)
+  {
+    const cloak = ritualsOf(['CLOAK_OF_SKULLS']).map((r) => {
+      const m = /_(\d+)_(\d)$/.exec(r.key)!;
+      return ritualItem(r, { g: `Cráneo ${m[1]}`, l: ROMAN[Number(m[2])], gi: Number(m[1]) });
+    }).sort((a, b) => a.gi - b.gi || String(a.k).localeCompare(String(b.k)));
+    for (const it of cloak) delete it.gi;
+    const throne = ritualsOf(['SKULLS_RITUAL']).map((r) => ritualItem(r, { tier: Number(/_(\d)_\d$/.exec(r.key)?.[1] ?? 0) || undefined }));
+    mech.push({
+      who: (sub, t, scs) => isLord(t) && scs.includes('wh3_main_sc_kho_khorne'),
+      sets: [
+        { k: 'mech:cloak_of_skulls', cat: 'CLOAK', fac: 'wh3_dlc26_kho_skulltaker', n: 'Capa de Cráneos', max: 0, rows: true, items: cloak },
+        { k: 'mech:skull_throne', cat: 'CLOAK', fac: 'wh3_dlc26_kho_skulltaker', n: 'Trono de Cráneos (rituales)', max: 0, items: throne },
+      ],
+    });
+  }
+  // Escuela de Artillería y Armería de Amatista (Elspeth, Wissenland y Nuln)
+  {
+    const school = ritualsOf(['DON_GUNNERY_SCHOOL']).map((r) => {
+      const m = /don_(.+)_(\d)$/.exec(r.key)!;
+      return ritualItem(r, { g: m[1], l: ROMAN[Number(m[2])] });
+    });
+    // El icono va solo en el nivel 1: se copia a los demás de la fila
+    const iconOfG = new Map(school.filter((i) => i.img).map((i) => [i.g, i.img]));
+    for (const i of school) i.img ??= iconOfG.get(i.g);
+    const armory = ritualsOf(['DON_AMETHYST_ARMORY_UNITS', 'DON_AMETHYST_ARMORY_ARTILLERY']).map((r) => ritualItem(r));
+    mech.push({
+      who: (sub, t, scs) => isLord(t) && scs.includes('wh_main_sc_emp_empire'),
+      sets: [
+        { k: 'mech:gunnery_school', cat: 'GUNNERY', fac: 'wh_main_emp_wissenland', n: 'Escuela de Artillería de Nuln', max: 0, rows: true, items: school },
+        { k: 'mech:amethyst_armory', cat: 'GUNNERY', fac: 'wh_main_emp_wissenland', n: 'Armería de Amatista', max: 0, items: armory },
+      ],
+    });
+  }
+  // Kislev: favores de la Corte de Hielo / la Gran Ortodoxia y rituales de la Madre Patria
+  {
+    const BOON_ES: Record<string, string> = { battle: 'Batalla', character: 'Personajes', global: 'Global', magic: 'Magia', economy: 'Economía', military: 'Militar', public_order: 'Orden público', recruitment: 'Reclutamiento', diplomacy: 'Diplomacia' };
+    const boons = (cat: string) => ritualsOf([cat]).map((r) => {
+      const m = /_([a-z]+)_(\d)_(\d)$/.exec(r.key);
+      return ritualItem(r, m ? { g: `${BOON_ES[m[1]] ?? pretty(m[1])} ${m[2]}`, l: ROMAN[Number(m[3])] } : {});
+    });
+    const GOD_KSL: Record<string, string> = { dazh: 'Dazh', salyak: 'Salyak', tor: 'Tor', ursun: 'Ursun' };
+    const KIND_KSL: Record<string, string> = { '': 'Ritual', upgraded: 'Mejorado', force: 'Ejército', province: 'Provincia' };
+    const motherland = ritualsOf(['MOTHERLAND_RITUAL', 'MOTHERLAND_RITUAL_FORCE', 'MOTHERLAND_RITUAL_PROVINCE']).map((r) => {
+      const m = /winter_([a-z]+)(?:_(upgraded|force|province))?$/.exec(r.key);
+      return ritualItem(r, m ? { g: GOD_KSL[m[1]] ?? m[1], l: KIND_KSL[m[2] ?? ''] } : {});
+    });
+    mech.push({
+      who: (sub, t, scs) => isLord(t) && scs.includes('wh3_main_sc_ksl_kislev'),
+      sets: [
+        { k: 'mech:ice_court', cat: 'KISLEV', fac: 'wh3_main_ksl_the_ice_court', n: 'Favores de la Corte de Hielo', max: 0, rows: true, items: boons('KISLEV_ICE_COURT_BOON') },
+        { k: 'mech:orthodoxy', cat: 'KISLEV', fac: 'wh3_main_ksl_the_great_orthodoxy', n: 'Favores de la Gran Ortodoxia', max: 0, rows: true, items: boons('KISLEV_ORTHODOXY_BOON') },
+        { k: 'mech:motherland', cat: 'KISLEV', n: 'Rituales de la Madre Patria', max: 0, rows: true, items: motherland },
+      ],
+    });
+  }
+  // Forja Infernal (Enanos del Caos): rituales que suben el máximo de unidades por tipo
+  {
+    const HF_ES: Record<string, string> = {
+      HELLFORGE_CAPS_FLYING_BEASTS: 'Bestias y monstruos', HELLFORGE_CAPS_BULL_CENTAURS: 'Centauros Toro', HELLFORGE_CAPS_MISSILE_INFANTRY: 'Infantería a distancia',
+      HELLFORGE_CAPS_MELEE_INFANTRY: 'Infantería cuerpo a cuerpo', HELLFORGE_CAPS_WARMACHINES: 'Máquinas de guerra', HELLFORGE_CAPS_KDAAI: "K'daai",
+    };
+    const cats = Object.keys(HF_ES);
+    const items = ritualsOf(cats).map((r) => ritualItem(r, {
+      tier: cats.indexOf(r.category) + 1, sec: HF_ES[r.category],
+      n: L(`rituals_display_name_${r.key}`) ?? pretty(String(r.key).replace(/^.*unit_cap_/, '')),
+      req: 'Sube en 1 el máximo de esta unidad en tus ejércitos (Forja Infernal).',
+    }));
+    mech.push({
+      who: (sub, t, scs) => isLord(t) && scs.includes('wh3_dlc23_sc_chd_chaos_dwarfs'),
+      sets: [{ k: 'mech:hellforge', cat: 'HELLFORGE', n: 'Forja Infernal: límites de unidades', max: 0, items, secs: Object.values(HF_ES) }],
+    });
+  }
+  // Rituales de los Glottkin (Nurgle)
+  {
+    const GL_ES: Record<string, string> = { garden_cycle: 'Ciclo del Jardín', gifted_unit: 'Unidad bendecida', rains: 'Lluvias pestilentes', transported_army: 'Ejército transportado', xp: 'Experiencia' };
+    const items = ritualsOf(['GLOTTKIN_ROTBORNE_RITUALS']).map((r) => {
+      const m = /glottkin_([a-z_]+?)_(no_upgrade|upgrade_(\d))$/.exec(r.key);
+      return ritualItem(r, m ? { g: GL_ES[m[1]] ?? pretty(m[1]), l: m[3] ? `+${m[3]}` : 'Base' } : {});
+    });
+    mech.push({
+      who: (sub) => sub === 'wh3_dlc29_chs_glottkin',
+      sets: [{ k: 'mech:glottkin', cat: 'GLOTTKIN', n: 'Rituales Podridos de los Glottkin', max: 0, rows: true, items }],
+    });
+  }
+  // Caldero de Grom: platos (efectos para Grom) e ingredientes (efectos de facción)
+  {
+    const recipes = T['cooking_recipes_tables'].filter((r) => /^wh2_dlc15_food_/.test(r.key));
+    const reqG = group('cooking_recipe_required_ingredient_groups_tables', 'recipe');
+    const reqI = group('cooking_recipe_required_ingredients_tables', 'recipe');
+    const ING_G: Record<string, string> = {
+      wh2_dlc15_animals: 'Animales', wh2_dlc15_birds: 'Aves', wh2_dlc15_slimes: 'Babas', wh2_dlc15_mushrooms: 'Hongos', wh2_dlc15_bugs: 'Bichos',
+      wh2_dlc15_magic: 'Mágicos', wh2_dlc15_meat: 'Carne', wh2_dlc15_fish: 'Pescado', wh2_dlc15_humanoids: 'Humanoides', wh2_dlc15_plants: 'Plantas', wh2_dlc15_special: 'Especiales',
+    };
+    const ingName = (k: string) => L(`cooking_ingredients_name_${k}`) ?? pretty(k.replace(/^wh2_dlc15_/, ''));
+    const dishes = recipes.map((r) => strip({
+      k: r.key, n: L(`cooking_recipes_name_${r.key}`) ?? pretty(iconBase(r.icon)?.replace(/^grom_recipes_/, '') ?? r.key),
+      req: [...(reqG.get(r.key) ?? []).map((x) => ING_G[x.ingredient_group] ?? L(`cooking_ingredient_groups_name_${x.ingredient_group}`) ?? x.ingredient_group),
+        ...(reqI.get(r.key) ?? []).map((x) => ingName(x.ingredient))].join(' + ') || undefined,
+      img: iconBase(r.icon), tier: /special/.test(r.key) ? 2 : 1,
+      e: [r.faction_leader_effects, r.faction_effects].filter(Boolean).flatMap((b) => effRows(iniEff.get(b) ?? [], 'effect')),
+    }));
+    const ings = T['cooking_ingredients_tables'].filter((r) => /^wh2_dlc15_/.test(r.key)).map((r) => strip({
+      k: r.key, n: ingName(r.key), img: iconBase(r.icon), sec: ING_G[r.group] ?? r.group,
+      e: [r.faction_leader_effects, r.faction_effects].filter(Boolean).flatMap((b) => effRows(iniEff.get(b) ?? [], 'effect')),
+    })).sort((a, b) => String(a.sec).localeCompare(String(b.sec)));
+    const secs = [...new Set(ings.map((i) => i.sec as string))];
+    for (const i of ings) i.tier = secs.indexOf(i.sec) + 1;
+    mech.push({
+      who: (sub) => sub === 'wh2_dlc15_grn_grom_the_paunch',
+      sets: [
+        { k: 'mech:grom_dishes', cat: 'COOKING', n: 'Caldero de Grom: platos', max: 1, items: dishes, secs: ['Platos', 'Platos especiales'] },
+        { k: 'mech:grom_ingredients', cat: 'COOKING', n: 'Caldero de Grom: ingredientes', max: 4, items: ings, secs },
+      ],
+    });
+  }
+  // Plagas de Nurgle: síntomas de batalla y de ejército (efecto en tu ejército infectado, normal o bendito)
+  {
+    const pes = by('plague_effect_setups_tables', 'key'), pe = by('plague_effects_tables', 'key');
+    const comps = T['plague_components_tables'].filter((r) => /^wh3_dlc25_nur_(battle|force)_\d+$/.test(r.key));
+    const items: Row[] = [];
+    for (const c of comps) {
+      const fx = pe.get(pes.get(c.key)?.force_effects ?? '');
+      if (!fx) continue;
+      const name = L(`plague_components_name_${c.key}`) ?? L(`plague_components_localised_name_${c.key}`) ?? `Síntoma ${/battle/.test(c.key) ? 'de batalla' : 'de ejército'} ${c.key.split('_').pop()}`;
+      for (const [b, l] of [[fx.positive_effect_for_factions, 'Normal'], [fx.positive_blessed_effect_for_factions, 'Bendita']] as [string, string][]) {
+        if (!b) continue;
+        items.push(strip({ k: `${c.key}:${l === 'Bendita' ? 'b' : 'n'}`, n: `${name} (${l.toLowerCase()})`, g: name, l, img: iconBase(c.image_path), e: effRows(bundleEff.get(b) ?? [], 'effect_key') }));
+      }
+    }
+    mech.push({
+      who: (sub, t, scs) => isLord(t) && scs.includes('wh3_main_sc_nur_nurgle'),
+      sets: [{ k: 'mech:nurgle_plague', cat: 'PLAGUE', n: 'Plagas de Nurgle: síntomas', max: 3, rows: true, items }],
+    });
+  }
+  const mechFor = (sub: string, type: string, scs: string[]): Row[] => mech.filter((m) => m.who(sub, type, scs)).flatMap((m) => m.sets).filter((s) => s.items.length);
+
   /** Cortes a las que puede pertenecer un personaje: de su subcultura, sin los cargos que el juego le prohíbe */
   const courtsFor = (sub: string, scs: string[]): Row[] => courts.filter((c) => scs.includes(c.sc)).map((c) => {
     const items = c.set.items.filter((i: Row) => !c.forbidden.get(i.k)?.has(sub));
     if (c.leaderItem && leaderSub.get(c.fac) === sub) items.unshift(c.leaderItem);
     return items.length ? { ...c.set, items } : null;
   }).filter(Boolean) as Row[];
+
+  // ---------------- Acciones de héroe "Ayudar al ejército" (Instrucción, Formación de asalto, Guardia mortífera...) ----------------
+  // La habilidad desbloquea la acción (bonus "active"); la acción da efectos al ejército del héroe (resultados "generic_bonus_value")
+  // y otras habilidades suben su valor (value_addition). El héroe elige una acción a la vez.
+  const actEnable = group('effect_bonus_value_agent_action_record_junctions_tables', 'effect');
+  const actBy = by('agent_actions_tables', 'unique_id');
+  const outByRes = group('action_results_additional_outcomes_tables', 'action_result_key');
+  const outBuff = T['effect_bonus_value_id_action_results_additional_outcomes_junctions_tables'].filter((r) => /value_addition/.test(r.bonus_value_id));
+  const buffOut = new Map(outBuff.map((r) => [r.effect as string, r.action_results_additional_outcome_record as string]));
+  const heroActions: Record<string, Row> = {};
+  const actionOfEffect = new Map<string, string>();
+  for (const [eff, rows] of actEnable) for (const r of rows) {
+    if (r.bonus_value_id !== 'active') continue;
+    const a = actBy.get(r.agent_action_record);
+    if (!a || a.ability !== 'assist_army') continue;
+    actionOfEffect.set(eff, a.unique_id);
+    if (heroActions[a.unique_id]) { heroActions[a.unique_id].en.push(eff); continue; }
+    const outs = (outByRes.get(a.cannot_fail) ?? outByRes.get(a.success) ?? []).filter((o) => o.outcome === 'generic_bonus_value' && o.effect_record);
+    heroActions[a.unique_id] = strip({
+      n: L(`agent_actions_localised_action_name_${a.unique_id}`) ?? (/\{\{tr:/.test(a.localised_action_name ?? '') ? null : a.localised_action_name) ?? pretty(String(a.unique_id).replace(/^.*agent_action_/, '')),
+      img: iconBase(a.icon_path), en: [eff],
+      out: outs.map((o) => strip({ k: o.key, v: o.value, d: effectText(o.effect_record, o.value, o.effect_scope_record) || undefined, e: o.effect_record, s: parts(o.effect_record, o.value, o.effect_scope_record) })),
+    });
+  }
+  // Mejoras por nivel de habilidad: { habilidad, nivel, resultado, valor }
+  for (const [sk, rows] of lvlEff) for (const r of rows) {
+    const out = buffOut.get(r.effect_key);
+    if (!out) continue;
+    const act = Object.entries(heroActions).find(([, a]) => a.out.some((o: Row) => o.k === out));
+    if (act) (act[1].buffs ??= []).push({ sk, lv: r.level, o: out, v: r.value });
+  }
+  const actionsOfNodes = (ns: Row[]) => [...new Set(ns.flatMap((n) => (lvlEff.get(n.s) ?? []).map((r) => actionOfEffect.get(r.effect_key)).filter(Boolean)))] as string[];
 
   const characters: Row[] = [];
   for (const s of T['character_skill_node_sets_tables']) {
@@ -798,9 +1061,10 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       subcultures: scs, home: homeSc(unit, scs), nodes: outNodes, bg, stats: charStats(unit), mounts: Object.keys(mounts).length ? mounts : null,
       items: legendary && itemsFor(s.agent_subtype_key).length ? itemsFor(s.agent_subtype_key) : null,
       armory: armoryFor(s.agent_subtype_key),
+      acts: s.agent_key !== 'general' && actionsOfNodes([...outNodes, ...bg]).length ? actionsOfNodes([...outNodes, ...bg]) : null,
       spellSlots: spellSlotsFor([...outNodes, ...bg].map((n) => n.s)),
       initiatives: (() => {
-        const all = [...(charInitBySub.get(s.agent_subtype_key) ?? []), ...courtsFor(s.agent_subtype_key, scs), ...patronageFor(s.agent_key, scs), ...gloryFor(scs), ...forceInitFor(s.agent_key, scs)];
+        const all = [...(charInitBySub.get(s.agent_subtype_key) ?? []), ...courtsFor(s.agent_subtype_key, scs), ...patronageFor(s.agent_key, scs), ...gloryFor(scs), ...forceInitFor(s.agent_key, scs), ...forgeFor(scs), ...mechFor(s.agent_subtype_key, s.agent_key, scs)];
         return all.length ? all : null;
       })(),
     }));
@@ -932,9 +1196,50 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     });
   }
 
+  // ---------------- Mejoras de unidad (unit purchasable effects) ----------------
+  const UPG_CAT_ES: Record<string, string> = {
+    birch_aspect: 'Aspecto del Abedul', oak_aspect: 'Aspecto del Roble', willow_aspect: 'Aspecto del Sauce',
+    weapon: 'Arma', armour: 'Armadura', mount: 'Montura', bag: 'Bolsa', flask: 'Frasco', arrow: 'Flechas',
+    breed: 'Cría', gene: 'Gen', augment: 'Aumento', meta: 'Meta', Instability: 'Inestabilidad', offensive: 'Ofensiva', defensive: 'Defensiva', wild: 'Salvaje',
+  };
+  const upgBy = by('unit_purchasable_effects_tables', 'key');
+  const upgBans = group('faction_banned_unit_purchasable_effects_tables', 'unit_purchasable_effect');
+  const unitUpgrades: Record<string, Row[]> = {};
+  for (const s of T['unit_purchasable_effect_sets_tables']) {
+    const up = upgBy.get(s.purchasable_effect);
+    if (!up) continue;
+    const title = L(`unit_purchasable_effects_onscreen_name_${up.key}`) ?? L(`effect_bundles_localised_title_${up.effect_bundle}`) ?? up.key;
+    (unitUpgrades[s.unit] ??= []).push(strip({
+      k: up.key, cat: up.category, catN: L(`unit_purchasable_effects_categories_onscreen_name_${up.category}`) ?? UPG_CAT_ES[up.category] ?? up.category,
+      n: title, x: s.is_exclusive || null, ban: (upgBans.get(up.key) ?? []).map((b) => b.faction) , e: effRows(bundleEff.get(up.effect_bundle) ?? [], 'effect_key'),
+    }));
+  }
+  for (const list of Object.values(unitUpgrades)) for (const r of list) if (!r.ban.length) delete r.ban;
+
+  // Habilidades propias de cada unidad (para explicar qué hacen en su ficha) y descripción de cada atributo
+  const unitAbilities: Record<string, string[]> = {};
+  for (const m of T['main_units_tables']) {
+    const Lu = lu.get(m.land_unit);
+    const ks = Lu ? (luAbil.get(Lu.key) ?? []).map((a) => a.ability as string).filter((k) => ua.has(k) && !ua.get(k)!.is_hidden_in_ui) : [];
+    if (!ks.length) continue;
+    ks.forEach(ability);
+    unitAbilities[m.unit] = ks;
+  }
+  const attrDesc: Record<string, string> = {};
+  for (const rows of attrGroups.values()) for (const r of rows) {
+    const t = resolve(sp.get(`unit_attributes_bullet_text_${r.attribute}`) ?? '');
+    const [n, ...d] = t.split('||');
+    const desc = clean(d.join(' '));
+    if (n?.trim() && desc) attrDesc[n.trim()] ??= desc;
+  }
+
   const subs = [...new Set(characters.flatMap((c) => c.subcultures as string[]))].sort()
     .map((k) => ({ key: k, name: L(`cultures_subcultures_name_${k}`) ?? k }));
+  // Solo las acciones que tiene algún personaje
+  const usedActs = new Set(characters.flatMap((c) => (c.acts ?? []) as string[]));
+  for (const k of Object.keys(heroActions)) if (!usedActs.has(k)) delete heroActions[k];
   return {
+    unitUpgrades, unitAbilities, attrDesc, heroActions,
     source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', format: 2,
     subcultures: subs, characters, skills: skillsOut, abilities, unitLists, locks, techTrees, techs, ancillaries, itemSets, graphs,
     // Solo las restricciones que usan las habilidades extraídas

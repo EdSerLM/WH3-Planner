@@ -1,13 +1,14 @@
 import { fmtStat, statDiff } from '../statFormat';
-import { useMemo, useState } from 'react';
-import { unitRank, type ArmyUnitSelection, type CampaignFaction, type ComputedCard, type StatKey, type UnitData } from '../types';
+import { useEffect, useMemo, useState } from 'react';
+import { api } from '../api';
+import { unitRank, type AbilityInfo, type ArmyUnitSelection, type CampaignFaction, type ComputedCard, type StatKey, type UnitData } from '../types';
 import type { RosterBuffs } from '../App';
 import { campaignUnits } from '../campaign';
 import { groupIndex, groupInfo } from '../unitGroups';
 import { BuffMark, SpecialTags } from './ArmyPanel';
 import { UnitIcon } from './UnitIcon';
 import { attrIcon } from '../attrIcons';
-import { AttrImg, GroupIcon, OfficialImg, StatImg, useAttrIndex } from '../gameIcons';
+import { AbilityImg, AttrImg, GroupIcon, OfficialImg, StatImg, useAttrIndex } from '../gameIcons';
 
 // Icono genérico: el del juego (extractor) o, si no viene, según el grupo
 const ICON_BY_GROUP: Record<string, string> = {
@@ -193,8 +194,16 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
   const removeOne = (card: string) =>
     onChange(army.flatMap((a) => (a.card !== card ? [a] : a.count > 1 ? [{ ...a, count: a.count - 1 }] : [])));
   const removeAll = (card: string) => onChange(army.filter((a) => a.card !== card));
-  const setRank = (card: string, rank: number) => onChange(army.map((a) => (a.card === card ? { card: a.card, count: a.count, rank } : a)));
-  const setAllRanks = (rank: number) => onChange(army.map((a) => ({ card: a.card, count: a.count, rank })));
+  const setRank = (card: string, rank: number) => onChange(army.map((a) => (a.card === card ? { ...a, rank7: undefined, rank } : a)));
+  const setAllRanks = (rank: number) => onChange(army.map((a) => ({ ...a, rank7: undefined, rank })));
+  /** Mejora de unidad de un grupo (los aspectos de Dríades/Árboles se excluyen entre sí; en lo demás, una por categoría) */
+  const upgradeGroup = (cat: string) => (cat.endsWith('_aspect') ? 'aspect' : cat);
+  const setUpgrade = (card: string, group: string, key: string) => onChange(army.map((a) => {
+    if (a.card !== card) return a;
+    const opts = byCard.get(card)?.upgrades ?? [];
+    const keep = (a.upgrades ?? []).filter((k) => upgradeGroup(opts.find((o) => o.key === k)?.category ?? '') !== group);
+    return { ...a, upgrades: key ? [...keep, key] : keep };
+  }));
 
   const chars = cards.filter((c) => c.kind !== 'unit');
   const unitCard = (id: string) => cards.find((c) => c.kind === 'unit' && c.id === id);
@@ -270,6 +279,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
               <span className="ut-marks">
                 {buffs[sel.card]?.now.length ? <span className="bm-now">▲{buffs[sel.card].now.length}</span> : null}
                 {r > 0 && <span className="ut-rank">R{r}</span>}
+                {(sel.upgrades?.length ?? 0) > 0 && <span className="ut-rank" title={`Mejoras: ${sel.upgrades!.map((k) => u?.upgrades?.find((o) => o.key === k)?.name ?? k).join(', ')}`}>✦{sel.upgrades!.length}</span>}
               </span>
             </button>
           );
@@ -293,6 +303,26 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
               {RANKS.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
+          {(() => {
+            // Mejoras de campaña (aspectos del Abedul/Roble/Sauce de Drycha y Durthu, mejoras de Ogros, genes de Moulder...)
+            const opts = (byCard.get(selUnit.card)?.upgrades ?? []).filter((o) => !campaign || !o.banned?.includes(campaign.key));
+            if (!opts.length) return null;
+            const groups = [...new Map(opts.map((o) => [upgradeGroup(o.category), o.category.endsWith('_aspect') ? 'Aspecto' : o.categoryName])).entries()];
+            return groups.map(([g, label]) => {
+              const cur = (selUnit.upgrades ?? []).find((k) => upgradeGroup(opts.find((o) => o.key === k)?.category ?? '') === g) ?? '';
+              return (
+                <label key={g} className="upg-pick" title="Mejora de unidad comprada en campaña">
+                  {label}{' '}
+                  <select value={cur} onChange={(e) => setUpgrade(selUnit.card, g, e.target.value)}>
+                    <option value="">—</option>
+                    {opts.filter((o) => upgradeGroup(o.category) === g).map((o) => (
+                      <option key={o.key} value={o.key} title={o.texts.join('\n')}>{o.name}</option>
+                    ))}
+                  </select>
+                </label>
+              );
+            });
+          })()}
           <button className="ghost danger" onClick={() => { removeAll(selUnit.card); setSelected(null); }}>Quitar todas</button>
           {campaign && byCard.get(selUnit.card) && allowed && !allowed.has(selUnit.card) && (
             <span className="camp-warn">⚠ {campaign.name} no puede tener esta unidad</span>
@@ -566,6 +596,7 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building, ga
   focus: Focus; unit?: UnitData; card?: ComputedCard; inArmy: boolean; buffs?: RosterBuffs[string]; upgradeRank?: number; building?: string[]; gain?: Gain;
 }) {
   const attrIdx = useAttrIndex();
+  const info = useUnitAbilities(unit?.key, (card ? card.attributes.map((a) => a.name) : unit?.attrs) ?? []);
   if (!focus || (!unit && !card)) {
     return (
       <aside className="infopanel">
@@ -684,7 +715,33 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building, ga
           <div className="ip-sub">Habilidades pasivas</div>
           <ul className="ip-attrs">
             {attrs.map((a, i) => (
-              <li key={i} className={a.from ? 'buff' : ''} title={a.from ? `Por ${a.from}` : 'Propio de la unidad'}><span className="ip-ai"><AttrImg name={a.name} idx={attrIdx} size={14} /></span>{a.name}{a.from ? ' ▲' : ''}</li>
+              <li key={i} className={a.from ? 'buff' : ''} title={a.from ? `Por ${a.from}` : 'Propio de la unidad'}>
+                <span className="ip-ai"><AttrImg name={a.name} idx={attrIdx} size={14} /></span>{a.name}{a.from ? ' ▲' : ''}
+                {info.attrs[a.name] && <div className="ip-attr-desc">{info.attrs[a.name]}</div>}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {info.abilities.length > 0 && (
+        <>
+          <div className="ip-sub">Qué hacen sus habilidades</div>
+          <ul className="ip-abil">
+            {info.abilities.map((ab) => (
+              <li key={ab.key}>
+                <div className="ip-abil-head">
+                  <AbilityImg icon={ab.icon} size={22} />
+                  <b>{ab.name}</b>
+                  <span className="muted small">{abilityMeta(ab)}</span>
+                </div>
+                <ul>
+                  {ab.stats.map((s, i) => <li key={i}>{s.d}</li>)}
+                  {ab.attributes.map((x) => <li key={x}>Otorga: {x}{info.attrs[x] ? <span className="muted"> — {info.attrs[x]}</span> : null}</li>)}
+                  {ab.magicalAttacks && <li>Ataques mágicos</li>}
+                  {ab.flamingAttacks && <li>Ataques flamígeros</li>}
+                  {!ab.stats.length && !ab.attributes.length && <li className="muted">Efecto especial (sin cambios de stats que el juego detalle)</li>}
+                </ul>
+              </li>
             ))}
           </ul>
         </>
@@ -711,4 +768,27 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building, ga
       {unit?.desc && <p className="ip-desc">{unit.desc}</p>}
     </aside>
   );
+}
+
+const MODE_ES: Record<AbilityInfo['mode'], string> = { self: 'a sí misma', allies: 'a aliados', enemies: 'a enemigos', none: '' };
+/** Tipo, si es pasiva o cuánto dura, recarga y alcance */
+function abilityMeta(a: AbilityInfo) {
+  return [
+    a.type, a.passive ? 'pasiva' : a.duration > 0 ? `${a.duration} s` : '', MODE_ES[a.mode],
+    !a.passive && a.cooldown && a.cooldown > 0 ? `recarga ${a.cooldown} s` : '', a.range ? `alcance ${a.range}` : '', a.mana ? `${a.mana} maná` : '',
+  ].filter(Boolean).join(' · ');
+}
+
+const abilCache = new Map<string, { abilities: AbilityInfo[]; attrs: Record<string, string> }>();
+/** Habilidades y descripción de atributos de la unidad de la ficha (se piden al backend y se guardan) */
+function useUnitAbilities(unitKey: string | undefined, names: string[]) {
+  const id = unitKey ? `${unitKey}#${[...names].sort().join('|')}` : '';
+  const [, force] = useState(0);
+  useEffect(() => {
+    if (!id || abilCache.has(id)) return;
+    let alive = true;
+    api.unitAbilities(unitKey!, names).then((r) => { abilCache.set(id, r); if (alive) force((n) => n + 1); }).catch(() => {});
+    return () => { alive = false; };
+  }, [id]);
+  return abilCache.get(id) ?? { abilities: [], attrs: {} };
 }

@@ -1,6 +1,13 @@
-import type { TechTreeData, TechTreeSummary, ArmyState, CampaignFaction, GraphData, TechSummaryData, CharacterSummary, CharacterTree, ComputeResult, DpsRow, Meta, SavedBuild, UnitData } from './types';
+import type { AbilityInfo, TechTreeData, TechTreeSummary, ArmyState, CampaignFaction, GraphData, TechSummaryData, CharacterSummary, CharacterTree, ComputeResult, DpsRow, Meta, SavedBuild, UnitData } from './types';
+
+// Web estática (celular, GitHub Pages): no hay servidor, el backend corre en el navegador con los mismos datos
+const STATIC = import.meta.env.VITE_STATIC === '1';
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  if (STATIC) {
+    const { handle } = await import('@local');
+    return (await handle(init?.method ?? 'GET', path, init?.body ? JSON.parse(String(init.body)) : undefined)) as T;
+  }
   const r = await fetch(path, { headers: { 'content-type': 'application/json' }, ...init });
   if (!r.ok) {
     const body = await r.json().catch(() => ({}));
@@ -14,6 +21,8 @@ export const api = {
   characterFactions: () => req<{ default: string; factions: { key: string; name: string; flag?: string }[] }>('/api/character-factions'),
   characters: (faction?: string) => req<CharacterSummary[]>(`/api/characters${faction ? `?faction=${encodeURIComponent(faction)}` : ''}`),
   character: (key: string) => req<CharacterTree>(`/api/characters/${encodeURIComponent(key)}`),
+  unitAbilities: (unit: string, names: string[]) =>
+    req<{ abilities: AbilityInfo[]; attrs: Record<string, string> }>(`/api/unit-abilities?unit=${encodeURIComponent(unit)}&names=${encodeURIComponent(names.join('|'))}`),
   units: (faction?: string) => req<UnitData[]>(`/api/units${faction ? `?faction=${encodeURIComponent(faction)}` : ''}`),
   campaign: (faction: string) => req<CampaignFaction[]>(`/api/campaign?faction=${encodeURIComponent(faction)}`),
   compute: (army: ArmyState) => req<ComputeResult>('/api/compute', { method: 'POST', body: JSON.stringify(army) }),
