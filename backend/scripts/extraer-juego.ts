@@ -204,6 +204,8 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     // Campaña: qué puede reclutar cada facción (grupo militar + exclusivas) y quién la lidera
     'units_to_groupings_military_permissions_tables', 'units_to_exclusive_faction_permissions_tables',
     'frontend_factions_tables', 'frontend_faction_leaders_tables', 'ui_unit_groupings_tables',
+    // Facciones jugables de Imperios Inmortales (campaña wh3_main_combi): el planner solo muestra esas
+    'start_pos_factions_tables',
     // Artillería: el arma de proyectil está en la pieza (cañón, mortero, batería), no en la tripulación
     'battlefield_engines_tables', 'land_unit_articulated_vehicles_tables',
     // Puntos fuertes / débiles que el juego muestra en la carta de la unidad ("Blindada y con escudo", "Anti-grandes"...)
@@ -303,10 +305,12 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
   };
   const subFactions = new Map<string, Set<string>>();
   for (const f of T['factions_tables']) subFactions.set(f.subculture, (subFactions.get(f.subculture) ?? new Set()).add(f.key));
+  const ieFactions = new Set<string>(T['start_pos_factions_tables'].filter((r) => r.campaign === 'wh3_main_combi' && r.playable).map((r) => r.faction as string));
   const campaign: { key: string; name: string; subculture: string; flagPath?: string | null; leaders: string[]; units: string[]; upgrades: Record<string, number>; buildings: Record<string, string[]> }[] = [];
   for (const ff of T['frontend_factions_tables']) {
     const f = fac.get(ff.faction);
     if (!f || f.is_quest_faction || f.is_rebel) continue;
+    if (ieFactions.size && !ieFactions.has(f.key)) continue;
     const list = new Set<string>();
     const poolOnlyOk = (u: string) => { const fs = poolOnly.get(u); return !fs || fs.has(f.key); };
     // Exclusivas: si la unidad tiene facciones con allowed = true, solo esas la tienen; allowed = false la prohíbe
@@ -415,7 +419,9 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
   }
   const subs = [...new Set(units.flatMap((u) => u.subcultures))].map((k) => ({ key: k, name: sp.get(`cultures_subcultures_name_${k}`) ?? k, flag: (campaign.find((c) => c.key === k.replace('_sc_', '_') && c.flagPath) ?? campaign.find((c) => c.subculture === k && c.flagPath))?.key }))
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
-  return { source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', subcultures: subs, units, campaign, bulletDefs, groupIcons, experience: readExperience(p) };
+  // Razas jugables en Imperios Inmortales (sin las del prólogo ni las que solo existen para batalla personalizada)
+  const ieSubcultures = [...new Set([...ieFactions].map((k) => fac.get(k)?.subculture).filter(Boolean))].sort();
+  return { source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', subcultures: subs, ieSubcultures, units, campaign, bulletDefs, groupIcons, experience: readExperience(p) };
 }
 
 /**
@@ -793,6 +799,11 @@ const abilityDir = join(FRONTEND, 'public/abilities'), attrDir = join(FRONTEND, 
 // Iconos oficiales de categoría de unidad y de stats (sustituyen a los SVG y emojis genéricos de la app)
 const unitCatDir = join(FRONTEND, 'public/unitcat'), statDir = join(FRONTEND, 'public/stats');
 for (const d of [abilityDir, attrDir, flagDir, unitCatDir, statDir]) mkdirSync(d, { recursive: true });
+// Dones del Príncipe Demonio y ofrendas de la Gloria demoníaca: cualquier .png de interfaz con el nombre del don, e iconos de paquetes de efectos
+const armoryDir = join(FRONTEND, 'public/armory'), bundleDir = join(FRONTEND, 'public/bundles');
+for (const d of [armoryDir, bundleDir]) mkdirSync(d, { recursive: true });
+const wantedArmory = new Set<string>((allSkills?.characters ?? []).flatMap((c: any) => (c.armory?.items ?? []).map((i: any) => String(i.k).toLowerCase())));
+const wantedBundleIcons = new Set<string>((allSkills?.characters ?? []).flatMap((c: any) => (c.initiatives ?? []).flatMap((s: any) => (s.track ?? []).map((t: any) => t.icon).filter(Boolean))));
 const wantedAbilityIcons = new Set<string>(Object.values<any>(allSkills?.abilities ?? {}).map((a) => String(a.img ?? '').toLowerCase()).filter(Boolean));
 const attrKeys = new Set([...attrKeyByName.values()].map((k) => k.toLowerCase()));
 const attrFound = new Set<string>(), attrFromBundle = new Set<string>();
@@ -814,6 +825,11 @@ for (const f of packs) {
       writeFileSync(join(cardDir, `${c[1]}.png`), readEntry(p, e));
       cards++;
       continue;
+    }
+    if (name.startsWith('ui/') && name.endsWith('.png')) {
+      const base = name.slice(name.lastIndexOf('/') + 1, -4);
+      if (wantedArmory.has(base)) writeFileSync(join(armoryDir, `${base}.png`), readEntry(p, e));
+      if (name.startsWith('ui/campaign ui/effect_bundles/') && wantedBundleIcons.has(base)) writeFileSync(join(bundleDir, `${base}.png`), readEntry(p, e));
     }
     if (portraitFiles.has(name)) { writeFileSync(join(cardDir, `${portraitFiles.get(name)}.png`), readEntry(p, e)); continue; }
     if (name.startsWith('ui/portraits/') && /\.png$/.test(name)) uiIndex.push(`${f}\t${name}`);
@@ -861,6 +877,7 @@ if (allUnitsOut) {
   writeFileSync(join(BACKEND, 'data/raw/wh3_all_units.json'), JSON.stringify(allUnitsOut));
   console.log(`Cartas de respaldo: ${fixed} unidades usan retrato o carta de su unidad base; ${still} siguen sin arte`);
 }
+console.log(`Iconos de dones: ${readdirSync(armoryDir).length} de ${wantedArmory.size} · de ofrendas: ${readdirSync(bundleDir).length}`);
 writeFileSync(join(attrDir, 'index.json'), JSON.stringify(Object.fromEntries([...attrKeyByName].filter(([, k]) => attrFound.has(k.toLowerCase())).map(([n, k]) => [n, k.toLowerCase()]))));
 console.log(`Iconos de habilidades: ${readdirSync(abilityDir).length} · de atributos: ${attrFound.size} · banderas: ${readdirSync(flagDir).length}`);
 console.log(`Iconos de categoría de unidad: ${readdirSync(unitCatDir).length} · de stats: ${readdirSync(statDir).length}`);

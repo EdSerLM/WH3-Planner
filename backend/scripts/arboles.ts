@@ -35,6 +35,19 @@ export const SKILL_TABLES = [
   // Hechizos elegibles por espacio (Kairos: Fragmentos de hechicería), como iniciativas de personaje
   'effect_bonus_value_initiative_set_junctions_tables',
   // Iniciativas de personaje (Senda a la Gloria: dones y devociones), ligadas al subtipo por grupos de campaña
+  // Nombres de poder (Elfos Oscuros): habilidad -> dilema al azar con 2 nombres -> rasgo con efectos
+  'character_skill_level_to_dilemmas_junctions_tables', 'cdir_events_dilemma_payloads_tables', 'trait_level_effects_tables',
+  // Gloria demoníaca (Legión del Caos de Daniel): umbrales de gloria por dios -> ofrendas, unidades y dones
+  'pooled_resource_threshold_operation_sets_tables', 'campaign_operation_set_effect_bundle_elements_tables', 'effect_bundles_tables', 'campaign_operation_effect_bundles_tables',
+  'campaign_operation_set_armory_item_elements_tables', 'campaign_operation_armory_items_tables',
+  // Da Plan de Gorbad (tácticas con unidades requeridas) y Danza Eterna de la Máscara (tempos)
+  'initiative_unit_set_requirements_tables',
+  // Corte del Rey Fénix (Altos Elfos): patronazgo de una provincia de Ulthuan, niveles 1-3
+  'patronage_slots_tables',
+  // Cargos de la corte (Consejo de los Elfos, Congregación de los Antiguos, Drycha, Hermanas del Crepúsculo)
+  'ministerial_positions_culture_details_tables', 'ministerial_positition_to_subtype_restrictions_tables',
+  'campaign_group_member_criteria_ministerial_positions_tables', 'campaign_group_member_criteria_factions_tables',
+  'ministerial_position_effect_bundles_tables', 'effect_bundles_to_effects_junctions_tables', 'frontend_faction_leaders_tables',
   'background_character_initiative_sets_tables', 'campaign_group_members_tables', 'campaign_group_member_criteria_agent_subtypes_tables', 'initiative_sets_tables',
   // Dones del Príncipe Demonio (Daniel): piezas por ranura, con efectos, conjuntos y exclusiones
   'armory_items_tables', 'armory_slot_types_tables', 'armory_slot_type_ui_infos_tables', 'armory_item_set_items_tables', 'armory_item_set_to_effects_tables', 'armory_items_to_effects_tables', 'armory_item_to_category_sets_tables', 'armory_item_slot_blacklists_tables', 'armory_item_category_blacklists_tables', 'armory_item_ui_infos_tables', 'armory_item_variants_tables',
@@ -496,9 +509,34 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     uncommon: L('campaign_localised_strings_string_wh3_kairos_fragments_of_sorcery_rarity_ability_uncommon') ?? 'Hechizos poco comunes',
     rare: L('campaign_localised_strings_string_wh3_kairos_fragments_of_sorcery_rarity_ability_rare') ?? 'Hechizos raros',
   };
+  // ---------------- Nombres de poder (Elfos Oscuros) ----------------
+  // Cada habilidad "Nombre de poder marcial/venerado/aristocrático" lanza un dilema al azar entre varios; cada dilema ofrece
+  // 2 nombres (rasgos). En la app: un espacio por habilidad con todos los nombres que puede dar.
+  const dilOfSkill = group('character_skill_level_to_dilemmas_junctions_tables', 'character_skill_key');
+  const dilPayloads = group('cdir_events_dilemma_payloads_tables', 'dilemma_key');
+  const traitEff = group('trait_level_effects_tables', 'trait_level');
+  const namesFor = (sk: string): Row | null => {
+    const dils = dilOfSkill.get(sk) ?? [];
+    if (!dils.length) return null;
+    const opts: Row[] = [];
+    for (const dj of dils) {
+      const title = L(`dilemmas_localised_title_${dj.dilemma_key}`) ?? dj.dilemma_key;
+      for (const pl of dilPayloads.get(dj.dilemma_key) ?? []) {
+        const tl = pl.payload_key === 'GIVE_TRAIT' ? /TRAIT_LEVEL_KEY\[([^\]]+)\]/.exec(pl.value ?? '')?.[1] : undefined;
+        if (!tl || opts.some((o) => o.k === tl)) continue;
+        opts.push(strip({ k: tl, lore: title, lk: dj.dilemma_key, n: L(`character_trait_levels_onscreen_name_${tl}`) ?? tl, e: effRows(traitEff.get(tl) ?? [], 'effect') }));
+      }
+    }
+    if (!opts.length) return null;
+    const ef = skillsOut[sk]?.lv?.[0]?.e?.[0]?.k ?? sk;
+    return { k: `names:${sk}`, n: skillsOut[sk]?.n ?? sk, r: 'name', o: 100 + Number(/(\d+)$/.exec(sk)?.[1] ?? 0), by: sk, ef, opts };
+  };
+
   const spellSlotsFor = (nodeSkills: string[]): Row[] | null => {
     const out: Row[] = [];
     for (const sk of nodeSkills) {
+      const nm = namesFor(sk);
+      if (nm && !out.some((x) => x.k === nm.k)) out.push(nm);
       for (const lv of skillsOut[sk]?.lv ?? []) for (const e of lv.e ?? []) {
         const set = slotByEffect.get(e.k);
         if (!set || out.some((x) => x.k === set)) continue;
@@ -560,6 +598,152 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     campSc.set(r.subtype, [...new Set([...(campSc.get(r.subtype) ?? []), sc])].sort());
   }
 
+  // ---------------- Cargos de la corte (ministerial positions) ----------------
+  // Consejo de los Elfos (Talsyn/Orión), Congregación de los Antiguos (Argwylon/Durthu), Hablantes de Drycha y la corte de las
+  // Hermanas del Crepúsculo: cada cargo da un paquete de efectos al personaje que lo ocupa (y a su ejército).
+  const courtPos = group('ministerial_positions_culture_details_tables', 'faction_key');
+  const courtForbidden = group('ministerial_positition_to_subtype_restrictions_tables', 'ministerial_position');
+  const courtMembers = group('campaign_group_member_criteria_ministerial_positions_tables', 'ministerial_position');
+  const memberFactions = group('campaign_group_member_criteria_factions_tables', 'member');
+  const groupsOfMember = group('campaign_group_members_tables', 'id');
+  const courtBundles = group('ministerial_position_effect_bundles_tables', 'campaign_group');
+  const bundleEff = group('effect_bundles_to_effects_junctions_tables', 'effect_bundle_key');
+  const leaderSub = new Map<string, string>(T['frontend_faction_leaders_tables'].map((r) => [r.faction as string, r.agent_subtype_record as string]));
+  const COURT_ES: Record<string, string> = {
+    wh_dlc05_wef_wood_elves: 'Consejo de los Elfos', wh_dlc05_wef_argwylon: 'Congregación de los Antiguos',
+    wh2_dlc16_wef_drycha: 'Hablantes de Drycha', wh2_dlc16_wef_sisters_of_twilight: 'Corte de las Hermanas del Crepúsculo',
+  };
+  const locAny = (k?: string | null) => (k && k !== 'placeholder'
+    ? L(`campaign_localised_strings_string_${k}`) ?? L(`ui_text_replacements_localised_text_${k}`) ?? L(`random_localisation_strings_string_${k}`) ?? null
+    : null);
+  const courts: { fac: string; sc: string; set: Row; leaderItem: Row | null; forbidden: Map<string, Set<string>> }[] = [];
+  for (const [fk, rows] of courtPos) {
+    const offices = rows.filter((r) => r.ministerial_position_key !== 'faction_leader');
+    if (offices.length < 2 || !fac.has(fk)) continue;
+    const bundlesOf = (pos: string) => (courtMembers.get(pos) ?? [])
+      .filter((m) => pos !== 'faction_leader' || (memberFactions.get(m.member) ?? []).some((f) => f.faction === fk))
+      .flatMap((m) => (groupsOfMember.get(m.member) ?? []).flatMap((g) => (courtBundles.get(g.group) ?? []).map((b) => b.effect_bundle as string)));
+    const item = (r: Row) => {
+      const bs = [...new Set(bundlesOf(r.ministerial_position_key))];
+      if (!bs.length) return null;
+      const n = locAny(r.localised_string_key) ?? L(`effect_bundles_localised_title_${bs[0]}`) ?? r.ministerial_position_key;
+      const req = locAny(r.localised_description_key) ?? L(`effect_bundles_localised_description_${bs[0]}`) ?? undefined;
+      return strip({ k: `court:${fk}:${r.ministerial_position_key}`, n, req, e: bs.flatMap((b) => effRows(bundleEff.get(b) ?? [], 'effect_key')) });
+    };
+    const items = offices.sort((a, b) => (a.y_coordinate - b.y_coordinate) || (a.x_coordinate - b.x_coordinate)).map(item).filter(Boolean) as Row[];
+    if (!items.length) continue;
+    const leaderRow = rows.find((r) => r.ministerial_position_key === 'faction_leader');
+    const leaderItem = leaderRow ? item(leaderRow) : null;
+    if (leaderItem) leaderItem.n = `Líder de la facción: ${leaderItem.n}`;
+    const forbidden = new Map(offices.map((r) => [`court:${fk}:${r.ministerial_position_key}`, new Set((courtForbidden.get(r.ministerial_position_key) ?? []).map((x) => x.agent_subtype as string))]));
+    courts.push({
+      fac: fk, sc: fac.get(fk)!.subculture, leaderItem, forbidden,
+      set: { k: `court:${fk}`, cat: 'COURT', fac: fk, n: `${COURT_ES[fk] ?? 'Cargos de la corte'} (${L(`factions_screen_name_${fk}`) ?? fk})`, max: 1, items },
+    });
+  }
+  // ---------------- Corte del Rey Fénix (Altos Elfos, Mareas del Tormento) ----------------
+  // Un señor toma el patronazgo de una provincia de Ulthuan; según su nivel (1-3) recibe el paquete de efectos de esa provincia
+  const patronage: Row[] = [];
+  for (const r of [...T['patronage_slots_tables']].sort((a, b) => String(a.slot).localeCompare(String(b.slot)) || a.rank - b.rank)) {
+    const prov = L(`provinces_onscreen_${r.slot}`) ?? String(r.slot).replace(/^wh3_main_combi_province_/, '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    const title = L(`effect_bundles_localised_title_${r.occupying_lord_effect_bundle}`) ?? r.occupying_lord_effect_bundle;
+    patronage.push(strip({
+      k: `patron:${r.slot}:${r.rank}`, n: `${prov} · nivel ${r.rank}: ${title}`, req: L(`effect_bundles_localised_description_${r.occupying_lord_effect_bundle}`) ?? undefined,
+      e: effRows(bundleEff.get(r.occupying_lord_effect_bundle) ?? [], 'effect_key'),
+    }));
+  }
+  const patronageFor = (type: string, scs: string[]): Row[] =>
+    patronage.length && type === 'general' && scs.includes('wh2_main_sc_hef_high_elves')
+      ? [{ k: 'patronage:hef', cat: 'PATRONAGE', n: 'Corte del Rey Fénix: patronazgo de provincia', max: 1, items: patronage }] : [];
+
+  // ---------------- Gloria demoníaca (Demonios del Caos, Daniel) ----------------
+  // Cada dios tiene su gloria (0-4400). Al cruzar umbrales: ofrendas (efectos para todos los ejércitos de la facción),
+  // desbloqueo de unidades y de dones (piezas) del Príncipe Demonio. Una opción por nivel de ofrenda, acumulativa.
+  const opEb = group('campaign_operation_set_effect_bundle_elements_tables', 'operation_set');
+  const opEbRow = by('campaign_operation_effect_bundles_tables', 'key');
+  const opAr = group('campaign_operation_set_armory_item_elements_tables', 'operation_set');
+  const opArRow = by('campaign_operation_armory_items_tables', 'key');
+  // Icono de cada paquete de efectos (ui/campaign ui/effect_bundles/<icono>)
+  const ebIcon = new Map<string, string>(T['effect_bundles_tables'].filter((r) => r.ui_icon).map((r) => [r.key as string, String(r.ui_icon).replace(/\.png$/i, '').toLowerCase()]));
+  const GOD_ES: Record<string, string> = { khorne: 'Khorne', nurgle: 'Nurgle', slaanesh: 'Slaanesh', tzeentch: 'Tzeentch', undivided: 'Caos Absoluto' };
+  const glorySets: Row[] = [];
+  for (const god of Object.keys(GOD_ES)) {
+    const res = `wh3_main_dae_${god}_points`;
+    const th = T['pooled_resource_threshold_operation_sets_tables'].filter((r) => r.pooled_resource_set === res).sort((a, b) => a.lower_bound - b.lower_bound);
+    if (!th.length) continue;
+    const maxUpper = Math.min(...th.map((r) => r.upper_bound));
+    const items: Row[] = [];
+    // Línea de tiempo como en la pantalla del juego: ofrendas, unidades y dones en su umbral de gloria
+    const track: Row[] = [];
+    let accBundles: string[] = [];
+    let units: string[] = [], gifts = 0;
+    for (const t of th.filter((r) => r.upper_bound === maxUpper)) {
+      const ebs = (opEb.get(t.operation_set_group) ?? []).map((e) => opEbRow.get(e.operation_effect_bundle)).filter((e) => e && !e.is_removal).map((e) => e!.effect_bundle as string);
+      const giftKeys = (opAr.get(t.operation_set_group) ?? []).map((e) => opArRow.get(e.operation_armory_item)).filter((a) => a && !a.is_removal).map((a) => a!.armory_item as string);
+      gifts += giftKeys.length;
+      for (const g of giftKeys) track.push({ at: t.lower_bound, kind: 'gift', key: g });
+      for (const b of ebs) {
+        const lock = /^wh3_\w+_bundle_lock_recruitment_(.+)$/.exec(b);
+        if (lock) {
+          const un = L(`land_units_onscreen_name_${lock[1]}`) ?? lock[1];
+          units.push(un);
+          track.push({ at: t.lower_bound, kind: 'unit', key: lock[1], n: un });
+          continue;
+        }
+        accBundles = [...accBundles, b];
+        const title = L(`effect_bundles_localised_title_${b}`) ?? b;
+        track.push(strip({ at: t.lower_bound, kind: 'offering', key: `glory:${god}:${t.lower_bound}`, n: title, icon: ebIcon.get(b)?.split('/').pop() ?? null }));
+        items.push(strip({
+          k: `glory:${god}:${t.lower_bound}`, n: `${t.lower_bound} de gloria: ${title}`,
+          req: [units.length ? `Unidades que desbloquea hasta este nivel: ${units.join(', ')}` : '', gifts ? `${gifts} dones (piezas) de ${GOD_ES[god]} desbloqueados` : ''].filter(Boolean).join(' · ') || undefined,
+          e: accBundles.flatMap((x) => effRows(bundleEff.get(x) ?? [], 'effect_key')),
+        }));
+        units = []; gifts = 0;
+      }
+    }
+    if (items.length) glorySets.push({
+      k: `glory:${god}`, cat: 'GLORY', fac: 'wh3_main_dae_daemon_prince', n: `Gloria de ${GOD_ES[god]}`, max: 1, items,
+      god, top: Math.max(...th.filter((r) => r.upper_bound === maxUpper).map((r) => r.lower_bound)), track,
+    });
+  }
+  const gloryFor = (scs: string[]): Row[] => (scs.includes('wh3_main_sc_dae_daemons') ? glorySets : []);
+
+  // ---------------- Da Plan (Gorbad) y Danza Eterna (Máscara de Slaanesh) ----------------
+  const iniReq = group('initiative_unit_set_requirements_tables', 'initiative');
+  const unitSetName = (k: string) => L(`unit_sets_localised_name_${k}`) ?? L(`unit_sets_onscreen_name_${k}`) ?? k.replace(/^(wh\d?_(main|dlc\d+)_)?(grn_)?/, '').replace(/_/g, ' ');
+  const iniItemsOf = (set: string) => (iniSetItems.get(set) ?? []).map((it) => {
+    const ini = iniBy.get(it.item);
+    if (!ini) return null;
+    const req = (iniReq.get(it.item) ?? []).map((r) => `${r.required_number} × ${unitSetName(r.unit_set)}`);
+    return strip({
+      k: it.item, n: L(`initiatives_localised_name_${it.item}`) ?? it.item.replace(/^.*_(da_plan|tempo_\d)_/, '').replace(/_/g, ' '),
+      req: [req.length ? `Requiere en el ejército: ${req.join(', ')}` : '', L(`initiatives_localised_description_${it.item}`) ?? ''].filter(Boolean).join(' · ') || undefined,
+      e: effRows(iniEff.get(ini.effects) ?? [], 'effect'),
+    });
+  }).filter(Boolean) as Row[];
+  const daPlan: Row[] = (() => {
+    const items = iniItemsOf('wh3_dlc26_force_initiative_grn_da_plan');
+    return items.length ? [{ k: 'daplan:grn', cat: 'DA_PLAN', fac: 'wh3_dlc26_grn_gorbad_ironclaw', n: 'Da Plan: tácticas del ejército', max: 0, items }] : [];
+  })();
+  const DANCE_ES: Record<string, string> = { elves: 'Danza de la Envidia', final_battle: 'Danza del Orgullo', khorne: 'Danza del Exceso', nurgle: 'Danza de la Avaricia' };
+  const dances: Row[] = [];
+  for (const [dk, dn] of Object.entries(DANCE_ES)) for (const tempo of [1, 2, 3]) {
+    const set = `wh3_dlc27_eternal_dance_of_${dk}_tempo_${tempo}`;
+    const items = iniItemsOf(set);
+    if (items.length) dances.push({ k: `dance:${set}`, cat: 'DANCE', n: `${dn} · Tempo ${tempo}`, max: 1, items });
+  }
+  const forceInitFor = (type: string, scs: string[]): Row[] => type !== 'general' ? [] : [
+    ...(scs.includes('wh_main_sc_grn_greenskins') ? daPlan : []),
+    ...(scs.includes('wh3_main_sc_sla_slaanesh') ? dances : []),
+  ];
+
+  /** Cortes a las que puede pertenecer un personaje: de su subcultura, sin los cargos que el juego le prohíbe */
+  const courtsFor = (sub: string, scs: string[]): Row[] => courts.filter((c) => scs.includes(c.sc)).map((c) => {
+    const items = c.set.items.filter((i: Row) => !c.forbidden.get(i.k)?.has(sub));
+    if (c.leaderItem && leaderSub.get(c.fac) === sub) items.unshift(c.leaderItem);
+    return items.length ? { ...c.set, items } : null;
+  }).filter(Boolean) as Row[];
+
   const characters: Row[] = [];
   for (const s of T['character_skill_node_sets_tables']) {
     if (s.for_navy || s.for_army || !ag.has(s.agent_subtype_key)) continue;
@@ -615,7 +799,10 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       items: legendary && itemsFor(s.agent_subtype_key).length ? itemsFor(s.agent_subtype_key) : null,
       armory: armoryFor(s.agent_subtype_key),
       spellSlots: spellSlotsFor([...outNodes, ...bg].map((n) => n.s)),
-      initiatives: charInitBySub.get(s.agent_subtype_key) ?? null,
+      initiatives: (() => {
+        const all = [...(charInitBySub.get(s.agent_subtype_key) ?? []), ...courtsFor(s.agent_subtype_key, scs), ...patronageFor(s.agent_key, scs), ...gloryFor(scs), ...forceInitFor(s.agent_key, scs)];
+        return all.length ? all : null;
+      })(),
     }));
   }
   const nodeSet = new Set(characters.flatMap((c) => c.nodes.map((n: Row) => n.k)));

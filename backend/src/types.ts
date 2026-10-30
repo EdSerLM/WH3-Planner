@@ -291,6 +291,11 @@ export interface CharacterTree extends CharacterSummary {
 
 export interface InitiativeSet {
   key: string; category: string; name: string;
+  /** Facción de campaña a la que pertenece (cargos de la corte: Consejo de los Elfos, Congregación de los Antiguos...) */
+  faction?: string;
+  /** Gloria demoníaca: dios, gloria máxima y línea de umbrales (ofrendas, unidades, dones) como en la pantalla del juego */
+  god?: string; top?: number;
+  track?: { at: number; kind: string; key: string; n?: string; icon?: string; art?: string }[];
   /** Cuántas se pueden tener activas a la vez (0 = sin límite indicado) */
   max: number;
   /** false = solo informativo (devociones / ascenso a Príncipe Demonio) */

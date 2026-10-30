@@ -44,21 +44,25 @@ export function SpellSlotsPanel({ tree, selection, onChange }: Props) {
     onChange({ ...selection, items: next });
   };
   const lores = [...new Map(slots.flatMap((s) => s.options).map((o) => [o.loreKey, o.lore])).entries()];
+  // Nombres de poder (Elfos Oscuros): mismo mecanismo, pero cada opción es un nombre (rasgo) agrupado por su dilema
+  const names = slots.length > 0 && slots.every((s) => s.rarity === 'name');
 
   return (
     <div className="spellslots">
       <div className="armory-head">
-        <h3>Fragmentos de hechicería</h3>
+        <h3>{names ? 'Nombres de poder' : 'Fragmentos de hechicería'}</h3>
         <span className="muted small">
-          Cada espacio se abre comprando su habilidad en el árbol; en cada uno eliges de qué saber sale el hechizo. Solo cuentan los espacios abiertos.
+          {names
+            ? 'Cada nombre se gana con su habilidad del árbol (rango 9+): el juego lanza un dilema al azar y eliges uno de sus 2 nombres. Aquí eliges el que obtuviste en tu campaña.'
+            : 'Cada espacio se abre comprando su habilidad en el árbol; en cada uno eliges de qué saber sale el hechizo. Solo cuentan los espacios abiertos.'}
         </span>
       </div>
-      <div className="armory-gods">
+      {!names && <div className="armory-gods">
         <span className="muted small">Poner todos del saber:</span>
         {lores.map(([lk, n]) => (
           <button key={lk} className="ghost small" onClick={() => allLore(lk)}>{LORE_ICON[lk] ?? '✦'} {n}</button>
         ))}
-      </div>
+      </div>}
       <div className="armory-slots">
         {slots.map((s) => {
           const open = isOpen(s);
@@ -73,9 +77,15 @@ export function SpellSlotsPanel({ tree, selection, onChange }: Props) {
               </div>
               <select value={pick?.key ?? ''} onChange={(e) => setSlot(s, e.target.value)}>
                 <option value="">— sin elegir —</option>
-                {s.options.map((o) => (
-                  <option key={o.key} value={o.key}>{LORE_ICON[o.loreKey] ?? '✦'} {o.lore}: {o.name}</option>
-                ))}
+                {names
+                  ? [...new Map(s.options.map((o) => [o.loreKey, o.lore])).entries()].map(([lk, title]) => (
+                      <optgroup key={lk} label={`Dilema: ${title}`}>
+                        {s.options.filter((o) => o.loreKey === lk).map((o) => <option key={o.key} value={o.key}>{o.name}</option>)}
+                      </optgroup>
+                    ))
+                  : s.options.map((o) => (
+                      <option key={o.key} value={o.key}>{LORE_ICON[o.loreKey] ?? '✦'} {o.lore}: {o.name}</option>
+                    ))}
               </select>
               {pick && info?.icon && <div className="spell-pick"><AbilityImg icon={info.icon} size={34} title={pick.name} /> <b>{pick.name}</b></div>}
               {pick && (

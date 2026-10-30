@@ -502,12 +502,12 @@ export default function App() {
                 )}
                 {currentTree.spellSlots?.length ? (
                   <button className={leftView === 'spells' ? 'active' : ''} onClick={() => setLeftView('spells')} title="Elige el saber de cada espacio de hechizo">
-                    🔮 Hechizos (fragmentos)
+                    {currentTree.spellSlots.every((x) => x.rarity === 'name') ? '👑 Nombres de poder' : '🔮 Hechizos (fragmentos)'}
                   </button>
                 ) : null}
                 {currentTree.initiativeSets?.length ? (
                   <button className={leftView === 'initiatives' ? 'active' : ''} onClick={() => setLeftView('initiatives')} title="Regalos del Caos, devociones y otras mecánicas del personaje">
-                    🌟 {currentTree.initiativeSets.some((s) => s.category.startsWith('PATH_TO_GLORY')) ? 'Senda a la Gloria' : 'Mecánicas'}
+                    {currentTree.initiativeSets.some((s) => s.category.startsWith('PATH_TO_GLORY')) ? '🌟 Senda a la Gloria' : currentTree.initiativeSets.some((s) => s.category === 'COURT') ? '🌳 Consejo' : currentTree.initiativeSets.some((s) => s.category === 'PATRONAGE') ? '🦅 Corte del Rey Fénix' : currentTree.initiativeSets.some((s) => s.category === 'GLORY') ? '🔥 Gloria demoníaca' : currentTree.initiativeSets.some((s) => s.category === 'DA_PLAN') ? '📜 Da Plan' : currentTree.initiativeSets.some((s) => s.category === 'DANCE') ? '💃 Danza Eterna' : '🌟 Mecánicas'}
                   </button>
                 ) : null}
                 <button className={leftView === 'summary' ? 'active' : ''} onClick={() => setLeftView('summary')}>Efectos acumulados</button>
@@ -515,7 +515,7 @@ export default function App() {
               {leftView === 'gifts' && currentTree.armory ? (
                 <ArmoryPanel tree={currentTree} selection={currentSel} onChange={updateSelection} />
               ) : leftView === 'initiatives' && currentTree.initiativeSets?.length ? (
-                <InitiativesPanel tree={currentTree} selection={currentSel} onChange={updateSelection} />
+                <InitiativesPanel tree={currentTree} selection={currentSel} onChange={updateSelection} campaign={army.campaign} />
               ) : leftView === 'spells' && currentTree.spellSlots?.length ? (
                 <SpellSlotsPanel tree={currentTree} selection={currentSel} onChange={updateSelection} />
               ) : leftView !== 'summary' ? (

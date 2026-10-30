@@ -1,0 +1,2695 @@
+{
+ "subculture": "wh_dlc05_sc_wef_wood_elves",
+ "culture": "wh_dlc05_wef_wood_elves",
+ "factions": [
+  "wh2_dlc13_wef_laurelorn_forest",
+  "wh2_dlc16_wef_drycha",
+  "wh2_dlc16_wef_sisters_of_twilight",
+  "wh2_dlc16_wef_waystone_faction_1",
+  "wh2_dlc16_wef_waystone_faction_2",
+  "wh2_dlc16_wef_waystone_faction_3",
+  "wh2_dlc16_wef_wood_elves_qb4",
+  "wh2_dlc16_wef_wood_elves_qb5",
+  "wh2_dlc16_wef_wood_elves_qb6",
+  "wh2_dlc16_wef_wood_elves_qb7",
+  "wh2_main_wef_bowmen_of_oreon",
+  "wh3_dlc21_wef_spirits_of_shanlin",
+  "wh3_dlc25_wef_wood_elves_invasion",
+  "wh3_dlc27_wef_wood_elves_dm",
+  "wh3_dlc29_wef_laurelorn_forest_qb",
+  "wh3_main_wef_laurelorn",
+  "wh_dlc05_wef_anmyr",
+  "wh_dlc05_wef_argwylon",
+  "wh_dlc05_wef_arranoc",
+  "wh_dlc05_wef_atylwyth",
+  "wh_dlc05_wef_cavaroc",
+  "wh_dlc05_wef_cythral",
+  "wh_dlc05_wef_fyr_darric",
+  "wh_dlc05_wef_modryn",
+  "wh_dlc05_wef_tirsyth",
+  "wh_dlc05_wef_torgovann",
+  "wh_dlc05_wef_wood_elves",
+  "wh_dlc05_wef_wood_elves_qb1",
+  "wh_dlc05_wef_wood_elves_qb2",
+  "wh_dlc05_wef_wood_elves_qb3",
+  "wh_dlc05_wef_wood_elves_rebels",
+  "wh_dlc05_wef_wydrioth"
+ ],
+ "ministerial_positions_culture_details": [
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_drycha",
+   "localised_string_key": "wh2_dlc16_minister_string_wef_drycha",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 815608092,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "wh2_dlc16_minister_string_wef_drycha_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_sisters_of_twilight",
+   "localised_string_key": "wh2_dlc16_minister_string_wef_sisters",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 1125098657,
+   "x_coordinate": -0.75,
+   "y_coordinate": 0,
+   "localised_description_key": "wh2_dlc16_minister_string_wef_sisters_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_wood_elves_qb4",
+   "localised_string_key": "placeholder",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 302407724,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "placeholder"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_wood_elves_qb5",
+   "localised_string_key": "placeholder",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 208250674,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "placeholder"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_wood_elves_qb6",
+   "localised_string_key": "placeholder",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 1135151393,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "placeholder"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_wood_elves_qb7",
+   "localised_string_key": "placeholder",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 1195491398,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "placeholder"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_main_wef_bowmen_of_oreon",
+   "localised_string_key": "placeholder",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 1855,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "placeholder"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh3_dlc21_wef_spirits_of_shanlin",
+   "localised_string_key": "placeholder",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 1023647707,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "placeholder"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh3_dlc25_wef_wood_elves_invasion",
+   "localised_string_key": "placeholder",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 252081689,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "placeholder"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh3_main_wef_laurelorn",
+   "localised_string_key": "placeholder",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 385825732,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "placeholder"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_argwylon",
+   "localised_string_key": "wh_dlc05_minister_string_wef_faction_leader_durthu",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 1582,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "wh_dlc05_minister_string_wef_faction_leader_durthu_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_torgovann",
+   "localised_string_key": "placeholder",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 1594,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "placeholder"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_wood_elves",
+   "localised_string_key": "wh_dlc05_minister_string_wef_faction_leader",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 1575,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "wh_dlc05_minister_string_wef_faction_leader_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_wood_elves_qb1",
+   "localised_string_key": "placeholder",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 1598,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "placeholder"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_wood_elves_qb2",
+   "localised_string_key": "placeholder",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 1603,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "placeholder"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_wood_elves_qb3",
+   "localised_string_key": "placeholder",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 1612,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "placeholder"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_wood_elves_rebels",
+   "localised_string_key": "placeholder",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 1613,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "placeholder"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_wydrioth",
+   "localised_string_key": "placeholder",
+   "ministerial_position_key": "faction_leader",
+   "subculture_key": null,
+   "unique_id": 1591,
+   "x_coordinate": 0,
+   "y_coordinate": 0,
+   "localised_description_key": "placeholder"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_drycha",
+   "localised_string_key": "wh2_dlc16_minister_string_wef_speaker_embittered",
+   "ministerial_position_key": "wh2_dlc16_minister_wef_drycha_speaker_embittered",
+   "subculture_key": null,
+   "unique_id": 1087664670,
+   "x_coordinate": -0.75,
+   "y_coordinate": 1.4,
+   "localised_description_key": "wh2_dlc16_minister_string_wef_speaker_embittered_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_drycha",
+   "localised_string_key": "wh2_dlc16_minister_string_wef_speaker_forgotten",
+   "ministerial_position_key": "wh2_dlc16_minister_wef_drycha_speaker_forgotten",
+   "subculture_key": null,
+   "unique_id": 2112778693,
+   "x_coordinate": 2.25,
+   "y_coordinate": 0.7,
+   "localised_description_key": "wh2_dlc16_minister_string_wef_speaker_forgotten_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_drycha",
+   "localised_string_key": "wh2_dlc16_minister_string_wef_speaker_lost",
+   "ministerial_position_key": "wh2_dlc16_minister_wef_drycha_speaker_lost",
+   "subculture_key": null,
+   "unique_id": 2034393848,
+   "x_coordinate": -2.25,
+   "y_coordinate": 0.7,
+   "localised_description_key": "wh2_dlc16_minister_string_wef_speaker_lost_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_drycha",
+   "localised_string_key": "wh2_dlc16_minister_string_wef_speaker_wild",
+   "ministerial_position_key": "wh2_dlc16_minister_wef_drycha_speaker_wild",
+   "subculture_key": null,
+   "unique_id": 170331937,
+   "x_coordinate": 0.75,
+   "y_coordinate": 1.4,
+   "localised_description_key": "wh2_dlc16_minister_string_wef_speaker_wild_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_sisters_of_twilight",
+   "localised_string_key": "wh2_dlc16_minister_string_wef_consort_to_the_queen",
+   "ministerial_position_key": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen",
+   "subculture_key": null,
+   "unique_id": 1995061860,
+   "x_coordinate": 0.75,
+   "y_coordinate": 0,
+   "localised_description_key": "wh2_dlc16_minister_string_wef_consort_to_the_queen_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_sisters_of_twilight",
+   "localised_string_key": "wh2_dlc16_minister_string_wef_darkweaver",
+   "ministerial_position_key": "wh2_dlc16_minister_wef_sisters_darkweaver",
+   "subculture_key": null,
+   "unique_id": 939722207,
+   "x_coordinate": 2,
+   "y_coordinate": 0.35,
+   "localised_description_key": "wh2_dlc16_minister_string_wef_darkweaver_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_sisters_of_twilight",
+   "localised_string_key": "wh2_dlc16_minister_string_wef_highweaver",
+   "ministerial_position_key": "wh2_dlc16_minister_wef_sisters_highweaver",
+   "subculture_key": null,
+   "unique_id": 1161059695,
+   "x_coordinate": -2,
+   "y_coordinate": 0.35,
+   "localised_description_key": "wh2_dlc16_minister_string_wef_highweaver_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_sisters_of_twilight",
+   "localised_string_key": "wh2_dlc16_minister_string_wef_priestess_isha",
+   "ministerial_position_key": "wh2_dlc16_minister_wef_sisters_isha",
+   "subculture_key": null,
+   "unique_id": 2088208377,
+   "x_coordinate": -1.5,
+   "y_coordinate": 1.4,
+   "localised_description_key": "wh2_dlc16_minister_string_wef_priestess_isha_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_sisters_of_twilight",
+   "localised_string_key": "wh2_dlc16_minister_string_wef_priestess_kurnous",
+   "ministerial_position_key": "wh2_dlc16_minister_wef_sisters_kurnous",
+   "subculture_key": null,
+   "unique_id": 1132259702,
+   "x_coordinate": 0,
+   "y_coordinate": 1.4,
+   "localised_description_key": "wh2_dlc16_minister_string_wef_priestess_kurnous_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh2_dlc16_wef_sisters_of_twilight",
+   "localised_string_key": "wh2_dlc16_minister_string_wef_priestess_loec",
+   "ministerial_position_key": "wh2_dlc16_minister_wef_sisters_loec",
+   "subculture_key": null,
+   "unique_id": 1851368800,
+   "x_coordinate": 1.5,
+   "y_coordinate": 1.4,
+   "localised_description_key": "wh2_dlc16_minister_string_wef_priestess_loec_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_wood_elves",
+   "localised_string_key": "wh_dlc05_minister_string_wef_elder_speaker",
+   "ministerial_position_key": "wh_dlc05_minister_wef_elf_elder_speaker",
+   "subculture_key": null,
+   "unique_id": 1127,
+   "x_coordinate": 1.2,
+   "y_coordinate": 0.35,
+   "localised_description_key": "wh_dlc05_minister_string_wef_elder_speaker_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_wood_elves",
+   "localised_string_key": "wh_dlc05_minister_string_wef_herald_of_the_hunt",
+   "ministerial_position_key": "wh_dlc05_minister_wef_elf_herald_of_the_hunt",
+   "subculture_key": null,
+   "unique_id": 1416,
+   "x_coordinate": -0.75,
+   "y_coordinate": 1.4,
+   "localised_description_key": "wh_dlc05_minister_string_wef_herald_of_the_hunt_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_wood_elves",
+   "localised_string_key": "wh_dlc05_minister_string_wef_protector_of_the_oak",
+   "ministerial_position_key": "wh_dlc05_minister_wef_elf_protector_of_the_oak",
+   "subculture_key": null,
+   "unique_id": 1123,
+   "x_coordinate": -1.2,
+   "y_coordinate": 0.35,
+   "localised_description_key": "wh_dlc05_minister_string_wef_protector_of_the_oak_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_wood_elves",
+   "localised_string_key": "wh_dlc05_minister_string_wef_starlight_craftsman",
+   "ministerial_position_key": "wh_dlc05_minister_wef_elf_starlight_craftsman",
+   "subculture_key": null,
+   "unique_id": 1132,
+   "x_coordinate": 2.25,
+   "y_coordinate": 1.4,
+   "localised_description_key": "wh_dlc05_minister_string_wef_starlight_craftsman_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_wood_elves",
+   "localised_string_key": "wh_dlc05_minister_string_wef_the_tricksters_masque",
+   "ministerial_position_key": "wh_dlc05_minister_wef_elf_the_tricksters_masque",
+   "subculture_key": null,
+   "unique_id": 1135,
+   "x_coordinate": 0.75,
+   "y_coordinate": 1.4,
+   "localised_description_key": "wh_dlc05_minister_string_wef_the_tricksters_masque_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_wood_elves",
+   "localised_string_key": "wh_dlc05_minister_string_wef_warden_of_the_wildwood",
+   "ministerial_position_key": "wh_dlc05_minister_wef_elf_warden_of_the_wildwood",
+   "subculture_key": null,
+   "unique_id": 1131,
+   "x_coordinate": -2.25,
+   "y_coordinate": 1.4,
+   "localised_description_key": "wh_dlc05_minister_string_wef_warden_of_the_wildwood_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_argwylon",
+   "localised_string_key": "wh_dlc05_minister_string_wef_ancient_of_delliandra",
+   "ministerial_position_key": "wh_dlc05_minister_wef_tree_ancient_of_delliandra",
+   "subculture_key": null,
+   "unique_id": 1437,
+   "x_coordinate": -0.75,
+   "y_coordinate": 1.4,
+   "localised_description_key": "wh_dlc05_minister_string_wef_ancient_of_delliandra_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_argwylon",
+   "localised_string_key": "wh_dlc05_minister_string_wef_ancient_of_druthandor",
+   "ministerial_position_key": "wh_dlc05_minister_wef_tree_ancient_of_druthandor",
+   "subculture_key": null,
+   "unique_id": 1471,
+   "x_coordinate": 2.25,
+   "y_coordinate": 0.7,
+   "localised_description_key": "wh_dlc05_minister_string_wef_ancient_of_druthandor_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_argwylon",
+   "localised_string_key": "wh_dlc05_minister_string_wef_ancient_of_talrennic",
+   "ministerial_position_key": "wh_dlc05_minister_wef_tree_ancient_of_talrennic",
+   "subculture_key": null,
+   "unique_id": 1481,
+   "x_coordinate": -2.25,
+   "y_coordinate": 0.7,
+   "localised_description_key": "wh_dlc05_minister_string_wef_ancient_of_talrennic_desc"
+  },
+  {
+   "culture_key": null,
+   "faction_key": "wh_dlc05_wef_argwylon",
+   "localised_string_key": "wh_dlc05_minister_string_wef_ancient_of_threllock",
+   "ministerial_position_key": "wh_dlc05_minister_wef_tree_ancient_of_threllock",
+   "subculture_key": null,
+   "unique_id": 1462,
+   "x_coordinate": 0.75,
+   "y_coordinate": 1.4,
+   "localised_description_key": "wh_dlc05_minister_string_wef_ancient_of_threllock_desc"
+  }
+ ],
+ "ministerial_positions": [
+  {
+   "minister_key": "faction_leader",
+   "rank": 0,
+   "order": 0,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 0,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh2_dlc16_minister_wef_drycha_speaker_embittered",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh2_dlc16_minister_wef_drycha_speaker_forgotten",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh2_dlc16_minister_wef_drycha_speaker_lost",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh2_dlc16_minister_wef_drycha_speaker_wild",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh2_dlc16_minister_wef_sisters_darkweaver",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh2_dlc16_minister_wef_sisters_highweaver",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh2_dlc16_minister_wef_sisters_isha",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh2_dlc16_minister_wef_sisters_kurnous",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh2_dlc16_minister_wef_sisters_loec",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh_dlc05_minister_wef_elf_elder_speaker",
+   "rank": 3,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh_dlc05_minister_wef_elf_herald_of_the_hunt",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh_dlc05_minister_wef_elf_protector_of_the_oak",
+   "rank": 3,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh_dlc05_minister_wef_elf_starlight_craftsman",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh_dlc05_minister_wef_elf_the_tricksters_masque",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh_dlc05_minister_wef_elf_warden_of_the_wildwood",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh_dlc05_minister_wef_tree_ancient_of_delliandra",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh_dlc05_minister_wef_tree_ancient_of_druthandor",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh_dlc05_minister_wef_tree_ancient_of_talrennic",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  },
+  {
+   "minister_key": "wh_dlc05_minister_wef_tree_ancient_of_threllock",
+   "rank": 1,
+   "order": 1,
+   "cost": 0,
+   "minimum_term_length": 0,
+   "maximum_term_length": 9999,
+   "maximum_concurrent_ministers": 1,
+   "required_loyalty": 0,
+   "display_end_turn_notifications_for_post": true
+  }
+ ],
+ "todas_las_claves_de_cargos": [
+  "faction_leader",
+  "wh2_dlc11_minister_cst_fleet_beast_master",
+  "wh2_dlc11_minister_cst_fleet_enforcement_admiral",
+  "wh2_dlc11_minister_cst_fleet_engineer",
+  "wh2_dlc11_minister_cst_fleet_gunnery_master",
+  "wh2_dlc11_minister_cst_fleet_sailing_admiral",
+  "wh2_dlc11_minister_cst_fleet_secretary",
+  "wh2_dlc11_minister_cst_fleet_treasurer",
+  "wh2_dlc11_minister_cst_fleet_warrant_admiral",
+  "wh2_dlc16_minister_wef_drycha_speaker_embittered",
+  "wh2_dlc16_minister_wef_drycha_speaker_forgotten",
+  "wh2_dlc16_minister_wef_drycha_speaker_lost",
+  "wh2_dlc16_minister_wef_drycha_speaker_wild",
+  "wh2_dlc16_minister_wef_sisters_consort_to_the_queen",
+  "wh2_dlc16_minister_wef_sisters_darkweaver",
+  "wh2_dlc16_minister_wef_sisters_highweaver",
+  "wh2_dlc16_minister_wef_sisters_isha",
+  "wh2_dlc16_minister_wef_sisters_kurnous",
+  "wh2_dlc16_minister_wef_sisters_loec",
+  "wh2_main_minister_emp_averland",
+  "wh2_main_minister_emp_hochland",
+  "wh2_main_minister_emp_middenland",
+  "wh2_main_minister_emp_nordland",
+  "wh2_main_minister_emp_ostermark",
+  "wh2_main_minister_emp_ostland",
+  "wh2_main_minister_emp_reikland",
+  "wh2_main_minister_emp_solland",
+  "wh2_main_minister_emp_stirland",
+  "wh2_main_minister_emp_sylvania",
+  "wh2_main_minister_emp_talabecland",
+  "wh2_main_minister_emp_wasteland",
+  "wh2_main_minister_emp_wissenland",
+  "wh_dlc05_minister_wef_elf_elder_speaker",
+  "wh_dlc05_minister_wef_elf_herald_of_the_hunt",
+  "wh_dlc05_minister_wef_elf_protector_of_the_oak",
+  "wh_dlc05_minister_wef_elf_starlight_craftsman",
+  "wh_dlc05_minister_wef_elf_the_tricksters_masque",
+  "wh_dlc05_minister_wef_elf_warden_of_the_wildwood",
+  "wh_dlc05_minister_wef_tree_ancient_of_delliandra",
+  "wh_dlc05_minister_wef_tree_ancient_of_druthandor",
+  "wh_dlc05_minister_wef_tree_ancient_of_talrennic",
+  "wh_dlc05_minister_wef_tree_ancient_of_threllock",
+  "wh_main_minister_chs_1_aspirant",
+  "wh_main_minister_chs_2_marked_one",
+  "wh_main_minister_chs_3_champion",
+  "wh_main_minister_chs_4_chosen",
+  "wh_main_minister_chs_5_exalted",
+  "wh_main_minister_dwf_1_lode_warden",
+  "wh_main_minister_dwf_2_reckoner",
+  "wh_main_minister_dwf_3_ironmaster",
+  "wh_main_minister_dwf_4_brewmaster",
+  "wh_main_minister_dwf_5_clan_lord",
+  "wh_main_minister_grn_1_lout",
+  "wh_main_minister_grn_2_bully",
+  "wh_main_minister_grn_3_thug",
+  "wh_main_minister_grn_4_brute",
+  "wh_main_minister_grn_5_chieftain_king",
+  "wh_main_minister_vmp_1_grave_warden",
+  "wh_main_minister_vmp_2_initiate",
+  "wh_main_minister_vmp_3_acolyte",
+  "wh_main_minister_vmp_4_awakened",
+  "wh_main_minister_vmp_5_red_ascendant"
+ ],
+ "ministerial_positition_to_subtype_restrictions": [
+  {
+   "agent_subtype": "wh2_dlc16_wef_drycha",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_beasts",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_life",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_shadows",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_sisters_of_twilight",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_beasts",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_dark",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_high",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_life",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_shadows",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_ancient_treeman",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_durthu",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_drycha",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_darkweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_beasts",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_darkweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_life",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_darkweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_shadows",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_darkweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_sisters_of_twilight",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_darkweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_beasts",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_darkweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_high",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_darkweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_life",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_darkweaver"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_ancient_treeman",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_darkweaver"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_durthu",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_darkweaver"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_glade_lord",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_darkweaver"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_glade_lord_fem",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_darkweaver"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_orion",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_darkweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_drycha",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_highweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_beasts",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_highweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_life",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_highweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_shadows",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_highweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_sisters_of_twilight",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_highweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_beasts",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_highweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_dark",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_highweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_life",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_highweaver"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_ancient_treeman",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_highweaver"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_durthu",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_highweaver"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_glade_lord",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_highweaver"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_glade_lord_fem",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_highweaver"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_orion",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_highweaver"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_drycha",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_isha"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_beasts",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_isha"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_life",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_isha"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_shadows",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_isha"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_drycha",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_kurnous"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_beasts",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_kurnous"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_life",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_kurnous"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_shadows",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_kurnous"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_drycha",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_loec"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_beasts",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_loec"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_life",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_loec"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_shadows",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_loec"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_drycha",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_elder_speaker"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_beasts",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_elder_speaker"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_life",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_elder_speaker"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_shadows",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_elder_speaker"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_ancient_treeman",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_elder_speaker"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_durthu",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_elder_speaker"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_drycha",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_herald_of_the_hunt"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_beasts",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_herald_of_the_hunt"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_life",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_herald_of_the_hunt"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_shadows",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_herald_of_the_hunt"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_ancient_treeman",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_herald_of_the_hunt"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_durthu",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_herald_of_the_hunt"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_drycha",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_protector_of_the_oak"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_beasts",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_protector_of_the_oak"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_life",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_protector_of_the_oak"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_shadows",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_protector_of_the_oak"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_sisters_of_twilight",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_protector_of_the_oak"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_beasts",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_protector_of_the_oak"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_dark",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_protector_of_the_oak"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_high",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_protector_of_the_oak"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_life",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_protector_of_the_oak"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_shadows",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_protector_of_the_oak"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_glade_lord",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_protector_of_the_oak"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_glade_lord_fem",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_protector_of_the_oak"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_orion",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_protector_of_the_oak"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_drycha",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_starlight_craftsman"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_beasts",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_starlight_craftsman"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_life",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_starlight_craftsman"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_shadows",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_starlight_craftsman"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_ancient_treeman",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_starlight_craftsman"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_durthu",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_starlight_craftsman"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_drycha",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_the_tricksters_masque"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_beasts",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_the_tricksters_masque"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_life",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_the_tricksters_masque"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_shadows",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_the_tricksters_masque"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_ancient_treeman",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_the_tricksters_masque"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_durthu",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_the_tricksters_masque"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_drycha",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_warden_of_the_wildwood"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_beasts",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_warden_of_the_wildwood"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_life",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_warden_of_the_wildwood"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_malicious_ancient_treeman_shadows",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_warden_of_the_wildwood"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_ancient_treeman",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_warden_of_the_wildwood"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_durthu",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_warden_of_the_wildwood"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_sisters_of_twilight",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_delliandra"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_beasts",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_delliandra"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_dark",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_delliandra"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_high",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_delliandra"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_life",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_delliandra"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_shadows",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_delliandra"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_glade_lord",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_delliandra"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_glade_lord_fem",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_delliandra"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_orion",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_delliandra"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_sisters_of_twilight",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_druthandor"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_beasts",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_druthandor"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_dark",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_druthandor"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_high",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_druthandor"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_life",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_druthandor"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_shadows",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_druthandor"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_glade_lord",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_druthandor"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_glade_lord_fem",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_druthandor"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_orion",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_druthandor"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_sisters_of_twilight",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_talrennic"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_beasts",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_talrennic"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_dark",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_talrennic"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_high",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_talrennic"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_life",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_talrennic"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_shadows",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_talrennic"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_glade_lord",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_talrennic"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_glade_lord_fem",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_talrennic"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_orion",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_talrennic"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_sisters_of_twilight",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_threllock"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_beasts",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_threllock"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_dark",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_threllock"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_high",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_threllock"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_life",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_threllock"
+  },
+  {
+   "agent_subtype": "wh2_dlc16_wef_spellweaver_shadows",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_threllock"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_glade_lord",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_threllock"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_glade_lord_fem",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_threllock"
+  },
+  {
+   "agent_subtype": "wh_dlc05_wef_orion",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_threllock"
+  }
+ ],
+ "ministerial_positions_to_region_restrictions": [],
+ "ministerial_position_to_required_building_junctions": [],
+ "ministerial_effectiveness_modifiers": [],
+ "campaign_group_member_criteria_ministerial_positions": [
+  {
+   "member": "wh2_dlc11_minister_vampire_coast_faction_leader",
+   "ministerial_position": "faction_leader"
+  },
+  {
+   "member": "wh2_dlc16_minister_wef_drycha_faction_leader",
+   "ministerial_position": "faction_leader"
+  },
+  {
+   "member": "wh2_dlc16_minister_wef_drycha_speaker_embittered",
+   "ministerial_position": "wh2_dlc16_minister_wef_drycha_speaker_embittered"
+  },
+  {
+   "member": "wh2_dlc16_minister_wef_drycha_speaker_forgotten",
+   "ministerial_position": "wh2_dlc16_minister_wef_drycha_speaker_forgotten"
+  },
+  {
+   "member": "wh2_dlc16_minister_wef_drycha_speaker_lost",
+   "ministerial_position": "wh2_dlc16_minister_wef_drycha_speaker_lost"
+  },
+  {
+   "member": "wh2_dlc16_minister_wef_drycha_speaker_wild",
+   "ministerial_position": "wh2_dlc16_minister_wef_drycha_speaker_wild"
+  },
+  {
+   "member": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen"
+  },
+  {
+   "member": "wh2_dlc16_minister_wef_sisters_darkweaver",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_darkweaver"
+  },
+  {
+   "member": "wh2_dlc16_minister_wef_sisters_faction_leader",
+   "ministerial_position": "faction_leader"
+  },
+  {
+   "member": "wh2_dlc16_minister_wef_sisters_highweaver",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_highweaver"
+  },
+  {
+   "member": "wh2_dlc16_minister_wef_sisters_isha",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_isha"
+  },
+  {
+   "member": "wh2_dlc16_minister_wef_sisters_kurnous",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_kurnous"
+  },
+  {
+   "member": "wh2_dlc16_minister_wef_sisters_loec",
+   "ministerial_position": "wh2_dlc16_minister_wef_sisters_loec"
+  },
+  {
+   "member": "wh_dlc05_minister_elf_elder_speaker",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_elder_speaker"
+  },
+  {
+   "member": "wh_dlc05_minister_elf_faction_leader",
+   "ministerial_position": "faction_leader"
+  },
+  {
+   "member": "wh_dlc05_minister_elf_herald_of_the_hunt",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_herald_of_the_hunt"
+  },
+  {
+   "member": "wh_dlc05_minister_elf_protector_of_the_oak",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_protector_of_the_oak"
+  },
+  {
+   "member": "wh_dlc05_minister_elf_starlight_craftsman",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_starlight_craftsman"
+  },
+  {
+   "member": "wh_dlc05_minister_elf_the_tricksters_masque",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_the_tricksters_masque"
+  },
+  {
+   "member": "wh_dlc05_minister_elf_warden_of_the_wildwood",
+   "ministerial_position": "wh_dlc05_minister_wef_elf_warden_of_the_wildwood"
+  },
+  {
+   "member": "wh_dlc05_minister_tree_ancient_of_delliandra",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_delliandra"
+  },
+  {
+   "member": "wh_dlc05_minister_tree_ancient_of_druthandor",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_druthandor"
+  },
+  {
+   "member": "wh_dlc05_minister_tree_ancient_of_talrennic",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_talrennic"
+  },
+  {
+   "member": "wh_dlc05_minister_tree_ancient_of_threllock",
+   "ministerial_position": "wh_dlc05_minister_wef_tree_ancient_of_threllock"
+  },
+  {
+   "member": "wh_dlc05_minister_tree_faction_leader",
+   "ministerial_position": "faction_leader"
+  },
+  {
+   "member": "wh_ministerial_faction_leader_emp",
+   "ministerial_position": "faction_leader"
+  }
+ ],
+ "campaign_group_members": [
+  {
+   "group": "wh2_dlc11_minister_vampire_coast_faction_leader",
+   "id": "wh2_dlc11_minister_vampire_coast_faction_leader",
+   "priority": 0
+  },
+  {
+   "group": "wh2_dlc16_minister_wef_drycha_faction_leader",
+   "id": "wh2_dlc16_minister_wef_drycha_faction_leader",
+   "priority": 0
+  },
+  {
+   "group": "wh2_dlc16_minister_wef_drycha_speaker_embittered",
+   "id": "wh2_dlc16_minister_wef_drycha_speaker_embittered",
+   "priority": 0
+  },
+  {
+   "group": "wh2_dlc16_minister_wef_drycha_speaker_forgotten",
+   "id": "wh2_dlc16_minister_wef_drycha_speaker_forgotten",
+   "priority": 0
+  },
+  {
+   "group": "wh2_dlc16_minister_wef_drycha_speaker_lost",
+   "id": "wh2_dlc16_minister_wef_drycha_speaker_lost",
+   "priority": 0
+  },
+  {
+   "group": "wh2_dlc16_minister_wef_drycha_speaker_wild",
+   "id": "wh2_dlc16_minister_wef_drycha_speaker_wild",
+   "priority": 0
+  },
+  {
+   "group": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen",
+   "id": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen",
+   "priority": 0
+  },
+  {
+   "group": "wh2_dlc16_minister_wef_sisters_darkweaver",
+   "id": "wh2_dlc16_minister_wef_sisters_darkweaver",
+   "priority": 0
+  },
+  {
+   "group": "wh2_dlc16_minister_wef_sisters_faction_leader",
+   "id": "wh2_dlc16_minister_wef_sisters_faction_leader",
+   "priority": 0
+  },
+  {
+   "group": "wh2_dlc16_minister_wef_sisters_highweaver",
+   "id": "wh2_dlc16_minister_wef_sisters_highweaver",
+   "priority": 0
+  },
+  {
+   "group": "wh2_dlc16_minister_wef_sisters_isha",
+   "id": "wh2_dlc16_minister_wef_sisters_isha",
+   "priority": 0
+  },
+  {
+   "group": "wh2_dlc16_minister_wef_sisters_kurnous",
+   "id": "wh2_dlc16_minister_wef_sisters_kurnous",
+   "priority": 0
+  },
+  {
+   "group": "wh2_dlc16_minister_wef_sisters_loec",
+   "id": "wh2_dlc16_minister_wef_sisters_loec",
+   "priority": 0
+  },
+  {
+   "group": "wh_dlc05_minister_elf_elder_speaker",
+   "id": "wh_dlc05_minister_elf_elder_speaker",
+   "priority": 0
+  },
+  {
+   "group": "wh_dlc05_minister_elf_faction_leader",
+   "id": "wh_dlc05_minister_elf_faction_leader",
+   "priority": 0
+  },
+  {
+   "group": "wh_dlc05_minister_elf_herald_of_the_hunt",
+   "id": "wh_dlc05_minister_elf_herald_of_the_hunt",
+   "priority": 0
+  },
+  {
+   "group": "wh_dlc05_minister_elf_protector_of_the_oak",
+   "id": "wh_dlc05_minister_elf_protector_of_the_oak",
+   "priority": 0
+  },
+  {
+   "group": "wh_dlc05_minister_elf_starlight_craftsman",
+   "id": "wh_dlc05_minister_elf_starlight_craftsman",
+   "priority": 0
+  },
+  {
+   "group": "wh_dlc05_minister_elf_the_tricksters_masque",
+   "id": "wh_dlc05_minister_elf_the_tricksters_masque",
+   "priority": 0
+  },
+  {
+   "group": "wh_dlc05_minister_elf_warden_of_the_wildwood",
+   "id": "wh_dlc05_minister_elf_warden_of_the_wildwood",
+   "priority": 0
+  },
+  {
+   "group": "wh_dlc05_minister_tree_ancient_of_delliandra",
+   "id": "wh_dlc05_minister_tree_ancient_of_delliandra",
+   "priority": 0
+  },
+  {
+   "group": "wh_dlc05_minister_tree_ancient_of_druthandor",
+   "id": "wh_dlc05_minister_tree_ancient_of_druthandor",
+   "priority": 0
+  },
+  {
+   "group": "wh_dlc05_minister_tree_ancient_of_talrennic",
+   "id": "wh_dlc05_minister_tree_ancient_of_talrennic",
+   "priority": 0
+  },
+  {
+   "group": "wh_dlc05_minister_tree_ancient_of_threllock",
+   "id": "wh_dlc05_minister_tree_ancient_of_threllock",
+   "priority": 0
+  },
+  {
+   "group": "wh_dlc05_minister_tree_faction_leader",
+   "id": "wh_dlc05_minister_tree_faction_leader",
+   "priority": 0
+  },
+  {
+   "group": "wh_main_ministerial_faction_leader_emp",
+   "id": "wh_ministerial_faction_leader_emp",
+   "priority": 0
+  }
+ ],
+ "campaign_group_member_criteria_factions": [
+  {
+   "faction": "wh2_dlc16_wef_drycha",
+   "member": "wh2_dlc16_minister_wef_drycha_faction_leader",
+   "context": "ACTOR"
+  },
+  {
+   "faction": "wh2_dlc16_wef_sisters_of_twilight",
+   "member": "wh2_dlc16_minister_wef_sisters_faction_leader",
+   "context": "ACTOR"
+  },
+  {
+   "faction": "wh_dlc05_wef_wood_elves",
+   "member": "wh_dlc05_minister_elf_faction_leader",
+   "context": "ACTOR"
+  },
+  {
+   "faction": "wh_dlc05_wef_argwylon",
+   "member": "wh_dlc05_minister_tree_faction_leader",
+   "context": "ACTOR"
+  },
+  {
+   "faction": "wh_main_emp_empire",
+   "member": "wh_ministerial_faction_leader_emp",
+   "context": "ACTOR"
+  }
+ ],
+ "campaign_group_member_criteria_subcultures": [
+  {
+   "member": "wh2_dlc11_minister_vampire_coast_faction_leader",
+   "subculture": "wh2_dlc11_sc_cst_vampire_coast",
+   "context": "ACTOR"
+  }
+ ],
+ "campaign_group_member_criteria_cultures": [],
+ "campaign_group_member_criteria_agent_subtypes": [],
+ "effect_bundles_by_group": [
+  {
+   "campaign_group": "wh2_dlc11_minister_vampire_coast_faction_leader",
+   "effect_bundle": "wh2_dlc11_minister_cst_faction_leader"
+  },
+  {
+   "campaign_group": "wh2_dlc16_minister_wef_drycha_faction_leader",
+   "effect_bundle": "wh2_dlc16_minister_wef_drycha_faction_leader"
+  },
+  {
+   "campaign_group": "wh2_dlc16_minister_wef_drycha_speaker_embittered",
+   "effect_bundle": "wh2_dlc16_minister_wef_drycha_speaker_embittered"
+  },
+  {
+   "campaign_group": "wh2_dlc16_minister_wef_drycha_speaker_forgotten",
+   "effect_bundle": "wh2_dlc16_minister_wef_drycha_speaker_forgotten"
+  },
+  {
+   "campaign_group": "wh2_dlc16_minister_wef_drycha_speaker_lost",
+   "effect_bundle": "wh2_dlc16_minister_wef_drycha_speaker_lost"
+  },
+  {
+   "campaign_group": "wh2_dlc16_minister_wef_drycha_speaker_wild",
+   "effect_bundle": "wh2_dlc16_minister_wef_drycha_speaker_wild"
+  },
+  {
+   "campaign_group": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen",
+   "effect_bundle": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen"
+  },
+  {
+   "campaign_group": "wh2_dlc16_minister_wef_sisters_darkweaver",
+   "effect_bundle": "wh2_dlc16_minister_wef_sisters_darkweaver"
+  },
+  {
+   "campaign_group": "wh2_dlc16_minister_wef_sisters_faction_leader",
+   "effect_bundle": "wh2_dlc16_minister_wef_sisters_faction_leader"
+  },
+  {
+   "campaign_group": "wh2_dlc16_minister_wef_sisters_highweaver",
+   "effect_bundle": "wh2_dlc16_minister_wef_sisters_highweaver"
+  },
+  {
+   "campaign_group": "wh2_dlc16_minister_wef_sisters_isha",
+   "effect_bundle": "wh2_dlc16_minister_wef_sisters_isha"
+  },
+  {
+   "campaign_group": "wh2_dlc16_minister_wef_sisters_kurnous",
+   "effect_bundle": "wh2_dlc16_minister_wef_sisters_kurnous"
+  },
+  {
+   "campaign_group": "wh2_dlc16_minister_wef_sisters_loec",
+   "effect_bundle": "wh2_dlc16_minister_wef_sisters_loec"
+  },
+  {
+   "campaign_group": "wh_dlc05_minister_elf_elder_speaker",
+   "effect_bundle": "wh_dlc05_minister_wef_elf_talon_of_kurnous"
+  },
+  {
+   "campaign_group": "wh_dlc05_minister_elf_faction_leader",
+   "effect_bundle": "wh_dlc05_minister_wef_elf_faction_leader"
+  },
+  {
+   "campaign_group": "wh_dlc05_minister_elf_herald_of_the_hunt",
+   "effect_bundle": "wh_dlc05_minister_wef_elf_herald_of_the_hunt"
+  },
+  {
+   "campaign_group": "wh_dlc05_minister_elf_protector_of_the_oak",
+   "effect_bundle": "wh_dlc05_minister_wef_elf_spirit_of_the_hunt"
+  },
+  {
+   "campaign_group": "wh_dlc05_minister_elf_starlight_craftsman",
+   "effect_bundle": "wh_dlc05_minister_wef_elf_master_of_supplies"
+  },
+  {
+   "campaign_group": "wh_dlc05_minister_elf_the_tricksters_masque",
+   "effect_bundle": "wh_dlc05_minister_wef_elf_master_of_drums"
+  },
+  {
+   "campaign_group": "wh_dlc05_minister_elf_warden_of_the_wildwood",
+   "effect_bundle": "wh_dlc05_minister_wef_elf_master_of_scouts"
+  },
+  {
+   "campaign_group": "wh_dlc05_minister_tree_ancient_of_delliandra",
+   "effect_bundle": "wh_dlc05_minister_wef_tree_ancient_of_delliandra"
+  },
+  {
+   "campaign_group": "wh_dlc05_minister_tree_ancient_of_druthandor",
+   "effect_bundle": "wh_dlc05_minister_wef_tree_ancient_of_druthandor"
+  },
+  {
+   "campaign_group": "wh_dlc05_minister_tree_ancient_of_talrennic",
+   "effect_bundle": "wh_dlc05_minister_wef_tree_ancient_of_talrennic"
+  },
+  {
+   "campaign_group": "wh_dlc05_minister_tree_ancient_of_threllock",
+   "effect_bundle": "wh_dlc05_minister_wef_tree_ancient_of_threllock"
+  },
+  {
+   "campaign_group": "wh_dlc05_minister_tree_faction_leader",
+   "effect_bundle": "wh_dlc05_minister_wef_tree_faction_leader"
+  }
+ ],
+ "effect_bundles": [
+  {
+   "key": "wh2_dlc11_minister_cst_faction_leader",
+   "localised_description": "[HIDDEN]",
+   "localised_title": "Admiral of the Fleet",
+   "bundle_target": "character",
+   "priority": 1,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh2_dlc16_minister_wef_drycha_faction_leader",
+   "localised_description": "",
+   "localised_title": "",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh2_dlc16_minister_wef_drycha_speaker_embittered",
+   "localised_description": "",
+   "localised_title": "",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh2_dlc16_minister_wef_drycha_speaker_forgotten",
+   "localised_description": "",
+   "localised_title": "",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh2_dlc16_minister_wef_drycha_speaker_lost",
+   "localised_description": "",
+   "localised_title": "",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh2_dlc16_minister_wef_drycha_speaker_wild",
+   "localised_description": "",
+   "localised_title": "",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen",
+   "localised_description": "[HIDDEN]",
+   "localised_title": "Consort to the Queen",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh2_dlc16_minister_wef_sisters_darkweaver",
+   "localised_description": "",
+   "localised_title": "",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh2_dlc16_minister_wef_sisters_faction_leader",
+   "localised_description": "",
+   "localised_title": "",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh2_dlc16_minister_wef_sisters_highweaver",
+   "localised_description": "",
+   "localised_title": "",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh2_dlc16_minister_wef_sisters_isha",
+   "localised_description": "",
+   "localised_title": "",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh2_dlc16_minister_wef_sisters_kurnous",
+   "localised_description": "",
+   "localised_title": "",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh2_dlc16_minister_wef_sisters_loec",
+   "localised_description": "",
+   "localised_title": "",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh_dlc05_minister_wef_elf_faction_leader",
+   "localised_description": "[HIDDEN]",
+   "localised_title": "Master of the Hunt",
+   "bundle_target": "character",
+   "priority": 1,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh_dlc05_minister_wef_elf_herald_of_the_hunt",
+   "localised_description": "[HIDDEN]",
+   "localised_title": "Herald of the Hunt",
+   "bundle_target": "character",
+   "priority": 1,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh_dlc05_minister_wef_elf_master_of_drums",
+   "localised_description": "[HIDDEN]",
+   "localised_title": "Master of Drums",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh_dlc05_minister_wef_elf_master_of_scouts",
+   "localised_description": "[HIDDEN]",
+   "localised_title": "Master of Scouts",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh_dlc05_minister_wef_elf_master_of_supplies",
+   "localised_description": "[HIDDEN]",
+   "localised_title": "Master of Supplies",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh_dlc05_minister_wef_elf_spirit_of_the_hunt",
+   "localised_description": "[HIDDEN]",
+   "localised_title": "Spirit of the Hunt",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh_dlc05_minister_wef_elf_talon_of_kurnous",
+   "localised_description": "[HIDDEN]",
+   "localised_title": "Talon of Kurnous",
+   "bundle_target": "character",
+   "priority": 0,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh_dlc05_minister_wef_tree_ancient_of_delliandra",
+   "localised_description": "[HIDDEN]",
+   "localised_title": "Ancient of Delliandra",
+   "bundle_target": "character",
+   "priority": 1,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh_dlc05_minister_wef_tree_ancient_of_druthandor",
+   "localised_description": "[HIDDEN]",
+   "localised_title": "Ancient of Druthandor",
+   "bundle_target": "character",
+   "priority": 1,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh_dlc05_minister_wef_tree_ancient_of_talrennic",
+   "localised_description": "[HIDDEN]",
+   "localised_title": "Ancient of Talrennic",
+   "bundle_target": "character",
+   "priority": 1,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh_dlc05_minister_wef_tree_ancient_of_threllock",
+   "localised_description": "[HIDDEN]",
+   "localised_title": "Ancient of Threllock",
+   "bundle_target": "character",
+   "priority": 1,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  },
+  {
+   "key": "wh_dlc05_minister_wef_tree_faction_leader",
+   "localised_description": "[HIDDEN]",
+   "localised_title": "Eldest of Ancients",
+   "bundle_target": "character",
+   "priority": 1,
+   "ui_icon": "",
+   "is_global_effect": true,
+   "show_in_3d_space": false,
+   "owner_only": true
+  }
+ ],
+ "effect_bundles_to_effects_junctions": [
+  {
+   "effect_bundle_key": "wh2_dlc11_minister_cst_faction_leader",
+   "effect_key": "wh_main_effect_force_all_campaign_sacking_income",
+   "effect_scope": "character_to_character_own_armytext",
+   "value": 15,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_faction_leader",
+   "effect_key": "wh2_dlc10_effect_force_stat_weapon_strength_vs_elves",
+   "effect_scope": "general_to_force_own",
+   "value": 10,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_faction_leader",
+   "effect_key": "wh_dlc08_effect_force_stat_melee_attack_vs_elves",
+   "effect_scope": "general_to_force_own",
+   "value": 5,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_embittered",
+   "effect_key": "wh2_dlc16_effect_replenishment_dryads",
+   "effect_scope": "general_to_force_own",
+   "value": 25,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_embittered",
+   "effect_key": "wh2_dlc16_effect_title_wef_office_drycha_embittered",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_embittered",
+   "effect_key": "wh_dlc05_effect_tech_upkeep_reduction_dryads",
+   "effect_scope": "general_to_force_own",
+   "value": -25,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_embittered",
+   "effect_key": "wh_main_effect_attribute_enable_unbreakable",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_forgotten",
+   "effect_key": "wh2_dlc16_effect_title_wef_office_drycha_forgotten",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_forgotten",
+   "effect_key": "wh_dlc05_effect_tech_melee_defence_increase_treemen",
+   "effect_scope": "general_to_force_own",
+   "value": 8,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_forgotten",
+   "effect_key": "wh_dlc05_effect_tech_upkeep_reduction_treemen",
+   "effect_scope": "general_to_force_own",
+   "value": -15,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_forgotten",
+   "effect_key": "wh_dlc08_effect_ability_enable_greater_arcane_conduit",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_lost",
+   "effect_key": "wh2_dlc16_ability_empowered_glamour",
+   "effect_scope": "general_to_force_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_lost",
+   "effect_key": "wh2_dlc16_effect_stalk_treekin",
+   "effect_scope": "general_to_force_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_lost",
+   "effect_key": "wh2_dlc16_effect_title_wef_office_drycha_lost",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_lost",
+   "effect_key": "wh_main_effect_attribute_enable_stalk",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_wild",
+   "effect_key": "wh2_dlc10_effect_attribute_enable_perfect_vigour",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_wild",
+   "effect_key": "wh2_dlc16_effect_bonus_v_large_drycha_wild_beasts",
+   "effect_scope": "general_to_force_own",
+   "value": 8,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_wild",
+   "effect_key": "wh2_dlc16_effect_skill_movement_speed_beasts",
+   "effect_scope": "general_to_force_own",
+   "value": 10,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_drycha_speaker_wild",
+   "effect_key": "wh2_dlc16_effect_title_wef_office_drycha_wild",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen",
+   "effect_key": "wh_main_effect_agent_movement_range_mod",
+   "effect_scope": "character_to_character_own",
+   "value": 10,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_consort_to_the_queen",
+   "effect_key": "wh_main_effect_force_all_campaign_razing_income",
+   "effect_scope": "character_to_character_own",
+   "value": 10,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_darkweaver",
+   "effect_key": "wh2_dlc16_effect_title_wef_office_sisters_darkweaver",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_darkweaver",
+   "effect_key": "wh2_dlc17_effect_weapon_str_for_all",
+   "effect_scope": "general_to_force_own",
+   "value": 10,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_darkweaver",
+   "effect_key": "wh2_main_effect_ability_uses_power_of_darkness",
+   "effect_scope": "character_to_character_own",
+   "value": 2,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_darkweaver",
+   "effect_key": "wh3_main_effect_winds_of_magic_character",
+   "effect_scope": "character_to_force_own_factionwide",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_faction_leader",
+   "effect_key": "wh2_dlc16_effect_agent_recruitment_xp_spellweavers",
+   "effect_scope": "character_to_province_own_factionwide",
+   "value": 3,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_highweaver",
+   "effect_key": "wh2_dlc16_effect_title_wef_office_sisters_highweaver",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_highweaver",
+   "effect_key": "wh2_main_effect_ability_wom_cost_apotheosis",
+   "effect_scope": "character_to_character_own",
+   "value": -2,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_highweaver",
+   "effect_key": "wh_main_effect_character_stat_miscast",
+   "effect_scope": "character_to_force_own_factionwide",
+   "value": -25,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_highweaver",
+   "effect_key": "wh_main_effect_force_stat_ward_save",
+   "effect_scope": "general_to_force_own",
+   "value": 10,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_isha",
+   "effect_key": "wh2_dlc15_effect_ability_enable_regeneration_tree_spirits",
+   "effect_scope": "general_to_force_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_isha",
+   "effect_key": "wh2_dlc16_effect_title_wef_office_sisters_treesinger",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_isha",
+   "effect_key": "wh2_main_effect_ability_wom_cost_awakening_of_the_wood",
+   "effect_scope": "character_to_character_own",
+   "value": -3,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_kurnous",
+   "effect_key": "wh2_dlc16_effect_magic_mod_amount_of_uses_transformation_of_kadon",
+   "effect_scope": "character_to_character_own",
+   "value": 2,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_kurnous",
+   "effect_key": "wh2_dlc16_effect_mounted_melee_damage_stag_unicorn_eagle",
+   "effect_scope": "character_to_character_own",
+   "value": 100,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_kurnous",
+   "effect_key": "wh2_dlc16_effect_title_wef_office_sisters_beastbinder",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_loec",
+   "effect_key": "wh2_dlc16_effect_cooldown_mod_loecs_blessing",
+   "effect_scope": "character_to_character_own",
+   "value": -75,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_loec",
+   "effect_key": "wh2_dlc16_effect_enable_stalk_wardancers_bladesingers",
+   "effect_scope": "general_to_force_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh2_dlc16_minister_wef_sisters_loec",
+   "effect_key": "wh2_dlc16_effect_title_wef_office_sisters_glamourweaver",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_faction_leader",
+   "effect_key": "wh_dlc05_effect_dummy_wild_hunt_general",
+   "effect_scope": "character_to_character_own_armytext",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_faction_leader",
+   "effect_key": "wh_main_effect_force_all_campaign_razing_income",
+   "effect_scope": "character_to_character_regionwide_local_region",
+   "value": 15,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_herald_of_the_hunt",
+   "effect_key": "wh_dlc05_effect_dummy_wild_hunt_general",
+   "effect_scope": "character_to_force_own_unseen",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_herald_of_the_hunt",
+   "effect_key": "wh_main_effect_force_all_campaign_raid_income",
+   "effect_scope": "character_to_force_own_provincewide",
+   "value": 30,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_herald_of_the_hunt",
+   "effect_key": "wh_main_effect_force_army_campaign_upkeep_cost_cavalry",
+   "effect_scope": "general_to_force_own",
+   "value": -15,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_herald_of_the_hunt",
+   "effect_key": "wh_main_effect_public_order_characters_negative",
+   "effect_scope": "character_to_enemy_province",
+   "value": -4,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_master_of_drums",
+   "effect_key": "wh2_dlc16_effect_upkeep_reduction_wef_wardancers_bladesingers",
+   "effect_scope": "general_to_force_own",
+   "value": -15,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_master_of_drums",
+   "effect_key": "wh_dlc05_effect_dummy_wild_hunt_general",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_master_of_drums",
+   "effect_key": "wh_dlc05_effect_force_stat_weapon_strength_wardancers",
+   "effect_scope": "general_to_force_own",
+   "value": 10,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_master_of_drums",
+   "effect_key": "wh_main_effect_force_all_campaign_post_battle_loot_mod",
+   "effect_scope": "character_to_character_regionwide_local_region",
+   "value": 25,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_master_of_scouts",
+   "effect_key": "wh2_dlc16_effect_upkeep_reduction_wef_scouts",
+   "effect_scope": "general_to_force_own",
+   "value": -15,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_master_of_scouts",
+   "effect_key": "wh2_main_effect_force_all_campaign_sacking_income",
+   "effect_scope": "character_to_character_regionwide_local_region",
+   "value": 30,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_master_of_scouts",
+   "effect_key": "wh_dlc05_effect_dummy_wild_hunt_general",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_master_of_scouts",
+   "effect_key": "wh_main_effect_force_all_campaign_movement_range",
+   "effect_scope": "character_to_force_own_provincewide",
+   "value": 10,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_master_of_supplies",
+   "effect_key": "wh_dlc05_effect_dummy_wild_hunt_general",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_master_of_supplies",
+   "effect_key": "wh_dlc05_effect_tech_armour_increase_eternal_guards_glade_guard",
+   "effect_scope": "general_to_force_own",
+   "value": 10,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_master_of_supplies",
+   "effect_key": "wh_main_effect_force_all_campaign_post_battle_loot_mod",
+   "effect_scope": "character_to_character_regionwide_local_region",
+   "value": 25,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_master_of_supplies",
+   "effect_key": "wh_main_effect_force_stat_ammunition",
+   "effect_scope": "character_to_force_own_provincewide",
+   "value": 15,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_spirit_of_the_hunt",
+   "effect_key": "wh2_dlc11_effect_force_stat_charge_bonus_add_wef_treespirits",
+   "effect_scope": "general_to_force_own",
+   "value": 10,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_spirit_of_the_hunt",
+   "effect_key": "wh_dlc05_effect_dummy_wild_hunt_general",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_spirit_of_the_hunt",
+   "effect_key": "wh_dlc05_effect_force_stat_leadership_trees",
+   "effect_scope": "general_to_force_own",
+   "value": 8,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_spirit_of_the_hunt",
+   "effect_key": "wh_main_effect_force_all_campaign_razing_income",
+   "effect_scope": "character_to_character_regionwide_local_region",
+   "value": 15,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_talon_of_kurnous",
+   "effect_key": "wh_dlc05_effect_dummy_wild_hunt_general",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_talon_of_kurnous",
+   "effect_key": "wh_main_effect_character_stat_missile_damage",
+   "effect_scope": "character_to_character_own",
+   "value": 25,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_talon_of_kurnous",
+   "effect_key": "wh_main_effect_force_all_campaign_razing_income",
+   "effect_scope": "character_to_character_regionwide_local_region",
+   "value": 15,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_elf_talon_of_kurnous",
+   "effect_key": "wh_main_effect_force_stat_leadership_enemy_unit",
+   "effect_scope": "character_to_force_enemy_provincewide",
+   "value": -6,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_delliandra",
+   "effect_key": "wh2_dlc16_effect_ability_enable_resplendence_of_luminescents",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_delliandra",
+   "effect_key": "wh2_dlc16_effect_name_delliandra",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_delliandra",
+   "effect_key": "wh3_main_effect_corruption_reduction_characters",
+   "effect_scope": "character_to_province_any",
+   "value": -10,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_delliandra",
+   "effect_key": "wh_main_effect_force_all_campaign_upkeep",
+   "effect_scope": "character_to_force_own_owned_territory",
+   "value": -20,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_delliandra",
+   "effect_key": "wh_main_effect_public_order_characters",
+   "effect_scope": "character_to_province_own",
+   "value": 4,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_druthandor",
+   "effect_key": "wh2_dlc16_effect_ability_enable_cluster_of_radiants",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_druthandor",
+   "effect_key": "wh2_dlc16_effect_name_druthandor",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_druthandor",
+   "effect_key": "wh_main_effect_agent_action_outcome_parent_army_xp_gain",
+   "effect_scope": "general_to_force_own",
+   "value": 100,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_druthandor",
+   "effect_key": "wh_main_effect_force_all_campaign_experience_base_all",
+   "effect_scope": "character_to_province_own",
+   "value": 2,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_druthandor",
+   "effect_key": "wh_main_effect_force_all_campaign_upkeep",
+   "effect_scope": "character_to_force_own_owned_territory",
+   "value": -20,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_talrennic",
+   "effect_key": "wh2_dlc16_effect_ability_enable_befuddlement_of_mischiefs",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_talrennic",
+   "effect_key": "wh2_dlc16_effect_name_talrennic",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_talrennic",
+   "effect_key": "wh_main_effect_force_all_campaign_replenishment_rate",
+   "effect_scope": "character_to_force_own_provincewide",
+   "value": 5,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_talrennic",
+   "effect_key": "wh_main_effect_force_all_campaign_upkeep",
+   "effect_scope": "character_to_force_own_owned_territory",
+   "value": -20,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_talrennic",
+   "effect_key": "wh_main_effect_province_growth_characters",
+   "effect_scope": "character_to_province_own",
+   "value": 25,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_threllock",
+   "effect_key": "wh2_dlc16_effect_ability_enable_annoyance_of_netlings",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_threllock",
+   "effect_key": "wh2_dlc16_effect_name_threllock",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_threllock",
+   "effect_key": "wh_main_effect_building_construction_cost_mod",
+   "effect_scope": "character_to_region_own_provincewide",
+   "value": -15,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_threllock",
+   "effect_key": "wh_main_effect_economy_gdp_mod_all",
+   "effect_scope": "character_to_region_own",
+   "value": 10,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_ancient_of_threllock",
+   "effect_key": "wh_main_effect_force_all_campaign_upkeep",
+   "effect_scope": "character_to_force_own_owned_territory",
+   "value": -20,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_faction_leader",
+   "effect_key": "wh2_dlc16_effect_agent_recruitment_xp_ancient_treemen",
+   "effect_scope": "character_to_province_own_factionwide",
+   "value": 5,
+   "advancement_stage": "start_turn_completed"
+  },
+  {
+   "effect_bundle_key": "wh_dlc05_minister_wef_tree_faction_leader",
+   "effect_key": "wh2_main_effect_ability_enable_lamentation_of_despair",
+   "effect_scope": "character_to_character_own",
+   "value": 1,
+   "advancement_stage": "start_turn_completed"
+  }
+ ],
+ "textos": {
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_speaker_wild_desc": "Por firme que pueda parecer, la alianza entre la flora y la fauna sigue requiriendo un poderoso y digno exponente.",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_ancient_of_druthandor": "Antiguo de Druthandor",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_protector_of_the_oak": "Espíritu de la Cacería",
+  "effects_description_wh_main_effect_economy_gdp_mod_all": "Ingresos de todos los edificios: %+n%",
+  "effects_description_wh2_main_effect_force_all_campaign_sacking_income": "Ingresos provenientes de saquear y tomar asentamientos: %+n%",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_consort_to_the_queen_desc": "Si Orión está ocupado en otro sitio, un Señor de los Claros puede servir como campeón de la Reina en su lugar.",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_faction_leader_desc": "Orión es el Señor de la Cacería y el consorte elegido por Ariel. En el bosque, su palabra es la ley.",
+  "effects_description_wh2_dlc16_effect_cooldown_mod_loecs_blessing": "Tiempo de espera: %+n% para \"Bendición de Loec\"",
+  "effects_description_wh2_dlc10_effect_attribute_enable_perfect_vigour": "Atributo: Vigor perfecto",
+  "effects_description_wh3_main_effect_corruption_reduction_characters": "Corrupción: %+n",
+  "effects_description_wh_main_effect_public_order_characters": "Control: %+n",
+  "effects_description_wh_main_effect_attribute_enable_unbreakable": "Atributo: Indesmoralizable",
+  "effects_description_wh3_main_effect_foreign_slot_summon_faction_leader": "Transporta instantáneamente al líder de tu facción a este asentamiento",
+  "effect_bundles_localised_description_wh_dlc05_minister_wef_tree_ancient_of_delliandra": "[HIDDEN]",
+  "effects_description_wh_main_effect_agent_movement_range_mod": "Capacidad de movimiento en campaña: %+n%",
+  "effect_bundles_localised_title_wh_dlc05_minister_wef_elf_talon_of_kurnous": "Garra de Kurnous",
+  "effects_description_wh2_dlc17_effect_weapon_str_for_all": "Fuerza del arma: %+n% a todas las unidades",
+  "effects_description_wh2_dlc11_effect_force_stat_charge_bonus_add_wef_treespirits": "Bonificación de carga: %+n a las unidades de Dríades, Arbóreos y Hombres Árbol",
+  "effects_description_wh_main_effect_force_army_campaign_upkeep_cost_cavalry": "Mantenimiento: %+n% a las unidades de caballería",
+  "effects_description_wh_dlc05_effect_force_stat_leadership_trees": "Liderazgo: %+n a las unidades de Dríades, Arbóreos y Hombres Árbol",
+  "campaign_localised_strings_string_faction_leader": "Líder de la facción:",
+  "effects_description_wh2_dlc16_effect_ability_enable_annoyance_of_netlings": "Habilidad pasiva: \"Molestos Geniecillos\"",
+  "effects_description_wh_dlc08_effect_ability_enable_greater_arcane_conduit": "Habilidad pasiva: \"Gran conducto arcano\"",
+  "effects_description_wh_dlc08_effect_force_stat_melee_attack_vs_elves": "At. cuerpo a cuerpo: %+n al luchar contra los Elfos",
+  "effect_bundles_localised_title_wh_dlc05_minister_wef_tree_ancient_of_delliandra": "Antiguo de Delliandra",
+  "effects_description_wh3_main_effect_attribute_enable_unbreakable_tmb_faction_leader": "Atributo: indesmoralizable",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_ancient_of_threllock": "Antiguo de Threllock",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_drycha": "Doncella de Coeddil",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_speaker_wild": "Portavoz de los salvajes",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_priestess_isha_desc": "El arte del canto arbóreo lo concede la mismísima Isha, un don divino que tan solo poseen unos cuantos.",
+  "effects_description_wh_main_effect_force_all_campaign_experience_base_all": "Rango al reclutar: %+n a todas las unidades",
+  "effect_bundles_localised_description_wh_dlc05_minister_wef_tree_ancient_of_threllock": "[HIDDEN]",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_sisters": "Heraldas de Isha",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_ancient_of_talrennic": "Antiguo de Talrennic",
+  "effect_bundles_localised_title_wh_dlc05_minister_wef_elf_faction_leader": "Señor de la Cacería",
+  "effect_bundles_localised_title_wh_dlc05_minister_wef_tree_ancient_of_threllock": "Antiguo de Threllock",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_herald_of_the_hunt_desc": "¿Hay algo más sagrado que la Cacería? Todo Asrai tiene el deber de seguir su llamada.",
+  "effects_description_wh_main_effect_public_order_characters_negative": "Control: %+n",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_starlight_craftsman_desc": "Hay que equiparse bien para la cacería con todo el despliegue de armas.",
+  "effect_bundles_localised_description_wh_dlc05_minister_wef_elf_herald_of_the_hunt": "[HIDDEN]",
+  "effects_description_wh_dlc05_effect_force_stat_weapon_strength_wardancers": "Fuerza del arma: %+n% a las unidades de Bailarines Guerreros y Cantantes de las Espadas",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_speaker_lost": "Portavoz de los perdidos",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_faction_leader": "Señor de la Cacería",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_ancient_of_threllock_desc": "El Antiguo lanza profecías: la suerte de Threllock está ligada a la de Athel Loren.",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_speaker_embittered_desc": "Con control, la furia y la malicia de las resentidas Dríades puede conferirles una gran fuerza y resistencia.",
+  "effects_description_wh_dlc05_effect_tech_upkeep_reduction_treemen": "Mantenimiento: %+n% a las unidades de Hombres Árbol",
+  "missions_localised_description_wh3_cp1_camp_cth_enemies_of_cathay_3_kill_faction_leader": "Zhao Ming sabe que los suyos siguen siendo intocables e imbatibles ante cualquier desafío, pero también es consciente de que existen fuerzas en este mundo que nunca dejarán de buscar a los más fuertes para derribarlos. Ahora, una de esas maléficas fuerzas y su líder se oponen al mandato de los Celestiales. Sin embargo, una gran fuerza del bien apoya a los Dragones, y la feroz tenacidad de su líder no tiene igual.",
+  "campaign_effect_scopes_localised_text_faction_to_faction_leader": "\n(líder de la facción)",
+  "effects_description_wh_main_effect_force_stat_leadership_enemy_unit": "Liderazgo enemigo: %+n",
+  "effects_description_wh_main_effect_attribute_enable_stalk": "Atributo: Acechar",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_priestess_kurnous_desc": "Cuando el Dios de la Caza despierta, los corazones de las bestias del bosque rebosan un júbilo incontenible.",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_highweaver": "Alto Cantor",
+  "effects_description_wh_main_effect_character_stat_miscast": "Pos. disfunción mágica básica: %+n%",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_darkweaver": "Cantor Oscuro",
+  "effect_bundles_localised_title_wh_dlc05_minister_wef_elf_herald_of_the_hunt": "Heraldo de la Cacería",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_highweaver_desc": "La armonía y el equilibrio son los principios del bosque, y aquellos bajo los que la auténtica magia es empleada por los dignos.",
+  "effects_description_wh2_main_effect_ability_uses_power_of_darkness": "N.º de usos del hechizo: %+n para el \"Poder de la oscuridad\"",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_drycha_desc": "La devoción fanática del Brezo por el antiguo Coeddil valida su posición al frente de la poderosa arboleda.",
+  "effects_description_wh_main_effect_force_all_campaign_post_battle_loot_mod": "Ganancias del botín posterior a la batalla: %+n%",
+  "effects_description_wh2_dlc16_effect_title_wef_office_drycha_lost": "Da al personaje el título: \"de la Perdición\"",
+  "effects_description_wh2_dlc16_effect_replenishment_dryads": "Reemplazo de bajas: %+n% a las unidades de Dríades",
+  "effects_description_wh_main_effect_force_all_campaign_movement_range": "Capacidad de movimiento en campaña: %+n%",
+  "missions_localised_title_wh3_cp1_camp_cth_enemies_of_cathay_1_kill_faction_leader": "Objetivos de Zhao Ming: Superioridad indiscutible",
+  "effect_bundles_localised_title_wh_dlc05_minister_wef_elf_master_of_drums": "Maestro de los tambores",
+  "effects_description_wh_dlc05_effect_dummy_wild_hunt_general": "Este [[img:icon_general]][[/img]]Señor se unirá a la Cacería Salvaje, y mientras dure esta, se doblarán los efectos de todos los cargos",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_elder_speaker_desc": "Aquel que realiza el primer disparo sagrado envía la súplica final al Dios Cazador para obtener su bendición.",
+  "effects_description_wh_main_effect_force_stat_ward_save": "Salvación especial: %+n%",
+  "effects_description_wh2_dlc16_ability_empowered_glamour": "Sustituye la habilidad pasiva \"Embrujado\" por \"Embrujo insidioso\" para todas las unidades de Elfos",
+  "effects_description_wh2_dlc16_effect_upkeep_reduction_wef_scouts": "Mantenimiento: %+n% a Exploradores del Bosque Profundo, Exploradores del Bosque Salvaje, Jinetes de Halcón, Águilas y Jinetes del Bosque",
+  "effect_bundles_localised_title_wh_dlc05_minister_wef_tree_ancient_of_druthandor": "Antiguo de Druthandor",
+  "effects_description_wh2_dlc16_effect_upkeep_reduction_wef_wardancers_bladesingers": "Coste de mantenimiento: %+n% a las unidades de Bailarines Guerreros y Cantantes de las Espadas",
+  "campaign_effect_scopes_localised_text_faction_to_force_faction_leader": "\n(ejército del líder de la facción)",
+  "effects_description_wh_dlc05_effect_tech_armour_increase_eternal_guards_glade_guard": "Armadura: %+n a las unidades de Guardia Eterna y Guardia del Bosque",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_priestess_loec": "Aeda Embrujador de Loec",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_warden_of_the_wildwood_desc": "Gracias a las artimañas de los más rápidos e ingeniosos, reconoceremos la configuración del terreno.",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_speaker_lost_desc": "Los Asrai no siempre son el enemigo, pues no son más que almas descarriadas faltas de la autoridad del espíritu de los árboles.",
+  "ministerial_positions_strings_on_screen_placeholder": "",
+  "effect_bundles_localised_description_wh_dlc05_minister_wef_tree_ancient_of_talrennic": "[HIDDEN]",
+  "effect_bundles_localised_description_wh_dlc05_minister_wef_tree_faction_leader": "[HIDDEN]",
+  "effect_bundles_localised_title_wh_dlc05_minister_wef_tree_faction_leader": "El Milenario",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_sisters_desc": "Cumplir con la voluntad de la Maga Reina significa servir a la encarnación mundana de la propia Isha.",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_speaker_forgotten": "Portavoz de los olvidados",
+  "effects_description_wh2_dlc16_effect_title_wef_office_sisters_beastbinder": "Da al personaje el título: \"Atabestias\"",
+  "effect_bundles_localised_description_wh_dlc05_minister_wef_elf_faction_leader": "[HIDDEN]",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_ancient_of_talrennic_desc": "¡Los hechizos que se gestan en Talrennic! Misterios para confundir a los intrusos...",
+  "effects_description_wh2_dlc16_effect_ability_enable_resplendence_of_luminescents": "Habilidad pasiva: \"Luz de las Hadas\"",
+  "effects_description_wh2_dlc16_effect_skill_movement_speed_beasts": "Velocidad: %+n% para las unidades de Murciélagos de las Cuevas, Mantícoras Salvajes, Arañas Gigantes, Halcones Gigantes, Lobos Gigantes y Osos Salvajes",
+  "effect_bundles_localised_title_wh_dlc05_minister_wef_tree_ancient_of_talrennic": "Antiguo de Talrennic",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_priestess_isha": "Cantor de los Árboles de Isha",
+  "cdir_events_categories_on_screen_name_placeholder": "Not Used",
+  "effect_bundles_localised_description_wh_dlc05_minister_wef_tree_ancient_of_druthandor": "[HIDDEN]",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_protector_of_the_oak_desc": "El Cuerno de la Cacería Salvaje llama incluso a los árboles, conduciéndolos hasta la presa con su clarín.",
+  "effects_description_wh_main_effect_building_construction_cost_mod": "Coste de construcción: %+n% a todos los edificios",
+  "effect_bundles_localised_title_wh2_dlc11_minister_cst_faction_leader": "Almirante de Flota",
+  "effects_description_wh_main_effect_force_all_campaign_raid_income": "Ingresos provenientes de asaltos: %+n%",
+  "effects_description_wh2_dlc16_effect_title_wef_office_sisters_glamourweaver": "Da al personaje el título: \"Tejeglamur\"",
+  "effects_description_wh2_dlc16_effect_ability_enable_cluster_of_radiants": "Habilidad pasiva: \"Racimo de Fuegos Fatuos\"",
+  "missions_localised_description_wh3_cp1_camp_cth_enemies_of_cathay_1_kill_faction_leader": "El autoproclamado líder de un hatajo grotesco que habita a lo largo de las fronteras de Catai ha llamado la atención del Dragón de Hierro, quien se asegura de recordarles a los Guerreros Tigre que semejante criatura no es sino una presa para ellos, tanto si lo atacan en su guarida o lo atraen hacia sí.",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_ancient_of_druthandor_desc": "El Antiguo de Druthandor habla con un conocimiento que delata siglos de aprendizaje.",
+  "effects_description_wh2_main_effect_ability_wom_cost_apotheosis": "Coste en Vientos de la Magia: %n para \"Apoteosis\"",
+  "effects_description_wh_main_effect_force_stat_ammunition": "Munición: %+n%",
+  "effects_description_wh2_dlc16_effect_title_wef_office_sisters_highweaver": "Da al personaje el título: \"Alto Cantor\"",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_faction_leader_durthu": "El Milenario",
+  "effects_description_wh2_dlc16_effect_enable_stalk_wardancers_bladesingers": "Atributo: Acechar a las unidades de Bailarines Guerreros y Señores de Bailarines",
+  "missions_localised_title_wh3_cp1_camp_cth_enemies_of_cathay_3_kill_faction_leader": "Objetivos de Zhao Ming: Un desafío aceptado",
+  "effects_description_wh2_dlc16_effect_stalk_treekin": "Atributo: Acechar para las unidades de Arbóreos",
+  "effects_description_wh_main_effect_province_growth_characters": "Crecimiento: %+n",
+  "effects_description_wh_dlc05_effect_tech_melee_defence_increase_treemen": "Defensa cuerpo a cuerpo: %+n a las unidades de Hombres Árbol",
+  "effect_bundles_localised_title_wh_dlc05_minister_wef_elf_master_of_supplies": "Maestro de los suministros",
+  "effects_description_wh2_main_effect_ability_enable_lamentation_of_despair": "Habilidad: \"Lamento de las Aldaboneras\"",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_speaker_embittered": "Portavoz de las resentidas",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_ancient_of_delliandra_desc": "Una rama, antes rota, ha vuelto a crecer, al igual que brotan las hojas cada año. Así es Delliandra.",
+  "agent_localisations_text_agent_localisation_action_execution_status_seduce_faction_leader": "[[col:red]]No puedes manipular al líder de una facción.\n[[/col]]",
+  "effects_description_wh_main_effect_force_all_campaign_razing_income": "Ingresos provenientes de arrasar asentamientos: %+n%",
+  "effects_description_wh2_dlc16_effect_title_wef_office_sisters_treesinger": "Da al personaje el título: \"Cantor de los Árboles\"",
+  "effects_description_wh2_dlc16_effect_title_wef_office_sisters_darkweaver": "Da al personaje el título: \"Cantor Oscuro\"",
+  "effects_description_wh_main_effect_force_all_campaign_replenishment_rate": "Reemplazo de bajas: %+n%",
+  "effects_description_wh2_dlc15_effect_ability_enable_regeneration_tree_spirits": "Habilidad pasiva: \"Regeneración\" para las unidades de Dríades, Arbóreos y Hombres Árbol",
+  "effects_description_wh2_dlc16_effect_title_wef_office_drycha_forgotten": "Da al personaje el título: \"del Olvido\"",
+  "effects_description_wh2_dlc16_effect_ability_enable_befuddlement_of_mischiefs": "Habilidad: \"Atolondramiento de los Diablillos\"",
+  "effects_description_wh2_dlc16_effect_mounted_melee_damage_stag_unicorn_eagle": "Daño por armas básico: %+n (al ir montado en un Corcel Élfico, un Rey de los Ciervos, un Unicornio o un Águila Gigante)",
+  "effects_description_wh2_dlc16_effect_bonus_v_large_drycha_wild_beasts": "Bonif. vs. grandes: %+n para las unidades de Murciélagos de las Cuevas, Mantícoras Salvajes, Arañas Gigantes, Halcones Gigantes, Lobos Gigantes y Osos Salvajes",
+  "effects_description_wh_main_effect_character_stat_missile_damage": "Fuerza de proyectiles: %+n%",
+  "effects_description_wh2_dlc16_effect_title_wef_office_drycha_wild": "Da al personaje el título: \"Salvaje\"",
+  "missions_localised_title_wh3_cp1_camp_cth_enemies_of_cathay_2_kill_faction_leader": "Objetivos de Zhao Ming: Despejando el camino",
+  "campaign_effect_scopes_localised_text_character_to_faction_leader_force_if_faction_leader": "\n(Ejército del [[img:icon_general]][[/img]]señor si es el líder de la facción)",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_the_tricksters_masque_desc": "El atronador sonido de los tambores de caza hace avanzar a cazador y presa por igual.",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_speaker_forgotten_desc": "Las voces de aquellos que cayeron víctimas de la locura de los Elfos jamás serán olvidadas.",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_the_tricksters_masque": "Maestro de los tambores",
+  "effects_description_wh2_dlc10_effect_force_stat_weapon_strength_vs_elves": "Fuerza del arma: %+n% al luchar contra los Elfos",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_darkweaver_desc": "Cuando se trata de las defensas mágicas del bosque, no hay tabú que valga.",
+  "missions_localised_description_wh3_cp1_camp_cth_enemies_of_cathay_2_kill_faction_leader": "Zhao Ming ha comenzado los preparativos para llevar a cabo ciertas... investigaciones científicas sobre un grupo de viles desgraciados bien conocidos por los Guerreros Tigre. La tarea se desarrollaría con muchas menos dificultades si se eliminara a su líder, y él confía plenamente en que los cazadores supremos de la zona se encarguen de eso.",
+  "effects_description_wh2_dlc16_effect_magic_mod_amount_of_uses_transformation_of_kadon": "N.º de usos del hechizo: %+n para \"Transformación de Kadon\"",
+  "effects_description_wh2_main_effect_ability_wom_cost_awakening_of_the_wood": "Coste en Vientos de la Magia: %n para \"Despertar del bosque\"",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_starlight_craftsman": "Maestro de los suministros",
+  "effects_description_wh_dlc05_effect_tech_upkeep_reduction_dryads": "Mantenimiento: %+n % a las unidades de Dríades",
+  "effects_description_wh3_main_effect_winds_of_magic_character": "Reserva energética de Vientos de la Magia: %+n por turno",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_consort_to_the_queen": "Campeón de la Reina",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_warden_of_the_wildwood": "Maestro de exploradores",
+  "effect_bundles_localised_title_wh_dlc05_minister_wef_elf_master_of_scouts": "Maestro de exploradores",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_elder_speaker": "Garra de Kurnous",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_ancient_of_delliandra": "Antiguo de Delliandra",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_herald_of_the_hunt": "Heraldo de la Cacería",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_priestess_kurnous": "Atabestias de Kurnous",
+  "effects_description_wh2_dlc16_effect_agent_recruitment_xp_spellweavers": "Rango del Señor al reclutarlo: %+n para los Tejedores de Hechizos",
+  "effects_description_wh_main_effect_agent_action_outcome_parent_army_xp_gain": "Adquisición de experiencia de la unidad por turno: %+n",
+  "effects_description_wh2_dlc16_effect_agent_recruitment_xp_ancient_treemen": "Rango del Señor al reclutarlo: %+n para los Hombres Árbol Ancianos",
+  "ministerial_positions_strings_on_screen_wh2_dlc16_minister_string_wef_priestess_loec_desc": "Los trucos mágicos del Bailarín de las Sombras son un don capaz de urdir los más poderosos engaños.",
+  "effects_description_wh2_dlc16_effect_title_wef_office_drycha_embittered": "Da al personaje el título: \"Cortezamarga\"",
+  "effects_description_wh_main_effect_force_all_campaign_sacking_income": "Ingresos provenientes de saquear asentamientos: %+n%",
+  "effect_bundles_localised_title_wh_dlc05_minister_wef_elf_spirit_of_the_hunt": "Espíritu de la Cacería",
+  "effects_description_wh_main_effect_force_all_campaign_upkeep": "Mantenimiento: %+n%",
+  "ministerial_positions_strings_on_screen_wh_dlc05_minister_string_wef_faction_leader_durthu_desc": "Durthu, el más antiguo de los Hombres Árbol, dispensa melancólica sabiduría y rabia descontrolada a partes iguales."
+ }
+}

@@ -689,3 +689,35 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .ip-gain { margin: 4px 0; padding: 4px 6px; border-radius: 6px; background: #1d1820; font-size: 12px; font-weight: 600; }
 .abilities .scale-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
 .abilities .scale-row input { flex: 1; max-width: 140px; }
+/* ---------- Gloria demoníaca (estilo de la pantalla del juego) ---------- */
+.glory { background: linear-gradient(180deg, #1c1420, #120d14); border: 1px solid #4a3346; border-radius: 10px; padding: 10px 12px; }
+.glory-title { text-align: center; font-family: var(--font-title, serif); font-size: 20px; color: #f1e3c0; letter-spacing: .5px; margin: 2px 0 6px;
+  background: linear-gradient(90deg, transparent, #4a2a1e 20%, #5b3424 50%, #4a2a1e 80%, transparent); padding: 4px 0; border-radius: 4px; }
+.glory-scroll { overflow-x: auto; padding-bottom: 6px; }
+.glory-row { display: flex; align-items: stretch; gap: 10px; padding: 8px 0; border-bottom: 1px solid #2c2030; min-width: max-content; }
+.glory-god { position: sticky; left: 0; z-index: 2; width: 92px; flex: 0 0 92px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: #160f18; padding: 4px 2px; border-radius: 8px; }
+.glory-emblem { font-size: 30px; filter: drop-shadow(0 0 6px var(--god)); }
+.glory-god input { width: 76px; text-align: center; background: #3a0d12; color: #fff; border: 1px solid var(--god); border-radius: 4px; font-weight: 700; }
+.glory-cur { color: var(--god); text-align: center; }
+.glory-lane { position: relative; padding-left: 8px; }
+.glory-bar { position: relative; height: 56px; }
+.glory-bar::before { content: ''; position: absolute; left: 0; right: 0; top: 24px; height: 8px; background: linear-gradient(180deg, #6b4a2e, #3e2716); border: 1px solid #22150b; border-radius: 4px; }
+.glory-fill { position: absolute; left: 0; top: 25px; height: 6px; background: var(--god); box-shadow: 0 0 8px var(--god); border-radius: 3px; }
+.glory-range { position: absolute; left: 0; top: 18px; height: 20px; opacity: 0; cursor: pointer; margin: 0; z-index: 1; }
+.glory-mark { position: absolute; transform: translateX(-50%); border: 2px solid #5a4a3a; background: #241a20; padding: 0; cursor: pointer; z-index: 2;
+  display: flex; align-items: center; justify-content: center; overflow: hidden; filter: grayscale(1) brightness(.7); }
+.glory-mark.on { filter: none; border-color: var(--god); box-shadow: 0 0 6px var(--god); }
+.glory-mark.unit { top: 10px; width: 34px; height: 34px; border-radius: 50%; }
+.glory-mark.unit img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.glory-mark.offering { top: 4px; width: 46px; height: 46px; border-radius: 10px; transform: translateX(-50%) rotate(45deg); }
+.glory-mark.offering img { width: 130%; height: 130%; transform: rotate(-45deg); object-fit: contain; }
+.glory-mark.offering span { position: absolute; transform: rotate(-45deg); font-weight: 800; color: #f1e3c0; text-shadow: 0 1px 3px #000; font-size: 12px; }
+.glory-gifts { display: flex; gap: 6px; margin-top: 6px; }
+.glory-gift { position: relative; width: 62px; height: 62px; flex: 0 0 62px; border: 1px solid #4a3346; background: #1e1418; border-radius: 4px; padding: 0; cursor: pointer;
+  filter: grayscale(1) brightness(.75); overflow: hidden; }
+.glory-gift.on { filter: none; border-color: var(--god); }
+.glory-gift img { width: 100%; height: 100%; object-fit: contain; }
+.glory-gift-name { position: absolute; left: 0; right: 0; bottom: 0; font-size: 8px; line-height: 1.05; color: #e8dcc8; background: rgba(0,0,0,.7); padding: 1px; }
+.glory-lock { position: absolute; left: 2px; bottom: 12px; font-size: 13px; }
+.glory-effects { margin-top: 8px; padding: 6px 8px; border-left: 3px solid #6b4a2e; background: #17111a; border-radius: 4px; }

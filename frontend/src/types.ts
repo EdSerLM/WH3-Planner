@@ -97,7 +97,10 @@ export interface CharacterTree extends CharacterSummary {
 }
 
 export interface InitiativeSet {
-  key: string; category: string; name: string; max: number; selectable: boolean;
+  key: string; category: string; name: string; faction?: string; max: number; selectable: boolean;
+  /** Gloria demoníaca: dios, gloria máxima y línea de umbrales (ofrendas, unidades, dones) como en la pantalla del juego */
+  god?: string; top?: number;
+  track?: { at: number; kind: string; key: string; n?: string; icon?: string; art?: string }[];
   items: { key: string; name: string; requirement?: string; locked: boolean; effects: ParsedEffect[] }[];
 }
 

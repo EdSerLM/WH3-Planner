@@ -50,7 +50,7 @@ interface GameCharacter {
   /** Espacios de hechizo elegibles (Kairos): cada uno se abre con una habilidad del árbol */
   spellSlots?: { k: string; n: string; r: string; o: number; by: string; ef: string; opts: { k: string; lore: string; lk: string; n: string; e: GameEffect[] }[] }[] | null;
   /** Iniciativas del personaje (Senda a la Gloria, Ofrenda a las Fauces, Libros de Nagash...) */
-  initiatives?: { k: string; cat: string; n: string; max?: number; items: { k: string; n: string; req?: string; locked?: boolean; e: GameEffect[] }[] }[] | null;
+  initiatives?: { k: string; cat: string; n: string; fac?: string; max?: number; god?: string; top?: number; track?: { at: number; kind: string; key: string; n?: string; icon?: string }[]; items: { k: string; n: string; req?: string; locked?: boolean; e: GameEffect[] }[] }[] | null;
 }
 interface GameSkillsFile {
   source: string; format: number; subcultures: { key: string; name: string }[]; characters: GameCharacter[];
@@ -609,7 +609,8 @@ function buildGameTree(c: GameCharacter, faction: string): CharacterTree {
   if (c.initiatives?.length) {
     // Iniciativas del personaje: los dones se eligen (hasta "max"); las devociones/ascensos solo se informan
     tree.initiativeSets = c.initiatives.map((s) => ({
-      key: s.k, category: s.cat, name: s.n, max: s.max ?? 0, selectable: s.cat !== 'PATH_TO_GLORY_MARK',
+      key: s.k, category: s.cat, name: s.n, faction: s.fac, max: s.max ?? 0,
+      god: s.god, top: s.top, track: s.track?.map((t) => ({ ...t, art: t.kind === 'unit' ? artOfUnit(t.key) : undefined })), selectable: s.cat !== 'PATH_TO_GLORY_MARK',
       items: s.items.map((i) => ({ key: i.k, name: i.n, requirement: i.req, locked: !!i.locked, effects: gameEffects(i.e) })),
     }));
     tree.items = [
@@ -639,7 +640,10 @@ export function listCharacterFactions(): { key: string; name: string; flag?: str
   }
   // Bandera de una facción representativa (copiada del juego por npm run extraer)
   const flags = new Map((allUnitsFile?.subcultures ?? []).map((s) => [s.key, s.flag]));
-  return [...gameFile.subcultures].map((s) => ({ ...s, flag: flags.get(s.key) })).sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  // Solo las razas jugables en Imperios Inmortales (si la extracción ya las trae)
+  const ie = new Set((allUnitsFile as { ieSubcultures?: string[] } | null)?.ieSubcultures ?? []);
+  return [...gameFile.subcultures].filter((s) => !ie.size || ie.has(s.key))
+    .map((s) => ({ ...s, flag: flags.get(s.key) })).sort((a, b) => a.name.localeCompare(b.name, 'es'));
 }
 
 /**

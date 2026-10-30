@@ -1,4 +1,4 @@
-import { abilities, artOfUnit, experienceBonuses, getCharacter, getUnit, targetFlagText, techEffects, unitInList } from './data.js';
+import { abilities, artOfUnit, getCharacter, getUnit, targetFlagText, techEffects, unitInList } from './data.js';
 import { translateAttribute } from './i18n.js';
 import { MAX_RANK, autoRank, effectiveLevel, isFreeLevel, pointsAtRank, pointsFor } from './rankRules.js';
 import { unitRank } from './types.js';
@@ -46,26 +46,6 @@ const ABILITY_STAT_MAP: Record<string, StatKey> = {
   stat_bonus_vs_large: 'bvl',
   scalar_missile_range: 'range',
 };
-
-/**
- * Veteranía base de la unidad (unit_experience_bonuses del juego): lo que suma cada stat al subir de rango.
- * Lectura usada: sin crecimiento (growth_rate y growth_scalar en 0), "value" por cada rango → value × rango.
- * Esa lectura todavía no está comprobada contra la carta del juego. Las filas con crecimiento no se suman
- * (no sé su fórmula) y se avisa en la tarjeta. Sin datos extraídos no se suma nada.
- */
-function veterancy(rank: number): { add: { stat: StatKey; value: number; conditional: string }[]; skipped: string[] } {
-  const add: { stat: StatKey; value: number; conditional: string }[] = [];
-  const skipped: string[] = [];
-  if (rank <= 0) return { add, skipped };
-  for (const r of experienceBonuses()) {
-    const stat = ABILITY_STAT_MAP[r.stat];
-    if (!stat) { skipped.push(`${r.stat} (stat que la tarjeta no muestra)`); continue; }
-    if (r.growth_rate || r.growth_scalar) { skipped.push(`${r.stat} (crece con growth_rate ${r.growth_rate} / growth_scalar ${r.growth_scalar}: fórmula sin confirmar)`); continue; }
-    if (!r.value) continue;
-    add.push({ stat, value: r.value * rank, conditional: `${r.value} × rango ${rank}` });
-  }
-  return { add, skipped };
-}
 
 // ---------- Builds ----------
 
@@ -181,7 +161,8 @@ export function wornItems(b: { tree: CharacterTree; selection: BuildSelection; a
   const sel = new Set(b.selection.items ?? []);
   // Hechizos de Kairos: solo cuentan los de espacios abiertos por una habilidad comprada (uno por espacio)
   if (b.tree.spellSlots?.length) {
-    const active = new Set((b.activeNodes ?? []).flatMap(({ node, level }) => node.levels[level - 1]?.effects.map((e) => e.key) ?? []));
+    // efectos de las habilidades compradas y la clave de la habilidad (Nombres de poder: el espacio lo abre la habilidad misma)
+    const active = new Set((b.activeNodes ?? []).flatMap(({ node, level }) => [node.skillKey, ...(node.levels[level - 1]?.effects.map((e) => e.key) ?? [])]));
     for (const s of b.tree.spellSlots) {
       const picked = s.options.filter((o) => sel.has(o.key));
       picked.forEach((o, i) => { if (!active.has(s.unlockEffect) || i > 0) sel.delete(o.key); });
@@ -608,10 +589,6 @@ export function compute(req: ComputeRequest): ComputeResult {
     const rank = unitRank(sel);
     // Copias por rango que sí aplican (se juntan en una sola línea al final)
     const perRankAcc = new Map<string, { stat: StatKey; c: Contribution; n: number; exact?: boolean }>();
-    // Veteranía base del juego por el rango elegido
-    const vet = veterancy(rank);
-    for (const v of vet.add) contribute(lines, v.stat, { source: `Veteranía (rango ${rank})`, from: 'Experiencia', value: v.value, how: 'add', conditional: v.conditional });
-    if (vet.skipped.length) notes.push(`Veteranía no sumada: ${vet.skipped.join('; ')}`);
     for (const { effect, skill, owner } of effects) {
       // Bufos que crecen con cada rango de la unidad (Vessel de Archaón)
       const per = perRankPct(effect);
