@@ -814,3 +814,18 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .mech-lvl { position: relative; z-index: 1; margin-left: auto; align-self: flex-end; font-size: 11px; font-weight: 800; color: #f1e3c0; text-shadow: 0 1px 3px #000; }
 .mech-sub { position: absolute; left: 2px; top: 2px; right: 2px; font-size: 8px; line-height: 1; color: #e8dcc8; text-align: left; z-index: 1; }
 .mech-piece:has(.mech-sub) { min-width: 86px; }
+
+/* Celular: nada más ancho que la pantalla; franjas de unidades en 4-5 columnas; tablas con scroll propio */
+@media (max-width: 700px) {
+  select, input:not([type='checkbox']):not([type='radio']):not([type='range']) { max-width: 100%; }
+  label { max-width: 100%; }
+  .army-results { grid-template-columns: minmax(0, 1fr); }
+  .army-results > *, .bottom-main, main > * { min-width: 0; }
+  .army-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .army-strip .utile { min-width: 0; min-height: 0; width: auto; }
+  .army-strip .utile .ut-name { font-size: 9px; }
+  table { display: block; max-width: 100%; overflow-x: auto; }
+}
+@media (max-width: 440px) {
+  .army-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

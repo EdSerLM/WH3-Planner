@@ -7,7 +7,7 @@ const ASSET_DIRS = 'units|abilities|skills|attrs|flags|armory|bundles|daplan|mec
 
 /** En la web estática las imágenes cuelgan de la base (/WH3-Planner/): "/units/x.png" -> "/WH3-Planner/units/x.png" */
 function baseAssets(base: string): Plugin {
-  const re = new RegExp(`([\`'"])/(${ASSET_DIRS})/`, 'g');
+  const re = new RegExp(`([\`'"(])/(${ASSET_DIRS})/`, 'g');
   return {
     name: 'wh3-base-assets',
     transform(code, id) {
