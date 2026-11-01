@@ -51,11 +51,16 @@ const HELP: Record<string, string> = {
   COOKING: 'Platos que cocina Grom (uno a la vez) e ingredientes usados; los efectos de los ingredientes son de facción.',
   PLAGUE: 'Síntomas de la plaga que infecta a tu ejército (hasta 3). La versión bendita es más fuerte.',
   LAIR: 'Al despertar a un vampiro de linaje en una Guarida eliges hasta 6 edificios: los rasgos de Legado y Poder suman sus efectos a la tarjeta; el resto (rango inicial, objetos, seguidores, nigromante, montura) se indica como texto.',
+  BREW: 'Madre Ostankya prepara brebajes en la Choza de la Bruja combinando ingredientes; cada señor lleva uno. Bajo el nombre ves los ingredientes que pide la receta.',
+  MARKS: 'Dechala marca a sus personajes con Marcas de Crueldad (nivel I a III). Elige una por fila; los efectos se suman a la tarjeta.',
+  ULRIC: 'Rituales de Ulric del ejército de Middenland (Boris Todbringer): elige los que tengas activos en este ejército.',
+  FORGE_BUFF: 'Bendiciones de facción de la Forja de Daith: duran unos turnos y afectan a todos los ejércitos. Marca las que tengas activas.',
+  CHIEF: 'Jefes vasallos de Tamurkhan: cada nivel de lealtad añade un paquete de efectos a la facción, y algunos jefes dan una habilidad a su propio ejército. Marca los niveles que tengas.',
   PATH_TO_GLORY_BOON: 'Marca los regalos que tienes en tu campaña; cada uno muestra la condición para conseguirlo.',
 };
 const EMOJI: Record<string, string> = {
   DA_PLAN: '📜', FORGE: '⚒️', CLOAK: '💀', GUNNERY: '🔫', KISLEV: '❄️', HELLFORGE: '🔥', GLOTTKIN: '🌿', COOKING: '🍲', PLAGUE: '🧪',
-  DANCE: '💃', PATRONAGE: '🦅', COURT: '🌳', LAIR: '🦇',
+  DANCE: '💃', PATRONAGE: '🦅', COURT: '🌳', LAIR: '🦇', BREW: '⚗️', MARKS: '💜', ULRIC: '🐺', CHIEF: '🪓', FORGE_BUFF: '🔥',
 };
 
 /** Fila y nivel de una pieza: del dato (group/level) o del nombre ("X · nivel 2: Y", "Coraza del Dragón III") */

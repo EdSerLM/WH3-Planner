@@ -50,6 +50,7 @@ export const SKILL_TABLES = [
   'agent_actions_tables', 'action_results_additional_outcomes_tables', 'effect_bonus_value_id_action_results_additional_outcomes_junctions_tables',
   // Guaridas de Vampiros: edificios secundarios que se eligen al despertar a un vampiro
   'building_levels_tables',
+  'campaign_group_cooking_recipes_tables',
   // Más mecánicas: rituales con paquetes de efectos, Caldero de Grom y plagas de Nurgle
   'ritual_payload_effect_bundles_tables', 'cooking_recipes_tables', 'cooking_ingredients_tables', 'cooking_recipe_required_ingredient_groups_tables',
   'cooking_recipe_required_ingredients_tables', 'plague_components_tables', 'plague_effect_setups_tables', 'plague_effects_tables',
@@ -947,6 +948,76 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
         { k: 'mech:grom_dishes', cat: 'COOKING', n: 'Caldero de Grom: platos', max: 1, items: dishes, secs: ['Platos', 'Platos especiales'] },
         { k: 'mech:grom_ingredients', cat: 'COOKING', n: 'Caldero de Grom: ingredientes', max: 4, items: ings, secs },
       ],
+    });
+  }
+  // Recetas de otras facciones (mismo sistema que el Caldero de Grom): los efectos van en la lista de efectos de la receta
+  {
+    const byGroup = group('campaign_group_cooking_recipes_tables', 'campaign_group');
+    const recipeOf = by('cooking_recipes_tables', 'key');
+    const reqG = group('cooking_recipe_required_ingredient_groups_tables', 'recipe');
+    const recipeItems = (cg: string) => (byGroup.get(cg) ?? []).map((x) => recipeOf.get(x.recipe)).filter(Boolean).map((r) => strip({
+      k: r!.key, n: L(`cooking_recipes_display_text_${r!.key}`) ?? pretty(String(r!.key).replace(/^.*_recipe_/, '')),
+      req: (reqG.get(r!.key) ?? []).map((g) => L(`cooking_ingredient_groups_display_name_${g.ingredient_group}`) ?? g.ingredient_group).join(' + ') || undefined,
+      img: iconBase(r!.icon),
+      e: [r!.key, r!.faction_effects, r!.faction_leader_effects].filter(Boolean).flatMap((l) => effRows(iniEff.get(l) ?? [], 'effect')),
+    })).filter((i) => i.e.length);
+    // Madre Ostankya: brebajes de la Choza de la Bruja que se le dan a un señor (habilidad de ejército)
+    mech.push({
+      who: (sub, t, scs) => isLord(t) && scs.includes('wh3_main_sc_ksl_kislev'),
+      sets: [{ k: 'mech:ostankya_brews', cat: 'BREW', fac: 'wh3_dlc24_ksl_daughters_of_the_forest', n: 'Brebajes de la Choza de la Bruja', max: 1, items: recipeItems('wh3_dlc24_ksl_daughters_of_the_forest') }],
+    });
+    // Dechala: Marcas de Crueldad (nivel I-III por marca), habilidades para sus personajes
+    const marks = recipeItems('wh3_dlc27_sla_the_tormentors').map((i) => {
+      const m = /^(.*?)(?: (I{1,3}))?$/.exec(String(i.n))!;
+      return { ...i, g: m[1], l: m[2] ?? 'I' };
+    });
+    mech.push({
+      who: (sub, t, scs) => scs.includes('wh3_main_sc_sla_slaanesh'),
+      sets: [{ k: 'mech:dechala_marks', cat: 'MARKS', fac: 'wh3_dlc27_sla_the_tormentors', n: 'Marcas de Crueldad', max: 0, rows: true, items: marks }],
+    });
+    // Middenland (Boris Todbringer): rituales del ejército de Ulric (Empoderado por Ulric, Lecciones de la caza...)
+    mech.push({
+      who: (sub, t, scs) => isLord(t) && scs.includes('wh_main_sc_emp_empire'),
+      sets: [{ k: 'mech:middenland', cat: 'ULRIC', fac: 'wh_main_emp_middenland', n: 'Rituales de Ulric (ejército de Middenland)', max: 0, items: ritualsOf(['MIDDENLAND_ARMY_RITUALS']).map((r) => ritualItem(r)) }],
+    });
+  }
+  // Forja de Daith: bendiciones de facción que se compran en la forja (rituales)
+  {
+    const items = ritualsOf(['DAITH_BUFF_RITUAL']).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((r) => ritualItem(r, { req: `Dura ${ritualDur(r)} turnos · todos los ejércitos` })).filter((i) => i.e?.length);
+    if (items.length) mech.push({
+      who: (sub, t, scs) => scs.includes('wh_dlc05_sc_wef_wood_elves'),
+      sets: [{ k: 'mech:daith_buffs', cat: 'FORGE_BUFF', fac: 'wh2_dlc16_wef_sisters_of_twilight', n: 'Forja de Daith · bendiciones de facción', max: 0, items }],
+    });
+  }
+  // Tamurkhan: jefes vasallos. Datos del script wh3_dlc25_campaign_nur_chieftains.lua (paquetes por nivel de lealtad
+  // y habilidades que el script pone en el ejército del jefe). Umbrales de lealtad copiados del script.
+  {
+    const CHIEFS: [string, string, number, number, string[]][] = [
+      ['bray_shaman', 'wh3_dlc25_nur_bray_shaman_wild_chieftain', 10, 30, []],
+      ['castellan', 'wh3_dlc25_nur_castellan_chieftain', 10, 30, ['tier_2']],
+      ['exalted_hero', 'wh3_dlc25_nur_exalted_hero_chieftain', 10, 25, ['tier_2']],
+      ['fimir_balefiend', 'wh3_dlc25_nur_fimir_balefiend_shadow_chieftain', 10, 25, ['tier_2', 'tier_3']],
+      ['kazyk', 'wh3_dlc25_nur_kayzk_the_befouled', 7, 20, ['tier_2', 'tier_3']],
+      ['werekin', 'wh3_dlc25_nur_skin_wolf_werekin_chieftain', 10, 30, []],
+    ];
+    const items: Row[] = [];
+    for (const [c, agent, t2, t3, abil] of CHIEFS) {
+      const g = L(`agent_subtypes_onscreen_name_override_${agent}`) ?? pretty(c);
+      const lvl = ['Lealtad 1 (al unirse)', `Lealtad 2 (${t2})`, `Lealtad 3 (${t3})`, 'Lealtad 4 (batalla del jefe)'];
+      for (let t = 1; t <= 4; t++) {
+        const b = `wh3_dlc25_chieftain_deference_${c}_tier_${t}`;
+        const e = effRows(bundleEff.get(b) ?? [], 'effect_key').filter((x) => x.d || x.s?.kind !== 'campaign').map((x) => x.d ? x : { ...x, d: x.s?.attribute ? `Atributo: ${x.s.attribute} (ejército)` : x.k });
+        if (e.length) items.push(strip({ k: b, n: `${g}: ${lvl[t - 1]}`, g, l: `L${t}`, tier: t, e }));
+      }
+      for (const a of abil) {
+        const b = `wh3_dlc25_ritual_nur_${c}_${a}_ability_scripted`;
+        const e = effRows(bundleEff.get(b) ?? [], 'effect_key').filter((x) => x.d || x.s?.kind !== 'campaign').map((x) => x.d ? x : { ...x, d: x.s?.attribute ? `Atributo: ${x.s.attribute} (ejército)` : x.k });
+        if (e.length) items.push(strip({ k: b, n: `${g}: habilidad de ejército (${a.replace('tier_', 'lealtad ')})`, g: `${g} · ejército del jefe`, l: `Ejército ${a.replace('tier_', 'L')}`, e }));
+      }
+    }
+    mech.push({
+      who: (sub, t, scs) => scs.includes('wh3_main_sc_nur_nurgle'),
+      sets: [{ k: 'mech:tamurkhan_chiefs', cat: 'CHIEF', fac: 'wh3_dlc25_nur_tamurkhan', n: 'Jefes vasallos de Tamurkhan', max: 0, rows: true, items }],
     });
   }
   // Plagas de Nurgle: síntomas de batalla y de ejército (efecto en tu ejército infectado, normal o bendito)

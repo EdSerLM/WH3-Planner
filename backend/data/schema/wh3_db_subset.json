@@ -19488,6 +19488,18 @@
           "I32"
         ]
       ]
+    },
+    "campaign_group_cooking_recipes_tables": {
+      "0": [
+        [
+          "campaign_group",
+          "StringU8"
+        ],
+        [
+          "recipe",
+          "StringU8"
+        ]
+      ]
     }
   }
 }

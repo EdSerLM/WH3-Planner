@@ -714,7 +714,7 @@ const MECH_TAB: [RegExp, string][] = [
   [/^PATH_TO_GLORY/, '🌟 Senda a la Gloria'], [/^COURT$/, '🌳 Consejo'], [/^PATRONAGE$/, '🦅 Corte del Rey Fénix'], [/^GLORY$/, '🔥 Gloria demoníaca'],
   [/^DA_PLAN$/, '📜 Da Plan'], [/^DANCE$/, '💃 Danza Eterna'], [/^FORGE$/, '⚒️ Forja de Daith'], [/^CLOAK$/, '💀 Capa de Cráneos'],
   [/^GUNNERY$/, '🔫 Escuela de Artillería'], [/^KISLEV$/, '❄️ Kislev'], [/^HELLFORGE$/, '🔥 Forja Infernal'], [/^GLOTTKIN$/, '🌿 Rituales Podridos'],
-  [/^COOKING$/, '🍲 Caldero de Grom'], [/^LAIR$/, '🦇 Guarida de Vampiros'], [/^PLAGUE$/, '🧪 Plagas de Nurgle'], [/^OFFER_TO_THE_MAW$/, '🍖 Ofrenda a las Fauces'], [/BOOKS_OF_NAGASH/, '📕 Libros de Nagash'],
+  [/^COOKING$/, '🍲 Caldero de Grom'], [/^LAIR$/, '🦇 Guarida de Vampiros'], [/^BREW$/, '⚗️ Brebajes de Ostankya'], [/^MARKS$/, '💜 Marcas de Crueldad'], [/^ULRIC$/, '🐺 Rituales de Ulric'], [/^CHIEF$/, '🪓 Jefes de Tamurkhan'], [/^FORGE_BUFF$/, '🔥 Bendiciones de Daith'], [/^PLAGUE$/, '🧪 Plagas de Nurgle'], [/^OFFER_TO_THE_MAW$/, '🍖 Ofrenda a las Fauces'], [/BOOKS_OF_NAGASH/, '📕 Libros de Nagash'],
 ];
 function mechTabLabel(sets: { category: string; faction?: string }[], campaign?: string) {
   const mine = sets.filter((s) => !s.faction || !campaign || s.faction === campaign || s.category === 'COURT');
