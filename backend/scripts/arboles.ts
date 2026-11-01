@@ -48,6 +48,8 @@ export const SKILL_TABLES = [
   'rituals_tables', 'ritual_payload_ancillaries_tables',
   // Acciones de héroe en su ejército (Instrucción, Formación de asalto...): acción -> resultados con efecto y valor; mejoras por habilidad
   'agent_actions_tables', 'action_results_additional_outcomes_tables', 'effect_bonus_value_id_action_results_additional_outcomes_junctions_tables',
+  // Guaridas de Vampiros: edificios secundarios que se eligen al despertar a un vampiro
+  'building_levels_tables',
   // Más mecánicas: rituales con paquetes de efectos, Caldero de Grom y plagas de Nurgle
   'ritual_payload_effect_bundles_tables', 'cooking_recipes_tables', 'cooking_ingredients_tables', 'cooking_recipe_required_ingredient_groups_tables',
   'cooking_recipe_required_ingredients_tables', 'plague_components_tables', 'plague_effect_setups_tables', 'plague_effects_tables',
@@ -835,7 +837,7 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
   {
     const cloak = ritualsOf(['CLOAK_OF_SKULLS']).map((r) => {
       const m = /_(\d+)_(\d)$/.exec(r.key)!;
-      return ritualItem(r, { g: `Cráneo ${m[1]}`, l: ROMAN[Number(m[2])], gi: Number(m[1]) });
+      return ritualItem(r, { g: L(`ritual_chains_display_name_wh3_dlc26_kho_cloak_of_skulls_${m[1]}`) ?? `Cráneo ${m[1]}`, l: ROMAN[Number(m[2])], gi: Number(m[1]) });
     }).sort((a, b) => a.gi - b.gi || String(a.k).localeCompare(String(b.k)));
     for (const it of cloak) delete it.gi;
     const throne = ritualsOf(['SKULLS_RITUAL']).map((r) => ritualItem(r, { tier: Number(/_(\d)_\d$/.exec(r.key)?.[1] ?? 0) || undefined }));
@@ -925,16 +927,16 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       wh2_dlc15_animals: 'Animales', wh2_dlc15_birds: 'Aves', wh2_dlc15_slimes: 'Babas', wh2_dlc15_mushrooms: 'Hongos', wh2_dlc15_bugs: 'Bichos',
       wh2_dlc15_magic: 'Mágicos', wh2_dlc15_meat: 'Carne', wh2_dlc15_fish: 'Pescado', wh2_dlc15_humanoids: 'Humanoides', wh2_dlc15_plants: 'Plantas', wh2_dlc15_special: 'Especiales',
     };
-    const ingName = (k: string) => L(`cooking_ingredients_name_${k}`) ?? pretty(k.replace(/^wh2_dlc15_/, ''));
+    const ingName = (k: string) => L(`cooking_ingredients_display_text_${k}`) ?? L(`cooking_ingredients_name_${k}`) ?? pretty(k.replace(/^wh2_dlc15_/, ''));
     const dishes = recipes.map((r) => strip({
-      k: r.key, n: L(`cooking_recipes_name_${r.key}`) ?? pretty(iconBase(r.icon)?.replace(/^grom_recipes_/, '') ?? r.key),
-      req: [...(reqG.get(r.key) ?? []).map((x) => ING_G[x.ingredient_group] ?? L(`cooking_ingredient_groups_name_${x.ingredient_group}`) ?? x.ingredient_group),
+      k: r.key, n: L(`cooking_recipes_display_text_${r.key}`) ?? L(`cooking_recipes_name_${r.key}`) ?? pretty(iconBase(r.icon)?.replace(/^grom_recipes_/, '') ?? r.key),
+      req: [...(reqG.get(r.key) ?? []).map((x) => L(`cooking_ingredient_groups_display_name_${x.ingredient_group}`) ?? ING_G[x.ingredient_group] ?? x.ingredient_group),
         ...(reqI.get(r.key) ?? []).map((x) => ingName(x.ingredient))].join(' + ') || undefined,
       img: iconBase(r.icon), tier: /special/.test(r.key) ? 2 : 1,
       e: [r.faction_leader_effects, r.faction_effects].filter(Boolean).flatMap((b) => effRows(iniEff.get(b) ?? [], 'effect')),
     }));
     const ings = T['cooking_ingredients_tables'].filter((r) => /^wh2_dlc15_/.test(r.key)).map((r) => strip({
-      k: r.key, n: ingName(r.key), img: iconBase(r.icon), sec: ING_G[r.group] ?? r.group,
+      k: r.key, n: ingName(r.key), img: iconBase(r.icon), sec: L(`cooking_ingredient_groups_display_name_${r.group}`) ?? ING_G[r.group] ?? r.group,
       e: [r.faction_leader_effects, r.faction_effects].filter(Boolean).flatMap((b) => effRows(iniEff.get(b) ?? [], 'effect')),
     })).sort((a, b) => String(a.sec).localeCompare(String(b.sec)));
     const secs = [...new Set(ings.map((i) => i.sec as string))];
@@ -964,6 +966,37 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     mech.push({
       who: (sub, t, scs) => isLord(t) && scs.includes('wh3_main_sc_nur_nurgle'),
       sets: [{ k: 'mech:nurgle_plague', cat: 'PLAGUE', n: 'Plagas de Nurgle: síntomas', max: 3, rows: true, items }],
+    });
+  }
+  // Guaridas de Vampiros (Condes Vampiro): al despertar a un vampiro de linaje se construyen hasta 6 edificios secundarios.
+  // Qué da cada edificio lo decide el script del juego (data_script.pack: script/campaign/wh3_dlc29_vampire_lairs.lua):
+  // rasgos (Legado / Poder) con efectos en trait_level_effects, rango inicial, objetos, seguidores, montura, nigromante...
+  {
+    const LAIR_TRAITS: Record<string, string> = {
+      legacy_1: 'wh3_main_vmp_trait_legacy_lucky', legacy_2: 'wh3_main_vmp_trait_legacy_undefeated', legacy_3: 'wh3_main_vmp_trait_legacy_corrupted',
+      legacy_4: 'wh3_main_vmp_trait_legacy_silent', legacy_5: 'wh3_main_vmp_trait_legacy_inflamed', legacy_6: 'wh3_main_vmp_trait_legacy_command',
+      power_1: 'wh3_main_vmp_trait_power_stalker', power_2: 'wh3_main_vmp_trait_power_death', power_3: 'wh3_main_vmp_trait_power_fixation',
+      power_4: 'wh3_main_vmp_trait_power_magic', power_5: 'wh3_main_vmp_trait_power_battle', power_6: 'wh3_main_vmp_trait_power_health',
+    };
+    const LAIR_RANK: Record<string, number> = { knowledge_rank_1: 10, knowledge_rank_2: 20, knowledge_rank_3: 30 };
+    const LAIR_SEC: [RegExp, string][] = [[/^legacy_/, 'Legado'], [/^power_/, 'Poder'], [/^knowledge_/, 'Conocimiento'], [/^followers_/, 'Seguidores'], [/^items_/, 'Objetos y cripta']];
+    const traitEff = group('trait_level_effects_tables', 'trait_level');
+    const keys = [...new Set(T['building_levels_tables'].map((r) => r.level_name as string).filter((k) => /^wh3_dlc29_vmp_lair_secondary_/.test(k)))].sort();
+    const items = keys.map((k) => {
+      const short = k.replace('wh3_dlc29_vmp_lair_secondary_', '');
+      const trait = LAIR_TRAITS[short];
+      const sec = LAIR_SEC.findIndex(([re]) => re.test(short));
+      const desc = L(`building_short_description_texts_short_description_${k}`);
+      return strip({
+        k: `lair:${short}`, n: L(`building_culture_variants_name_${k}wh_main_vmp_vampire_counts`) ?? (trait ? L(`character_trait_levels_onscreen_name_${trait}`) : null) ?? pretty(short),
+        req: LAIR_RANK[short] ? `El vampiro despierta en rango ${LAIR_RANK[short]}.` : desc ?? undefined,
+        tier: sec + 1, img: undefined,
+        e: trait ? effRows(traitEff.get(trait) ?? [], 'effect') : [],
+      });
+    });
+    mech.push({
+      who: (sub) => /^wh2_dlc11_vmp_bloodline_/.test(sub),
+      sets: [{ k: 'mech:vampire_lair', cat: 'LAIR', n: 'Guarida de Vampiros: despertar', max: 6, items, secs: LAIR_SEC.map(([, n]) => n) }],
     });
   }
   const mechFor = (sub: string, type: string, scs: string[]): Row[] => mech.filter((m) => m.who(sub, type, scs)).flatMap((m) => m.sets).filter((s) => s.items.length);

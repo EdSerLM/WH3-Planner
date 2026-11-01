@@ -50,11 +50,12 @@ const HELP: Record<string, string> = {
   GLOTTKIN: 'Rituales Podridos de los Glottkin: elige el nivel de mejora de cada ritual que tengas activo.',
   COOKING: 'Platos que cocina Grom (uno a la vez) e ingredientes usados; los efectos de los ingredientes son de facción.',
   PLAGUE: 'Síntomas de la plaga que infecta a tu ejército (hasta 3). La versión bendita es más fuerte.',
+  LAIR: 'Al despertar a un vampiro de linaje en una Guarida eliges hasta 6 edificios: los rasgos de Legado y Poder suman sus efectos a la tarjeta; el resto (rango inicial, objetos, seguidores, nigromante, montura) se indica como texto.',
   PATH_TO_GLORY_BOON: 'Marca los regalos que tienes en tu campaña; cada uno muestra la condición para conseguirlo.',
 };
 const EMOJI: Record<string, string> = {
   DA_PLAN: '📜', FORGE: '⚒️', CLOAK: '💀', GUNNERY: '🔫', KISLEV: '❄️', HELLFORGE: '🔥', GLOTTKIN: '🌿', COOKING: '🍲', PLAGUE: '🧪',
-  DANCE: '💃', PATRONAGE: '🦅', COURT: '🌳',
+  DANCE: '💃', PATRONAGE: '🦅', COURT: '🌳', LAIR: '🦇',
 };
 
 /** Fila y nivel de una pieza: del dato (group/level) o del nombre ("X · nivel 2: Y", "Coraza del Dragón III") */
