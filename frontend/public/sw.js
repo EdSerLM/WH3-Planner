@@ -1,6 +1,6 @@
 // Service worker de la web estática: guarda lo que se descarga para usar la app sin conexión.
 // Datos e imágenes: primero lo guardado (se refresca en segundo plano). Página y código: primero la red.
-const CACHE = 'wh3-planner-v1';
+const CACHE = 'wh3-planner-v1'; // datos con ?v=<versión> desde 2026-11-02
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
@@ -28,8 +28,24 @@ self.addEventListener('fetch', (e) => {
         return (await cache.match(req)) ?? Response.error();
       }
     }
+    // Datos con versión (?v=): la versión nueva va a la red y se borran las copias viejas del mismo archivo
+    if (url.searchParams.has('v')) {
+      const hit = await cache.match(req);
+      if (hit) return hit;
+      try {
+        const r = await fetch(req);
+        if (r.ok) {
+          for (const k of await cache.keys()) { const u = new URL(k.url); if (u.pathname === url.pathname && u.search !== url.search) await cache.delete(k); }
+          await cache.put(req, r.clone());
+        }
+        return r;
+      } catch {
+        const old = (await cache.keys()).find((k) => new URL(k.url).pathname === url.pathname);
+        return (old && (await cache.match(old))) ?? Response.error();
+      }
+    }
     const hit = await cache.match(req);
     const net = fetch(req).then((r) => { if (r.ok) cache.put(req, r.clone()); return r; }).catch(() => null);
-    return hit ?? (await net) ?? Response.error();
+    return hit ?? (await net) ?? (await cache.match(req, { ignoreSearch: true })) ?? Response.error();
   })());
 });
