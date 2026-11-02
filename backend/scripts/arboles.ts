@@ -6,6 +6,10 @@
 type Row = Record<string, any>;
 type Tables = Record<string, Row[]>;
 
+// Guerreros del Caos: sus señores y héroes se consagran a un dios y pasan a la versión marcada (script
+// wh3_campaign_character_upgrading.lua, iniciativas "devote_*"/"ascend_*"): esas versiones también son de los Guerreros del Caos
+const CHAOS_DEVOTED = /^(wh3_dlc20_chs_exalted_hero_mkho|wh3_dlc20_chs_exalted_hero_mnur|wh3_dlc27_chs_exalted_hero_msla|wh3_dlc24_chs_exalted_hero_mtze|wh3_dlc25_chs_sorcerer_(death|nurgle)_mnur|wh3_dlc20_chs_sorcerer_(shadows|slaanesh)_msla|wh3_dlc20_chs_sorcerer_(metal|tzeentch)_mtze|wh3_dlc20_chs_lord_mkho|wh3_dlc20_chs_lord_msla|wh3_dlc25_chs_lord_mnur|wh3_dlc24_chs_lord_mtze|wh3_dlc20_chs_sorcerer_lord_(death|nurgle)_mnur|wh3_dlc27_chs_sorcerer_lord_(shadows|slaanesh)_msla|wh3_dlc20_chs_sorcerer_lord_(metal|tzeentch)_mtze|wh3_dlc20_chs_daemon_prince_(khorne|nurgle|slaanesh|tzeentch|undivided))$/;
+
 // Héroes legendarios que se desbloquean por misión (script wh3_main_legendary_characters.lua, lista de Imperios Inmortales):
 // subtipo -> [culturas permitidas (sus facciones jugables), facciones permitidas]. El script los da aunque la facción no los
 // tenga en faction_agent_permitted_subtypes (Aekold y los Escribas Azules para Archaón, Kholek, Vilitch...).
@@ -1161,8 +1165,12 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     const unit: string | undefined = a.associated_unit_override;
     if (!unit) continue;
     // Facciones de campaña: las que lo pueden reclutar y las que lo llevan de líder; si no sale en campaña, las de batalla personalizada
-    const perm = s.agent_key !== 'general' && campScIE.get(s.agent_subtype_key)?.length ? campScIE : campSc;
+    // Solo facciones jugables; si ninguna jugable lo permite se usan todas (algunos solo los da un script o un edificio)
+    const perm = campScIE.get(s.agent_subtype_key)?.length ? campScIE : campSc;
     let scs = [...new Set([...(perm.get(s.agent_subtype_key) ?? []), ...(leaderSc.get(s.agent_subtype_key) ?? [])])].sort();
+    if (CHAOS_DEVOTED.test(s.agent_subtype_key) && !scs.includes('wh_main_sc_chs_chaos')) scs = [...scs, 'wh_main_sc_chs_chaos'].sort();
+    // Retadores del Caos: solo los llevan las facciones de IA que retan a Norsca
+    if (/^wh_dlc08_chs_challenger_/.test(s.agent_subtype_key)) scs = [];
     if (!scs.length) scs = unitSc.get(unit)?.length ? unitSc.get(unit)! : setPieceSc.get(unit) ?? [];
     if (s.subculture) scs = scs.includes(s.subculture) ? [s.subculture] : [s.subculture];
     if (s.faction_key && fac.has(s.faction_key)) scs = [fac.get(s.faction_key)!.subculture];
