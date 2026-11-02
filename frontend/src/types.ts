@@ -60,7 +60,8 @@ export interface CharacterSummary {
   type: 'lord' | 'hero';
   legendary: boolean;
   faction?: string;  /** Solo estas facciones de campaña lo consiguen (héroes legendarios por misión o script) */
-  factions?: string[];
+  factions?: string[];  /** Arte de su carta (/units/<art>.png) */
+  art?: string;
 }
 
 export interface AbilityInfo {

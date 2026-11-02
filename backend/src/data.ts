@@ -720,7 +720,7 @@ export function listCharacters(faction?: string): CharacterSummary[] {
   const names = factionNames(f);
   return gameFile.characters
     .filter((c) => c.subcultures.includes(f))
-    .map((c) => ({ key: charId(c, f), name: names.get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction: f, ...(c.factions ? { factions: c.factions } : {}) }))
+    .map((c) => ({ key: charId(c, f), name: names.get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction: f, art: artOfUnit(c.unit), ...(c.factions ? { factions: c.factions } : {}) }))
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
 }
 
