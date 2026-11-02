@@ -525,6 +525,9 @@ export function compute(req: ComputeRequest): ComputeResult {
         if (isOn) enemyDebuffs.push({ ability: ability.name, owner: b.tree.name, stats: statLines.map((s) => ({ stat: ABILITY_STAT_MAP[s.stat], how: s.how, v: s.v })) });
       } else if (ability.mode === 'allies' || ability.mode === 'self') {
         isOn = ability.passive ? (ability.mode === 'self' || inAura) : isActive(ability.key, b);
+        // La parte que la misma habilidad pone a los enemigos (p. ej. "Símbolo de depravación") va a sus debuffs, no a tu ejército
+        const foeLines = (ability.enemyStats ?? []).filter((s) => ABILITY_STAT_MAP[s.stat]);
+        if (isOn && foeLines.length) enemyDebuffs.push({ ability: ability.name, owner: b.tree.name, stats: foeLines.map((s) => ({ stat: ABILITY_STAT_MAP[s.stat], how: s.how, v: s.v })) });
         if (isOn && hasBattleStats) {
           const scale = scaleOf(ability.key, b);
           const cond = ability.passive ? (ability.mode === 'self' ? 'pasiva' : 'aura') : 'activa';
@@ -535,7 +538,7 @@ export function compute(req: ComputeRequest): ComputeResult {
         key: ability.key, id: `${ability.key}@${b.tree.key}`, ownerKey: b.tree.key, icon: ability.icon,
         name: ability.name, nameEn: ability.nameEn, owner: b.tree.name, skill, mode: ability.mode, passive: ability.passive,
         duration: ability.duration, cooldown: ability.cooldown, range: ability.range, mana: ability.mana, type: ability.type,
-        stats: ability.stats.map((s) => s.d), attributes: ability.attributes, hasBattleStats, active: isOn,
+        stats: [...ability.stats.map((s) => s.d), ...(ability.enemyStats ?? []).map((s) => `Enemigos: ${s.d}`)], attributes: ability.attributes, hasBattleStats, active: isOn,
         effects: ability.stats.map((s) => ({ stat: s.stat, how: s.how, v: s.v })),
         spell: ability.spell || undefined, magical: ability.magicalAttacks || undefined, flaming: ability.flamingAttacks || undefined,
         ...abilityMods(ability, effectsOf(b)),
@@ -851,7 +854,7 @@ function summarize(b: ResolvedBuild): BuildSummary {
       ability.duration > 0 ? `${ability.duration} s` : '',
       ability.cooldown ? `recarga ${ability.cooldown} s` : '',
       ability.range ? `${ability.range} m` : '',
-      [...ability.stats.map((s) => s.d), ...ability.attributes].join(', '),
+      [...ability.stats.map((s) => s.d), ...(ability.enemyStats ?? []).map((s) => `enemigos ${s.d}`), ...ability.attributes].join(', '),
     ].filter(Boolean).join(' · ');
     sum.abilities.push({ name: ability.name, source: skill, passive: ability.passive, mode: ability.mode, detail });
   }

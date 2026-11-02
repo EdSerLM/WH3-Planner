@@ -157,7 +157,11 @@ function toAbility(a: RawAbility): AbilityInfo {
   const self = a.phases.some((p) => p.ts);
   const duration = phase ? phase.dur : a.active ?? 0;
   // Pasivas negativas sobre uno mismo (p. ej. "Wounds": solo se activa al quedar herido) no se aplican
-  const negativeSelf = !allies && !enemies && a.phases.length > 0 && a.phases.every((p) => p.type === 'negative');
+  const mode: AbilityInfo['mode'] = !allies && !enemies && a.phases.length > 0 && a.phases.every((p) => p.type === 'negative') ? 'none' : allies ? 'allies' : enemies ? 'enemies' : self ? 'self' : 'none';
+  // Fases del lado que aplica el planner; si una habilidad de aliados también tiene fase de enemigos, esa va aparte
+  const friendly = (p: RawAbility['phases'][number]) => p.tf || p.ts || (!p.tf && !p.te && !p.ts);
+  const mine = mode === 'enemies' ? a.phases.filter((p) => p.te) : mode === 'none' ? a.phases : a.phases.filter((p) => friendly(p) || !p.te);
+  const foes = mode === 'allies' || mode === 'self' ? a.phases.filter((p) => p.te && !p.tf && !p.ts) : [];
   return {
     key: a.key,
     name: officialAbilityName(a.key) ?? a.name,
@@ -169,13 +173,15 @@ function toAbility(a: RawAbility): AbilityInfo {
     mana: a.mana,
     overcast: a.over,
     icon: a.img ? a.img.toLowerCase() : undefined,
-    mode: negativeSelf ? 'none' : allies ? 'allies' : enemies ? 'enemies' : self ? 'self' : 'none',
+    mode,
     passive: duration === -1,
     spell: a.spell ?? (a.mana ?? 0) > 0,
     magicalAttacks: a.phases.some((p) => p.mag),
     flamingAttacks: a.phases.some((p) => p.fire),
-    stats: a.phases.flatMap((p) => p.stats.map((st) => ({ ...st, d: translateAbilityStat(st.d) }))),
-    attributes: a.phases.flatMap((p) => p.attr.map((x) => translateAttribute(x))).filter(Boolean),
+    // Cada fase dice a quién afecta: las de enemigos no se aplican a tu ejército (p. ej. "Símbolo de depravación": ellos ×0.5 velocidad, tú ×1.5)
+    stats: mine.flatMap((p) => p.stats.map((st) => ({ ...st, d: translateAbilityStat(st.d) }))),
+    attributes: mine.flatMap((p) => p.attr.map((x) => translateAttribute(x))).filter(Boolean),
+    enemyStats: foes.length ? foes.flatMap((p) => p.stats.map((st) => ({ ...st, d: translateAbilityStat(st.d) }))) : undefined,
     invalidTargets: a.inv?.length ? a.inv : undefined,
   };
 }

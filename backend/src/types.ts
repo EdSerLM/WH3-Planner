@@ -389,6 +389,8 @@ export interface AbilityInfo {
   magicalAttacks: boolean;
   flamingAttacks: boolean;
   stats: { stat: string; how: string; v: number; d: string }[];
+  /** Efectos que la misma habilidad pone a los enemigos (no se suman a tu ejército) */
+  enemyStats?: { stat: string; how: string; v: number; d: string }[];
   attributes: string[];
   /** Restricciones de objetivo del juego: a quién NO afecta (claves de special_ability_invalid_usage_flags) */
   invalidTargets?: string[];
