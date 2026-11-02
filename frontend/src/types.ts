@@ -59,7 +59,8 @@ export interface CharacterSummary {
   nameEn?: string;
   type: 'lord' | 'hero';
   legendary: boolean;
-  faction?: string;
+  faction?: string;  /** Solo estas facciones de campaña lo consiguen (héroes legendarios por misión o script) */
+  factions?: string[];
 }
 
 export interface AbilityInfo {

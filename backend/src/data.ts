@@ -39,7 +39,9 @@ interface GameCharacter {
   key: string; subtype: string; name: string; nameEn: string; unit: string; type: 'lord' | 'hero'; legendary: boolean;
   /** Acciones de héroe que desbloquea su árbol */
   acts?: string[] | null;
-  subcultures: string[]; home: string; nodes: GameNode[]; bg: GameNode[]; stats: CharacterStats | null; mounts?: Record<string, CharacterStats>;
+  subcultures: string[]; home: string; nodes: GameNode[];
+  /** Solo estas facciones de campaña lo consiguen (héroes legendarios por misión o script) */
+  factions?: string[]; bg: GameNode[]; stats: CharacterStats | null; mounts?: Record<string, CharacterStats>;
   items?: { k: string; rank?: number; quest?: boolean }[];
   /** Dones del Príncipe Demonio (Daniel): piezas por ranura */
   armory?: {
@@ -718,7 +720,7 @@ export function listCharacters(faction?: string): CharacterSummary[] {
   const names = factionNames(f);
   return gameFile.characters
     .filter((c) => c.subcultures.includes(f))
-    .map((c) => ({ key: charId(c, f), name: names.get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction: f }))
+    .map((c) => ({ key: charId(c, f), name: names.get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction: f, ...(c.factions ? { factions: c.factions } : {}) }))
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
 }
 

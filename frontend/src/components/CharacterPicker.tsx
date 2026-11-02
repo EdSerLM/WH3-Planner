@@ -5,10 +5,12 @@ interface Props {
   type: 'lord' | 'hero';
   value: string | null;
   onChange: (key: string) => void;
+  /** Facción de campaña elegida: oculta los héroes legendarios que esa facción no consigue */
+  campaign?: string;
 }
 
-export function CharacterPicker({ characters, type, value, onChange }: Props) {
-  const list = characters.filter((c) => c.type === type);
+export function CharacterPicker({ characters, type, value, onChange, campaign }: Props) {
+  const list = characters.filter((c) => c.type === type && (!campaign || !c.factions || c.factions.includes(campaign) || c.key === value));
   const legendary = list.filter((c) => c.legendary);
   const generic = list.filter((c) => !c.legendary);
   return (

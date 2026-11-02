@@ -6,6 +6,43 @@
 type Row = Record<string, any>;
 type Tables = Record<string, Row[]>;
 
+// Héroes legendarios que se desbloquean por misión (script wh3_main_legendary_characters.lua, lista de Imperios Inmortales):
+// subtipo -> [culturas permitidas (sus facciones jugables), facciones permitidas]. El script los da aunque la facción no los
+// tenga en faction_agent_permitted_subtypes (Aekold y los Escribas Azules para Archaón, Kholek, Vilitch...).
+const LEGENDARY_UNLOCKS: Record<string, [string[], string[]]> = {
+  "wh2_dlc12_lzd_lord_kroak": [["wh2_main_lzd_lizardmen"], []],
+  "wh2_dlc16_skv_ghoritch": [[], ["wh2_main_skv_clan_moulder"]],
+  "wh2_dlc16_wef_ariel": [[], ["wh2_dlc16_wef_sisters_of_twilight", "wh_dlc05_wef_wood_elves", "wh_dlc05_wef_argwylon"]],
+  "wh2_dlc16_wef_coeddil": [[], ["wh2_dlc16_wef_drycha"]],
+  "wh3_dlc23_chd_gorduz_backstabber": [["wh3_dlc23_chd_chaos_dwarfs"], []],
+  "wh3_dlc23_neu_ulrika": [["wh3_main_ksl_kislev", "wh_main_emp_empire"], ["wh3_dlc25_dwf_malakai", "wh3_dlc29_vmp_neferata"]],
+  "wh3_pro11_chs_cha_harald_hammerstorm": [["wh_main_chs_chaos"], []],
+  "wh3_dlc24_tze_blue_scribes": [[], ["wh3_main_tze_oracles_of_tzeentch", "wh3_dlc24_tze_the_deceivers", "wh3_dlc20_chs_vilitch", "wh3_main_dae_daemon_prince", "wh3_dlc20_chs_kholek", "wh_main_chs_chaos", "wh3_main_chs_shadow_legion"]],
+  "wh3_dlc24_tze_aekold_helbrass": [[], ["wh3_main_tze_oracles_of_tzeentch", "wh3_dlc24_tze_the_deceivers", "wh3_dlc20_chs_vilitch", "wh3_main_dae_daemon_prince", "wh3_dlc20_chs_kholek", "wh_main_chs_chaos", "wh3_main_chs_shadow_legion"]],
+  "wh3_dlc24_cth_saytang_the_watcher": [["wh3_main_cth_cathay"], []],
+  "wh3_dlc24_ksl_the_golden_knight": [["wh3_main_ksl_kislev"], []],
+  "wh3_pro12_kho_cha_karanak": [[], ["wh3_dlc20_chs_valkia", "wh3_main_kho_exiles_of_khorne", "wh3_dlc26_kho_arbaal", "wh3_dlc26_kho_skulltaker", "wh3_main_dae_daemon_prince", "wh3_dlc20_chs_kholek", "wh_main_chs_chaos", "wh3_main_chs_shadow_legion"]],
+  "wh3_dlc25_neu_gotrek_hero": [[], ["wh_main_emp_empire", "wh_main_emp_wissenland", "wh2_dlc13_emp_golden_order", "wh2_dlc13_emp_the_huntmarshals_expedition", "wh3_main_emp_cult_of_sigmar", "wh3_main_ksl_the_ice_court", "wh3_main_ksl_ursun_revivalists", "wh3_main_ksl_the_great_orthodoxy", "wh3_dlc24_ksl_daughters_of_the_forest", "wh3_dlc24_cth_the_celestial_court", "wh3_main_cth_the_northern_provinces", "wh3_main_cth_the_western_provinces", "wh_main_brt_bordeleaux", "wh2_dlc14_brt_chevaliers_de_lyonesse", "wh_main_brt_bretonnia", "wh_main_brt_carcassonne", "wh_main_dwf_dwarfs", "wh3_main_dwf_the_ancestral_throng", "wh2_dlc17_dwf_thorek_ironbrow", "wh_main_dwf_karak_izor", "wh_main_dwf_karak_kadrin", "wh3_cp1_cth_tiger_warriors", "wh_main_emp_middenland"]],
+  "wh3_dlc25_dwf_garagrim_ironfist": [["wh_main_dwf_dwarfs"], []],
+  "wh3_dlc25_emp_theodore_bruckner": [["wh_main_emp_empire"], []],
+  "wh3_dlc26_grn_snagla_grobpsit": [["wh_main_grn_greenskins"], []],
+  "wh3_dlc26_ogr_bragg_the_gutsman": [["wh3_main_ogr_ogre_kingdoms"], []],
+  "wh3_dlc26_kho_skarr_bloodwrath": [[], ["wh3_dlc20_chs_valkia", "wh_main_chs_chaos", "wh3_main_kho_exiles_of_khorne", "wh3_dlc26_kho_arbaal", "wh3_dlc26_kho_skulltaker", "wh3_main_dae_daemon_prince"]],
+  "wh3_dlc26_kho_scyla_anfingrimm": [[], ["wh3_dlc20_chs_valkia", "wh3_main_kho_exiles_of_khorne", "wh3_main_dae_daemon_prince", "wh3_dlc20_chs_kholek", "wh_main_chs_chaos", "wh3_main_chs_shadow_legion", "wh_dlc08_nor_norsca", "wh_dlc08_nor_wintertooth", "wh3_dlc26_kho_arbaal", "wh3_dlc26_kho_skulltaker", "wh3_dlc27_nor_sayl"]],
+  "wh3_dlc27_sla_styrkaar_the_sortsvinaer": [[], ["wh3_main_sla_seducers_of_slaanesh", "wh3_dlc27_sla_the_tormentors", "wh3_dlc27_sla_masque_of_slaanesh", "wh3_dlc20_chs_sigvald", "wh3_dlc20_chs_azazel", "wh_main_chs_chaos", "wh3_main_chs_shadow_legion", "wh3_dlc20_chs_kholek", "wh_dlc08_nor_norsca", "wh_dlc08_nor_wintertooth", "wh3_dlc27_nor_sayl"]],
+  "wh3_dlc27_hef_caradryan": [[], ["wh3_dlc27_hef_aislinn"]],
+  "wh3_dlc27_nor_beorg_bearstruck": [["wh3_main_cth_cathay"], ["wh3_dlc20_chs_kholek", "wh_main_chs_chaos", "wh3_main_chs_shadow_legion", "wh3_dlc20_chs_sigvald", "wh3_dlc27_nor_sayl", "wh_dlc08_nor_wintertooth", "wh_dlc08_nor_norsca", "wh3_dlc20_chs_valkia", "wh3_dlc20_chs_azazel", "wh3_dlc20_chs_festus", "wh3_dlc20_chs_vilitch"]],
+  "wh3_dlc29_emp_cha_emil_valgeir": [[], ["wh3_main_emp_cult_of_sigmar"]],
+  "wh3_dlc29_chs_gutrot_spume": [["wh3_main_nur_nurgle", "wh_dlc08_nor_norsca"], ["wh3_dlc20_chs_festus", "wh3_dlc20_chs_kholek", "wh3_dlc29_chs_host_of_the_triplets", "wh3_main_chs_shadow_legion", "wh_main_chs_chaos"]],
+  "wh3_dlc29_skv_skreech_verminking": [[], ["wh3_dlc29_skv_clan_scruten", "wh2_dlc09_skv_clan_rictus", "wh2_main_skv_clan_eshin", "wh2_main_skv_clan_mors", "wh2_main_skv_clan_moulder", "wh2_main_skv_clan_pestilens", "wh2_main_skv_clan_skryre"]],
+  "wh3_dlc29_chs_morbidex": [["wh3_main_nur_nurgle"], ["wh3_dlc29_chs_host_of_the_triplets", "wh3_dlc20_chs_festus", "wh_main_chs_chaos"]],
+};
+// Héroes que solo da un script a una facción: jefes vasallos de Tamurkhan y los Trillizos (salen con su facción)
+const SCRIPT_ONLY: [RegExp, string[]][] = [
+  [/^wh3_dlc25_nur_(bray_shaman_wild|castellan|exalted_hero|fimir_balefiend_shadow|skin_wolf_werekin)_chieftain$|^wh3_dlc25_nur_kayzk_the_befouled$/, ['wh3_dlc25_nur_tamurkhan']],
+  [/^wh3_dlc29_chs_(bloab|orghotts)$/, ['wh3_dlc29_chs_host_of_the_triplets']],
+];
+
 export const SKILL_TABLES = [
   'character_skill_node_sets_tables', 'character_skill_node_set_items_tables', 'character_skill_nodes_tables',
   'character_skill_node_links_tables', 'character_skills_tables', 'character_skill_level_details_tables',
@@ -25,7 +62,7 @@ export const SKILL_TABLES = [
   'character_skill_level_to_ancillaries_junctions_tables', 'ancillaries_tables', 'ancillaries_included_agent_subtypes_tables',
   'effect_bonus_value_agent_action_record_junctions_tables',
   'technologies_tables', 'technology_effects_junction_tables', 'technology_node_links_tables', 'technology_node_sets_tables',
-  'technology_nodes_tables', 'technology_required_technology_junctions_tables', 'cultures_subcultures_tables',
+  'technology_nodes_tables', 'technology_required_technology_junctions_tables', 'cultures_subcultures_tables', 'start_pos_factions_tables',
   'ancillary_to_effects_tables', 'character_ancillary_quest_ui_details_tables', 'ancillary_set_ancillary_junctions_tables',
   'ancillary_set_effect_junctions_tables',
   // Grafos de iniciativas (p. ej. la Pirámide Negra de las Legiones No Muertas): nodos con efectos, como tecnologías
@@ -603,12 +640,18 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     leaderSc.set(r.agent_subtype_record, [...new Set([...(leaderSc.get(r.agent_subtype_record) ?? []), sc])].sort());
   }
 
+  // Facciones jugables de Imperios Inmortales: los permisos de facciones de IA (incursiones, retadores) no cuentan
+  const scCulture = new Map<string, string>(T['cultures_subcultures_tables'].map((c) => [c.subculture as string, c.culture as string]));
+  const ieFac = new Set<string>(T['start_pos_factions_tables'].filter((r) => r.campaign === 'wh3_main_combi' && r.playable).map((r) => r.faction as string));
   // Lo que cada facción puede reclutar en campaña (el planner es de campaña, no de batalla personalizada)
   const campSc = new Map<string, string[]>();
+  // Solo con facciones jugables (para héroes: Kihar no es de los Guerreros del Caos aunque se lo permitan a sus retadores de IA)
+  const campScIE = new Map<string, string[]>();
   for (const r of T['faction_agent_permitted_subtypes_tables']) {
     if (r.mod_disabled || !r.subtype || !fac.has(r.faction)) continue;
     const sc = fac.get(r.faction)!.subculture as string;
     campSc.set(r.subtype, [...new Set([...(campSc.get(r.subtype) ?? []), sc])].sort());
+    if (!ieFac.size || ieFac.has(r.faction)) campScIE.set(r.subtype, [...new Set([...(campScIE.get(r.subtype) ?? []), sc])].sort());
   }
 
   // ---------------- Cargos de la corte (ministerial positions) ----------------
@@ -1118,10 +1161,23 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     const unit: string | undefined = a.associated_unit_override;
     if (!unit) continue;
     // Facciones de campaña: las que lo pueden reclutar y las que lo llevan de líder; si no sale en campaña, las de batalla personalizada
-    let scs = [...new Set([...(campSc.get(s.agent_subtype_key) ?? []), ...(leaderSc.get(s.agent_subtype_key) ?? [])])].sort();
+    const perm = s.agent_key !== 'general' && campScIE.get(s.agent_subtype_key)?.length ? campScIE : campSc;
+    let scs = [...new Set([...(perm.get(s.agent_subtype_key) ?? []), ...(leaderSc.get(s.agent_subtype_key) ?? [])])].sort();
     if (!scs.length) scs = unitSc.get(unit)?.length ? unitSc.get(unit)! : setPieceSc.get(unit) ?? [];
     if (s.subculture) scs = scs.includes(s.subculture) ? [s.subculture] : [s.subculture];
     if (s.faction_key && fac.has(s.faction_key)) scs = [fac.get(s.faction_key)!.subculture];
+    // Héroes legendarios por misión o por script: solo en las facciones que dice el juego
+    let only: string[] | null = null;
+    if (s.agent_key !== 'general') {
+      const u = LEGENDARY_UNLOCKS[s.agent_subtype_key];
+      const so = SCRIPT_ONLY.find(([re]) => re.test(s.agent_subtype_key));
+      if (u) {
+        const cults = new Set(u[0]);
+        only = [...new Set([...u[1], ...[...ieFac].filter((f) => cults.has(String(scCulture.get(fac.get(f)?.subculture))))])]
+          .filter((f) => fac.has(f) && (!ieFac.size || ieFac.has(f))).sort();
+      } else if (so) only = so[1];
+      if (only) scs = [...new Set(only.map((f) => fac.get(f)!.subculture as string))].sort();
+    }
     if (!scs.length) continue;
     const outNodes: Row[] = [], bg: Row[] = [], mounts: Record<string, Row> = {};
     for (const it of items.get(s.key) ?? []) {
@@ -1162,7 +1218,7 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     characters.push(strip({
       key: s.key, subtype: s.agent_subtype_key, name, nameEn: a.key, unit,
       type: s.agent_key === 'general' ? 'lord' : 'hero', agent: s.agent_key, legendary,
-      subcultures: scs, home: homeSc(unit, scs), nodes: outNodes, bg, stats: charStats(unit), mounts: Object.keys(mounts).length ? mounts : null,
+      subcultures: scs, factions: only ?? undefined, home: homeSc(unit, scs), nodes: outNodes, bg, stats: charStats(unit), mounts: Object.keys(mounts).length ? mounts : null,
       items: legendary && itemsFor(s.agent_subtype_key).length ? itemsFor(s.agent_subtype_key) : null,
       armory: armoryFor(s.agent_subtype_key),
       acts: s.agent_key !== 'general' && actionsOfNodes([...outNodes, ...bg]).length ? actionsOfNodes([...outNodes, ...bg]) : null,

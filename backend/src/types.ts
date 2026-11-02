@@ -264,7 +264,8 @@ export interface CharacterSummary {
   type: 'lord' | 'hero';
   legendary: boolean;
   /** Facción (subcultura) con la que se arma el árbol */
-  faction?: string;
+  faction?: string;  /** Solo estas facciones de campaña lo consiguen (héroes legendarios por misión o script) */
+  factions?: string[];
 }
 
 export interface CharacterTree extends CharacterSummary {

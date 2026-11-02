@@ -278,7 +278,7 @@ export default function App() {
   };
   const addHero = () => {
     if (usedSlots >= 20) return;
-    const first = characters.find((c) => c.type === 'hero');
+    const first = characters.find((c) => c.type === 'hero' && !c.legendary) ?? characters.find((c) => c.type === 'hero' && (!army.campaign || !c.factions || c.factions.includes(army.campaign)));
     if (!first) return;
     const i = army.heroes.length;
     setHero(i, first.key).then(() => setTab(i));
@@ -485,7 +485,7 @@ export default function App() {
               <CharacterPicker characters={characters} type="lord" value={army.lord?.character ?? null} onChange={setLord} />
             ) : (
               <>
-                <CharacterPicker characters={characters} type="hero" value={army.heroes[tab]?.character ?? null} onChange={(k) => setHero(tab, k)} />
+                <CharacterPicker characters={characters} type="hero" value={army.heroes[tab]?.character ?? null} onChange={(k) => setHero(tab, k)} campaign={army.campaign} />
                 <button className="ghost danger" onClick={() => removeHero(tab)}>Quitar héroe</button>
               </>
             )}
