@@ -255,7 +255,7 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info }: Pro
       </div>
       <p className="small muted">Clic: subir · Clic derecho: bajar · Lo que da el rango (monturas, Immortality, Soldiers of Renown…) se activa solo al subir el rango.</p>
 
-      {hover && <Tooltip hover={hover} tree={tree} selection={selection} />}
+      {hover && <Tooltip key={hover.node.key} hover={hover} tree={tree} selection={selection} />}
     </div>
   );
 }
@@ -316,17 +316,17 @@ function Tooltip({ hover, tree, selection }: { hover: Hover; tree: CharacterTree
           </div>
           <ul>
             {l.effects.filter((e) => e.text).map((e, j) => (
-              <li key={j} title={e.textEn && e.textEn !== e.text ? `Original: ${e.textEn}` : undefined}>
+              <li key={`e:${j}`} title={e.textEn && e.textEn !== e.text ? `Original: ${e.textEn}` : undefined}>
                 <span className={'tag ' + e.kind}>{KIND_LABEL[e.kind]}{e.target !== 'none' && e.kind === 'battle' ? ` · ${TARGET_LABEL[e.target]}` : ''}</span>{' '}
                 {e.text}
                 {e.units?.length ? <span className="muted"> ({e.units.length} unidades)</span> : null}
               </li>
             ))}
-            {l.abilities.map((k) => {
+            {[...new Set(l.abilities)].map((k) => {
               const a = tree.abilityInfo[k];
               if (!a) return null;
               return (
-                <li key={k} className="ability-line">
+                <li key={`a:${k}`} className="ability-line">
                   <span className="tag ability">{a.passive ? 'Pasiva' : a.type ?? 'Habilidad'}</span> <b>{a.name}</b>
                   {a.duration > 0 ? ` · ${a.duration} s` : ''}
                   {a.cooldown ? ` · recarga ${a.cooldown} s` : ''}
