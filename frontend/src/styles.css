@@ -909,3 +909,21 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
   .dps-msum .rbar { width: 100%; margin-top: 4px; }
   .dps-name { white-space: normal; }
 }
+/* La tabla de DPS no se sale del panel: se desplaza dentro si no cabe */
+.bottom-main, .dps { min-width: 0; }
+.dps-scroll { max-width: 100%; overflow-x: auto; }
+.dps-scroll .dps-table { width: 100%; }
+.dps-table th { white-space: nowrap; }
+.dps-name { max-width: 340px; }
+.rbar { width: 92px; }
+.dps-timeline-cell { min-width: 96px; }
+@media (max-width: 700px) { .dps-scroll { overflow-x: visible; } .dps-name { max-width: none; } }
+.dps-table td.ttk .rbar { margin: 4px 0 0 auto; text-align: left; }
+@media (max-width: 1500px) {
+  .dps-table th, .dps-table td { padding-left: 5px; padding-right: 5px; }
+  .dps-name { max-width: 270px; }
+  .dps-name .bp-dot { display: none; }
+}
+.lbl-short { display: none; }
+@media (max-width: 1500px) { .lbl-long { display: none; } .lbl-short { display: inline; } .dps-bar { width: 50px; } }
+.rbar-txt { white-space: nowrap; font-size: 11px; }

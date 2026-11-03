@@ -48,6 +48,7 @@ type AttackMode = 'melee' | 'ranged';
 
 // Columnas: qué es cada una y cómo se calcula (se ve al pasar el ratón por el encabezado)
 const COL_ICON: Partial<Record<SortKey, [string, string]>> = { hit: ['ma', '🎯'], dmg: ['dmg', '💥'], res: ['res', '✨'], dps: ['ws', '⚔️'], ttk: ['hp', '❤️'], back: ['md', '🛡️'] };
+const SHORT: Partial<Record<SortKey, string>> = { dmg: 'Daño', ttk: 'Matas en', back: 'Te matan', eff: 'DPS/1k' };
 const COLS: { key: SortKey; label: string; tip: string; firstDir: 1 | -1 }[] = [
   { key: 'hit', label: 'Acierto', firstDir: -1, tip: 'Probabilidad de acertar cada golpe.\n35 + Ataque melee + bonus contra grandes o infantería − Defensa melee del objetivo (×0.6 por el flanco, ×0.3 por la espalda), entre 8% y 90%.' },
   { key: 'dmg', label: 'Daño/golpe', firstDir: -1, tip: 'Daño de cada golpe que acierta.\nEl bonus contra tipo se suma al daño (repartido entre base y perforante). La armadura quita en promedio 0.75 × Armadura % del daño base (sigue contando arriba de 100, hasta 200). Luego se restan las resistencias y no pasa de la vida de un modelo.' },
@@ -492,6 +493,7 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
       )}
       {err && <div className="warn">{err}</div>}
       {!!rows.length && !shown.length && <p className="small muted">Ningún objetivo con ese filtro.</p>}
+      <div className="dps-scroll">
       <table className={'dps-table' + (recalculating ? ' recalc' : '')}>
         <thead>
           <tr>
@@ -503,10 +505,9 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
             </th>
             {COLS.map((c) => (
               <th key={c.key} className="sortable" title={c.tip + '\n\nClic para ordenar.'} onClick={() => sortBy(c.key, c.firstDir)}>
-                {COL_ICON[c.key] && <StatImg stat={COL_ICON[c.key]![0]} emoji={COL_ICON[c.key]![1]} size={13} />} {c.label}{arrow(c.key)}
+                {COL_ICON[c.key] && <StatImg stat={COL_ICON[c.key]![0]} emoji={COL_ICON[c.key]![1]} size={13} />} {SHORT[c.key] ? <><span className="lbl-long">{c.label}</span><span className="lbl-short">{SHORT[c.key]}</span></> : c.label}{arrow(c.key)}
               </th>
             ))}
-            {rechargeCol && <th title="Cuánto de la pelea cubre cada habilidad con duración y si alcanza a recargarse antes de que acabe">⏱ Habilidades</th>}
             <th />
           </tr>
         </thead>
@@ -515,7 +516,7 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
             <Fragment key={sec.group || 'all'}>
               {groupBy && (
                 <tr className="dps-group">
-                  <td colSpan={rechargeCol ? 11 : 10}>
+                  <td colSpan={10}>
                     {sectionTitle(sec.group)}
                     <span className="muted small">
                       {' '}· {sec.rows.length} unidad{sec.rows.length === 1 ? '' : 'es'}
@@ -572,11 +573,10 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
                         <b>{r.dps}</b>
                         <span className="dps-bar"><span style={{ width: `${(r.dps / maxDps) * 100}%` }} /></span>
                       </td>
-                      <td className={'num ttk ' + ttkCls} title={r.timing ? timingTip(r) : undefined}>{Number.isFinite(r.timeToKill) ? `${r.timeToKill} s` : '—'}{r.timing && timing !== 'always' && r.timing.all.always.mine !== r.timeToKill ? <span className="ttk-alt" title="Si las habilidades duraran toda la pelea">{fmtT(r.timing.all.always.mine)}</span> : null}</td>
+                      <td className={'num ttk ' + ttkCls} title={r.timing ? timingTip(r) : undefined}>{Number.isFinite(r.timeToKill) ? `${r.timeToKill} s` : '—'}{r.timing && timing !== 'always' && r.timing.all.always.mine !== r.timeToKill ? <span className="ttk-alt" title="Si las habilidades duraran toda la pelea">{fmtT(r.timing.all.always.mine)}</span> : null}{rechargeCol && r.timing ? <RechargeBar r={r} timing={timing} /> : null}</td>
                       <td className="num">{r.duel ? (Number.isFinite(r.duel.enemy.timeToKill) ? `${r.duel.enemy.timeToKill} s` : '—') : ''}</td>
                       <td className="num"><DuelBadge r={r} /></td>
                       <td className="num">{r.efficiency ?? '—'}</td>
-                      {rechargeCol && <td className="dps-timeline-cell">{r.timing ? <RechargeBar r={r} timing={timing} /> : null}</td>}
                       <td><button className="ghost" title="Quitar" onClick={() => setTargets(targets.filter((t) => t !== r.target))}>×</button></td>
                     </tr>
                     {isOpen && (
@@ -593,6 +593,7 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
           ))}
         </tbody>
       </table>
+      </div>
       {info?.debuffs.length ? <p className="small">Debufos activos sobre el enemigo: {info.debuffs.join(', ')}</p> : null}
       <p className="small muted dps-legend">
         {GROUP_ORDER.map((g) => (
@@ -816,7 +817,6 @@ function RechargeBar({ r, timing }: { r: DpsRow; timing: AbilityTiming }) {
           ? <span className="ok">⟳ ×{Math.max(...t.abilities.map((a) => a.casts))}</span>
           : t.abilities.every((a) => a.on >= (t.fight ?? Infinity) - 0.1) ? <span className="ok">cubre todo</span>
           : <span className="warn">sin recarga</span>}
-        <span className="muted"> · {t.fight ?? '∞'} s</span>
       </div>
     </div>
   );
