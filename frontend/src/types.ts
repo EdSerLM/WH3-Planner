@@ -393,6 +393,12 @@ export interface DpsRow {
   timeToKill: number;
   /** Efectos de contacto: el tuyo, el suyo, cuáles le cayeron y si alguno es inmune */
   contact?: { mine?: string; theirs?: string; immune?: boolean; meImmune?: boolean; onThem: string[] };
+  /** Habilidades con duración: la pelea por tramos (tiempos en cada modo y qué pasó con cada habilidad) */
+  timing?: {
+    fight: number | null;
+    all: Record<'always' | 'once' | 'relaunch', { mine: number; theirs: number }>;
+    abilities: { name: string; dur: number; cd: number; casts: number; on: number; recharges: boolean }[];
+  };
   efficiency: number | null;
   /** Números usados en el cálculo */
   detail?: {
@@ -473,3 +479,7 @@ export interface SavedBuild {
   updatedAt: string;
   army: ArmyState;
 }
+
+/** always: activas toda la pelea · once: un solo uso · relaunch: se relanzan al recargarse */
+export type AbilityTiming = 'always' | 'once' | 'relaunch';
+export interface TimedAbilityInfo { name: string; owner: string; icon?: string; mode: string; dur: number; cd: number }

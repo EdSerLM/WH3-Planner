@@ -147,6 +147,103 @@ function dpsRows(att: ComputedCard, targets: string[] | undefined, d: AttackDir,
   });
 }
 
+// ---------- Habilidades con duración: la pelea por tramos ----------
+/** always: activas toda la pelea · once: un solo uso al empezar · relaunch: se relanzan en cuanto se recargan */
+type Timing = 'always' | 'once' | 'relaunch';
+type Row = ReturnType<typeof dpsRows>[number];
+const MAX_TIMED = 5;
+
+/**
+ * Las habilidades activas encendidas duran unos segundos: se calcula la pelea con cada combinación de habilidades
+ * puestas/quitadas y se avanza en el tiempo sumando el daño del tramo (en el juego la recarga empieza al terminar el efecto).
+ */
+type TimedAbility = { id: string; key: string; name: string; owner: string; icon?: string; mode: string; dur: number; cd: number };
+function timedList(result: ReturnType<typeof compute>): TimedAbility[] {
+  return result.abilities
+    .filter((a) => a.active && !a.passive && (a.final?.duration ?? a.duration) > 0)
+    .slice(0, MAX_TIMED)
+    .map((a) => ({ id: a.id, key: a.key, name: a.name, owner: a.owner, icon: a.icon, mode: a.mode, dur: a.final?.duration ?? a.duration, cd: Math.max(0, a.final?.cooldown ?? a.cooldown ?? 0) }));
+}
+/** El ejército calculado con cada combinación de habilidades con duración puestas (bit i = habilidad i puesta) */
+function maskResults(army: ComputeRequest, list: TimedAbility[], result: ReturnType<typeof compute>) {
+  const full = (1 << list.length) - 1;
+  const out = new Map<number, ReturnType<typeof compute>>([[full, result]]);
+  for (let mask = 0; mask < full; mask++) {
+    const off = new Set(list.filter((_, i) => !(mask & (1 << i))).flatMap((a) => [a.id, a.key]));
+    out.set(mask, compute({ ...army, units: army.units ?? [], activeAbilities: (army.activeAbilities ?? []).filter((x) => !off.has(x)) }));
+  }
+  return out;
+}
+
+function timedRows(army: ComputeRequest, attacker: string, targets: string[], d: AttackDir, m: AttackMode, result: ReturnType<typeof compute>, base: Row[], timing: Timing, pre?: { list: TimedAbility[]; masks: Map<number, ReturnType<typeof compute>> }) {
+  const list = pre?.list ?? timedList(result);
+  if (!list.length) return { rows: base.map((r) => ({ ...r, timing: undefined })), abilities: [] };
+  const masks = pre?.masks ?? maskResults(army, list, result);
+  // DPS de cada lado con cada combinación; la combinación completa ya es "base"
+  const full = (1 << list.length) - 1;
+  const perMask = new Map<number, Map<string, { mine: number; theirs: number }>>();
+  const pack = (rows: Row[]) => new Map(rows.map((r) => [r.target, { mine: r.dps, theirs: r.duel?.enemy.dps ?? 0 }]));
+  perMask.set(full, pack(base));
+  for (const [mask, res] of masks) {
+    if (mask === full) continue;
+    const att = res.cards.find((x) => x.id === attacker);
+    if (att) perMask.set(mask, pack(dpsRows(att, targets, d, res.enemyDebuffs, m)));
+  }
+  const activeAt = (t: number, i: number, how: Timing) => {
+    if (how === 'always') return true;
+    const { dur, cd } = list[i];
+    if (how === 'once') return t < dur;
+    const cycle = dur + cd;
+    return cycle <= 0 ? true : t % cycle < dur;
+  };
+  const maskAt = (t: number, how: Timing) => list.reduce((acc, _, i) => (activeAt(t, i, how) ? acc | (1 << i) : acc), 0);
+  const DT = 0.25, MAX_T = 1800;
+  /** Segundos hasta quitar "hp" de vida con el DPS de cada tramo; Infinity si no alcanza */
+  const sim = (hp: number, dpsOf: (mask: number) => number, how: Timing) => {
+    if (!(hp > 0)) return 0;
+    let dmg = 0;
+    for (let t = 0; t < MAX_T; t += DT) {
+      const v = dpsOf(maskAt(t, how));
+      if (dmg + v * DT >= hp) return Math.round((t + (hp - dmg) / Math.max(v, 1e-9)) * 10) / 10;
+      dmg += v * DT;
+    }
+    return Infinity;
+  };
+  const rows = base.map((r) => {
+    const tHp = r.detail.hpTotal, myHp = r.duel?.enemy.detail?.hpTotal ?? 0;
+    const ammoOut = !Number.isFinite(r.timeToKill) && r.dps > 0; // a distancia: la munición no alcanza
+    const at = (mask: number) => perMask.get(mask)?.get(r.target) ?? perMask.get(full)!.get(r.target)!;
+    const calc = (how: Timing) => {
+      const mine = ammoOut ? Infinity : sim(tHp, (k) => at(k).mine, how);
+      const theirs = r.duel ? sim(myHp, (k) => at(k).theirs, how) : Infinity;
+      return { mine, theirs };
+    };
+    const all = { always: calc('always'), once: calc('once'), relaunch: calc('relaunch') };
+    const pick = all[timing];
+    // Cuánto dura la pelea (hasta que cae uno) y qué pasó con cada habilidad en ese tiempo
+    const fight = Math.min(pick.mine, pick.theirs);
+    const abil = list.map((a, i) => {
+      const len = Number.isFinite(fight) ? fight : 600;
+      let on = 0, casts = 0;
+      for (let t = 0; t < len; t += DT) {
+        const now = activeAt(t, i, timing), before = t > 0 && activeAt(t - DT, i, timing);
+        if (now) on += DT;
+        if (now && !before) casts++;
+      }
+      return { name: a.name, dur: a.dur, cd: a.cd, casts: timing === 'always' ? 1 : casts, on: Math.round(Math.min(on, len) * 10) / 10, recharges: len > a.dur + a.cd };
+    });
+    const mineRow = { ...r, timeToKill: pick.mine };
+    const duelNow = r.duel ? duel(mineRow, { ...r, timeToKill: pick.theirs, detail: r.duel.enemy.detail } as unknown as Row) : undefined;
+    return {
+      ...r,
+      timeToKill: pick.mine,
+      duel: r.duel && duelNow ? { ...r.duel, ...duelNow, enemy: { ...r.duel.enemy, timeToKill: pick.theirs } } : r.duel,
+      timing: { fight: Number.isFinite(fight) ? fight : null, all, abilities: abil },
+    };
+  });
+  return { rows, abilities: list.map(({ name, owner, icon, mode, dur, cd }) => ({ name, owner, icon, mode, dur, cd })) };
+}
+
 const dirOf = (dir: unknown): AttackDir => (dir === 'flank' || dir === 'rear' ? dir : 'front');
 const modeOf = (mode: unknown): AttackMode => (mode === 'ranged' ? 'ranged' : 'melee');
 
@@ -207,14 +304,27 @@ export function handle(method: string, path: string, q: Q, body: Body): unknown 
       const result = compute({ ...army, units: army.units ?? [] });
       const att = result.cards.find((x) => x.id === attacker);
       if (!att) throw new HttpError(404, 'Atacante no está en el ejército');
-      const rows = dpsRows(att, targets, dirOf(dir), result.enemyDebuffs, mm).map((r) => ({ ...r, info: targetInfo(r.target) }));
-      return { attacker: att.name, rows, disclaimer: mm === 'ranged' ? DPS_RANGED_DISCLAIMER : DPS_DISCLAIMER, debuffs: result.enemyDebuffs.map((x) => x.ability) };
+      const timing = (body as { timing?: Timing }).timing ?? 'relaunch';
+      const base = dpsRows(att, targets, dirOf(dir), result.enemyDebuffs, mm);
+      const timed = timedRows(army, attacker, targets, dirOf(dir), mm, result, base, timing);
+      const rows = timed.rows.map((r) => ({ ...r, info: targetInfo(r.target) }));
+      return {
+        attacker: att.name, rows, timing, abilities: timed.abilities,
+        disclaimer: mm === 'ranged' ? DPS_RANGED_DISCLAIMER : DPS_DISCLAIMER, debuffs: result.enemyDebuffs.map((x) => x.ability),
+      };
     }
     if (a === 'dps' && b === 'matchups') {
-      const { army, targets, dir, mode } = body as { army: ComputeRequest; targets: string[]; dir?: AttackDir; mode?: AttackMode };
+      const { army, targets, dir, mode, timing } = body as { army: ComputeRequest; targets: string[]; dir?: AttackDir; mode?: AttackMode; timing?: Timing };
       const result = compute({ ...army, units: army.units ?? [] });
+      // Mismo modo de habilidades que la tabla: cada combinación se calcula una vez para todas las cartas
+      const list = timedList(result);
+      const pre = list.length && (timing ?? 'relaunch') !== 'always' ? { list, masks: maskResults(army, list, result) } : undefined;
       const cards = Object.fromEntries(
-        result.cards.map((x) => [x.id, Object.fromEntries(dpsRows(x, targets, dirOf(dir), result.enemyDebuffs, modeOf(mode)).flatMap((r) => (r.duel ? [[r.target, r.duel.verdict]] : [])))]),
+        result.cards.map((x) => {
+          const base = dpsRows(x, targets, dirOf(dir), result.enemyDebuffs, modeOf(mode));
+          const rows = pre ? timedRows(army, x.id, targets, dirOf(dir), modeOf(mode), result, base, timing ?? 'relaunch', pre).rows : base;
+          return [x.id, Object.fromEntries(rows.flatMap((r) => (r.duel ? [[r.target, r.duel.verdict]] : [])))];
+        }),
       );
       return { cards };
     }

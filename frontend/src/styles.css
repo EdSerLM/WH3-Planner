@@ -867,3 +867,45 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 /* Efectos de contacto en la tabla de DPS */
 .tag.contact-on { background: #1f2d14; color: #b9e08a; border-color: #4a6a2a; }
 .tag.contact-imm { background: #22222c; color: #c9c9e6; border-color: #4a4a66; }
+
+/* ---------- DPS: controles de botones, habilidades con duración y línea de recargas ---------- */
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; margin-left: 6px; vertical-align: middle; }
+.seg button { border: 0; border-radius: 0; padding: 5px 10px; background: #1a1519; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; transition: background .15s, color .15s; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button:hover { color: var(--text); background: #241d22; }
+.seg button.on { background: linear-gradient(180deg, #3a2c16, #2a2010); color: #f0d890; box-shadow: inset 0 -2px 0 var(--gold); }
+.seg-label { display: inline-flex; align-items: center; gap: 2px; }
+.dps-timed { margin: 8px 0; padding: 8px 10px; border: 1px solid #4a3c2c; border-radius: 8px; background: linear-gradient(180deg, #1c1611, #15110e); }
+.dps-timed-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dps-timed-head .seg { margin-left: 0; }
+.dps-timed-head button.active { border-color: var(--gold-dim); color: #f0d890; }
+.dps-timed-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.dps-timed-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px 3px 4px; border-radius: 6px; background: #201913; border: 1px solid #3d3226; border-left: 4px solid var(--lane); }
+.ttk-alt { display: block; font-size: 10.5px; color: var(--muted); text-decoration: line-through; }
+.dps-timeline-cell { min-width: 140px; }
+.rbar { display: flex; flex-direction: column; gap: 2px; width: 140px; }
+.rbar-lane { position: relative; height: 6px; border-radius: 3px; background: #2a2328; overflow: hidden; }
+.rbar-lane span { position: absolute; top: 0; bottom: 0; border-radius: 3px; opacity: .9; transition: left .3s, width .3s; }
+.rbar-txt { line-height: 1.1; }
+.dps-table th .stat-img, .dps-table th img { vertical-align: -2px; }
+.dps-bar span { transition: width .35s ease; }
+.dps-row { transition: background .15s; }
+.dps-row:hover { background: #1f191d; }
+/* Franjas de cartas del DPS: tamaño fijo para que se lean los nombres */
+.dps .army-strip.pick-strip { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); }
+.dps .army-strip.pick-strip .utile { min-height: 104px; }
+@media (max-width: 700px) {
+  .seg button { padding: 5px 7px; font-size: 13px; }
+  .dps .army-strip.pick-strip { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
+}
+.rbar { width: 110px; }
+.dps-timeline-cell { min-width: 115px; }
+.dps-msum { display: none; }
+@media (max-width: 700px) {
+  .dps-table { display: table; overflow: visible; width: 100%; }
+  .dps-table thead th:not(:first-child), .dps-table td:not(.dps-name):not(:last-child) { display: none; }
+  .dps-table .dps-group td { display: table-cell !important; }
+  .dps-msum { display: block; width: 100%; margin-top: 4px; line-height: 1.5; }
+  .dps-msum .rbar { width: 100%; margin-top: 4px; }
+  .dps-name { white-space: normal; }
+}

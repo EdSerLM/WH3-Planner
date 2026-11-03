@@ -1,4 +1,4 @@
-import type { AbilityInfo, TechTreeData, TechTreeSummary, ArmyState, CampaignFaction, GraphData, TechSummaryData, CharacterSummary, CharacterTree, ComputeResult, DpsRow, Meta, SavedBuild, UnitData } from './types';
+import type { AbilityInfo, TechTreeData, TechTreeSummary, ArmyState, CampaignFaction, GraphData, TechSummaryData, CharacterSummary, CharacterTree, ComputeResult, DpsRow, Meta, AbilityTiming, TimedAbilityInfo, SavedBuild, UnitData } from './types';
 
 // Web estática (celular, GitHub Pages): no hay servidor, el backend corre en el navegador con los mismos datos
 const STATIC = import.meta.env.VITE_STATIC === '1';
@@ -26,15 +26,15 @@ export const api = {
   units: (faction?: string) => req<UnitData[]>(`/api/units${faction ? `?faction=${encodeURIComponent(faction)}` : ''}`),
   campaign: (faction: string) => req<CampaignFaction[]>(`/api/campaign?faction=${encodeURIComponent(faction)}`),
   compute: (army: ArmyState) => req<ComputeResult>('/api/compute', { method: 'POST', body: JSON.stringify(army) }),
-  dps: (army: ArmyState, attacker: string, targets: string[], dir: 'front' | 'flank' | 'rear' = 'front', mode: 'melee' | 'ranged' = 'melee') =>
-    req<{ attacker: string; rows: DpsRow[]; disclaimer: string; debuffs: string[] }>('/api/dps', {
+  dps: (army: ArmyState, attacker: string, targets: string[], dir: 'front' | 'flank' | 'rear' = 'front', mode: 'melee' | 'ranged' = 'melee', timing: AbilityTiming = 'relaunch') =>
+    req<{ attacker: string; rows: DpsRow[]; disclaimer: string; debuffs: string[]; timing?: AbilityTiming; abilities?: TimedAbilityInfo[] }>('/api/dps', {
       method: 'POST',
-      body: JSON.stringify({ army, attacker, targets, dir, mode }),
+      body: JSON.stringify({ army, attacker, targets, dir, mode, timing }),
     }),
-  matchups: (army: ArmyState, targets: string[], dir: 'front' | 'flank' | 'rear' = 'front', mode: 'melee' | 'ranged' = 'melee') =>
+  matchups: (army: ArmyState, targets: string[], dir: 'front' | 'flank' | 'rear' = 'front', mode: 'melee' | 'ranged' = 'melee', timing: AbilityTiming = 'relaunch') =>
     req<{ cards: Record<string, Record<string, 'win' | 'even' | 'lose'>> }>('/api/dps/matchups', {
       method: 'POST',
-      body: JSON.stringify({ army, targets, dir, mode }),
+      body: JSON.stringify({ army, targets, dir, mode, timing }),
     }),
   factions: () => req<{ key: string; name: string }[]>('/api/factions'),
   targets: (faction: string) =>

@@ -1,12 +1,12 @@
 import { fmtStat } from '../statFormat';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
-import type { ArmyState, CampaignFaction, ComputedCard, DpsRow, UnitData } from '../types';
+import type { AbilityTiming, ArmyState, CampaignFaction, ComputedCard, DpsRow, TimedAbilityInfo, UnitData } from '../types';
 import { GROUP_ORDER, groupIndex, groupInfo } from '../unitGroups';
 import { UnitIcon } from './UnitIcon';
 import { PickStrip, RosterDuelStrip, Tier, type MatchupCount } from './ArmySetup';
 import { campaignUnits } from '../campaign';
-import { GroupIcon, StatImg } from '../gameIcons';
+import { AbilityImg, GroupIcon, StatImg } from '../gameIcons';
 
 interface Props {
   army: ArmyState;
@@ -47,6 +47,7 @@ type AttackDir = 'front' | 'flank' | 'rear';
 type AttackMode = 'melee' | 'ranged';
 
 // Columnas: qué es cada una y cómo se calcula (se ve al pasar el ratón por el encabezado)
+const COL_ICON: Partial<Record<SortKey, [string, string]>> = { hit: ['ma', '🎯'], dmg: ['dmg', '💥'], res: ['res', '✨'], dps: ['ws', '⚔️'], ttk: ['hp', '❤️'], back: ['md', '🛡️'] };
 const COLS: { key: SortKey; label: string; tip: string; firstDir: 1 | -1 }[] = [
   { key: 'hit', label: 'Acierto', firstDir: -1, tip: 'Probabilidad de acertar cada golpe.\n35 + Ataque melee + bonus contra grandes o infantería − Defensa melee del objetivo (×0.6 por el flanco, ×0.3 por la espalda), entre 8% y 90%.' },
   { key: 'dmg', label: 'Daño/golpe', firstDir: -1, tip: 'Daño de cada golpe que acierta.\nEl bonus contra tipo se suma al daño (repartido entre base y perforante). La armadura quita en promedio 0.75 × Armadura % del daño base (sigue contando arriba de 100, hasta 200). Luego se restan las resistencias y no pasa de la vida de un modelo.' },
@@ -112,11 +113,15 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
   // grouped (booleano) es de versiones anteriores: equivale a agrupar por tipo
   // noRor: sin Regimientos de Renombre; verdict: solo los duelos con ese resultado;
   // single: mostrar los objetivos de un solo modelo (ocultos por defecto: el duelo no los calcula bien); mode: melee o distancia
-  const [view, setView] = useState<{ sort: SortState; grouped: boolean; groupBy?: GroupBy; noRor?: boolean; single?: boolean; verdict?: Verdict | ''; mode?: AttackMode }>(() =>
+  const [view, setView] = useState<{ sort: SortState; grouped: boolean; groupBy?: GroupBy; noRor?: boolean; single?: boolean; verdict?: Verdict | ''; mode?: AttackMode; timing?: AbilityTiming; recharge?: boolean }>(() =>
     loadJson(STORE_VIEW, { sort: { key: 'ttk', dir: 1 } as SortState, grouped: false }),
   );
   const groupBy: GroupBy = view.groupBy ?? (view.grouped ? 'type' : '');
   const mode: AttackMode = view.mode ?? 'melee';
+  // Habilidades con duración: siempre puestas, un uso o relanzarlas al recargar; y si se ve la línea de recargas
+  const timing: AbilityTiming = view.timing ?? 'relaunch';
+  const showRecharge = view.recharge ?? true;
+  const [timedAbilities, setTimedAbilities] = useState<TimedAbilityInfo[]>([]);
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [dir, setDir] = useState<AttackDir>(pick.dir);
   // Las filas son de este atacante y dirección; si no coinciden con lo elegido, se está recalculando
@@ -172,7 +177,7 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
     let stale = false;
     const t = setTimeout(() => {
       api
-        .dps(army, attacker, targets, dir, mode)
+        .dps(army, attacker, targets, dir, mode, timing)
         .then((r) => {
           if (stale) return;
           // Objetivos guardados con claves viejas y nuevas de la misma unidad: el backend los resuelve a la misma
@@ -182,15 +187,16 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
           setRows(uniq);
           // Si el backend resolvió todos (misma cantidad y orden), se guardan con la clave actual y sin repetir
           if (r.rows.length === targets.length && r.rows.some((x, i) => x.target !== targets[i])) setTargets(uniq.map((x) => x.target));
-          setRowsFor(`${attacker}|${dir}|${mode}`);
+          setRowsFor(`${attacker}|${dir}|${mode}|${timing}`);
           setInfo({ disclaimer: r.disclaimer, debuffs: r.debuffs });
+          setTimedAbilities(r.abilities ?? []);
           setErr(null);
         })
         .catch((e) => { if (!stale) setErr(e.message); });
     }, 200);
     return () => { stale = true; clearTimeout(t); };
-  }, [army, attacker, targets, dir, mode]);
-  const recalculating = !!rows.length && rowsFor !== `${attacker}|${dir}|${mode}`;
+  }, [army, attacker, targets, dir, mode, timing]);
+  const recalculating = !!rows.length && rowsFor !== `${attacker}|${dir}|${mode}|${timing}`;
 
   // Duelos de todas las tarjetas del ejército contra los mismos objetivos, para marcar en la franja las que mejor salen
   const [duels, setDuels] = useState<Record<string, Record<string, Verdict>>>({});
@@ -201,10 +207,10 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
     }
     let stale = false;
     const t = setTimeout(() => {
-      api.matchups(army, targets, dir, mode).then((r) => { if (!stale) setDuels(r.cards); }).catch(() => { if (!stale) setDuels({}); });
+      api.matchups(army, targets, dir, mode, timing).then((r) => { if (!stale) setDuels(r.cards); }).catch(() => { if (!stale) setDuels({}); });
     }, 400);
     return () => { stale = true; clearTimeout(t); };
-  }, [army, targets, dir, mode, cards.length]);
+  }, [army, targets, dir, mode, timing, cards.length]);
   // Objetivos de un solo modelo (gigantes, dragones, personajes...), por la ficha de cada fila o la lista de la facción
   const singles = useMemo(() => {
     const out = new Set<string>();
@@ -243,12 +249,12 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
     }
     let stale = false;
     const t = setTimeout(() => {
-      api.matchups({ ...army, units: rest.map((u) => ({ card: u.card, count: 1 })) }, targets, dir, mode)
+      api.matchups({ ...army, units: rest.map((u) => ({ card: u.card, count: 1 })) }, targets, dir, mode, timing)
         .then((r) => { if (!stale) setRestDuels(r.cards); })
         .catch(() => { if (!stale) setRestDuels({}); });
     }, 600);
     return () => { stale = true; clearTimeout(t); };
-  }, [army, rest, targets, dir, mode, cards.length]);
+  }, [army, rest, targets, dir, mode, timing, cards.length]);
   const restMatchups = useMemo(() => {
     const keep = new Set(rest.map((u) => u.card));
     return countDuels(Object.fromEntries(Object.entries(restDuels).filter(([id]) => keep.has(id))));
@@ -315,6 +321,7 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
   });
 
   const attCard = cards.find((c) => c.id === attacker);
+  const rechargeCol = showRecharge && timedAbilities.length > 0;
 
   return (
     <div className="dps">
@@ -417,21 +424,14 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
         <button className="ghost" onClick={() => setTargets([])}>Limpiar</button>
       </div>
       <div className="dps-tools">
-        <label title="Qué daño se compara: el cuerpo a cuerpo o el de proyectiles (a distancia). Cambia la tabla, los duelos y los enfrentamientos de las cartas.">
-          Daño:{' '}
-          <select value={mode} onChange={(e) => setView((v) => ({ ...v, mode: e.target.value as AttackMode }))}>
-            <option value="melee">⚔️ Cuerpo a cuerpo</option>
-            <option value="ranged">🏹 A distancia</option>
-          </select>
-        </label>
-        <label title="Desde dónde atacas: por el flanco la defensa del enemigo cuenta ×0.6 y por la espalda ×0.3 (constantes del juego). El duelo al revés siempre es de frente.">
-          Atacas:{' '}
-          <select value={dir} onChange={(e) => setDir(e.target.value as 'front' | 'flank' | 'rear')}>
-            <option value="front">De frente</option>
-            <option value="flank">Por el flanco (defensa ×0.6)</option>
-            <option value="rear">Por la espalda (defensa ×0.3)</option>
-          </select>
-        </label>
+        <span className="seg-label" title="Qué daño se compara: el cuerpo a cuerpo o el de proyectiles (a distancia). Cambia la tabla, los duelos y los enfrentamientos de las cartas.">
+          Daño
+          <Seg value={mode} onChange={(v) => setView((x) => ({ ...x, mode: v }))} options={[['melee', <><StatImg stat="ma" emoji="⚔️" size={14} /> Cuerpo a cuerpo</>], ['ranged', <><StatImg stat="missileDmg" emoji="🏹" size={14} /> A distancia</>]]} />
+        </span>
+        <span className="seg-label" title="Desde dónde atacas: por el flanco la defensa del enemigo cuenta ×0.6 y por la espalda ×0.3 (constantes del juego). El duelo al revés siempre es de frente.">
+          Atacas
+          <Seg value={dir} onChange={setDir} options={[['front', 'De frente'], ['flank', 'Flanco ×0.6'], ['rear', 'Espalda ×0.3']]} />
+        </span>
         <label title="Separa la tabla por tipo de unidad (infantería, caballería, monstruos...) o por nivel (tier I a V)">
           Agrupar:{' '}
           <select value={groupBy} onChange={(e) => setView((v) => ({ ...v, groupBy: e.target.value as GroupBy }))}>
@@ -460,6 +460,33 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
         </button>
         <span className="small muted">Clic en un encabezado para ordenar · clic en una unidad para ver su ficha y el cálculo</span>
       </div>
+      {timedAbilities.length > 0 && (
+        <div className="dps-timed">
+          <div className="dps-timed-head">
+            <b>⏱ Habilidades con duración</b>
+            <Seg value={timing} onChange={(v) => setView((x) => ({ ...x, timing: v }))} options={[
+              ['always', 'Toda la pelea'], ['once', 'Un uso'], ['relaunch', '⟳ Relanzar al recargar'],
+            ]} />
+            <button className={'ghost small' + (showRecharge ? ' active' : '')} onClick={() => setView((x) => ({ ...x, recharge: !showRecharge }))} title="Muestra en cada fila cuánto de la pelea cubre cada habilidad y si alcanza a recargarse">
+              {showRecharge ? '▾' : '▸'} Ver recargas
+            </button>
+          </div>
+          <div className="dps-timed-list">
+            {timedAbilities.map((a, i) => (
+              <span key={a.name} className="dps-timed-chip" style={{ ['--lane' as string]: LANE[i % LANE.length] }}>
+                <AbilityImg icon={a.icon} title={a.name} size={20} />
+                <span><b>{a.name}</b><span className="muted small"> · {a.owner} · dura {a.dur} s · recarga {a.cd} s</span></span>
+              </span>
+            ))}
+          </div>
+          <p className="small muted">
+            {timing === 'always' ? 'Como si las habilidades duraran toda la pelea (máximo teórico).'
+              : timing === 'once' ? 'Cada habilidad se lanza una vez al empezar; al acabarse, la pelea sigue sin ella.'
+              : 'Cada habilidad se lanza al empezar y otra vez en cuanto se recarga (la recarga empieza al terminar el efecto).'}
+            {' '}El tiempo para matar y el duelo se calculan por tramos: con la habilidad mientras dura y sin ella el resto.
+          </p>
+        </div>
+      )}
       {!factions.length && (
         <p className="small warn">Para enemigos de otras facciones corre <code>npm run extraer</code> con la carpeta data del juego.</p>
       )}
@@ -476,9 +503,10 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
             </th>
             {COLS.map((c) => (
               <th key={c.key} className="sortable" title={c.tip + '\n\nClic para ordenar.'} onClick={() => sortBy(c.key, c.firstDir)}>
-                {c.label}{arrow(c.key)}
+                {COL_ICON[c.key] && <StatImg stat={COL_ICON[c.key]![0]} emoji={COL_ICON[c.key]![1]} size={13} />} {c.label}{arrow(c.key)}
               </th>
             ))}
+            {rechargeCol && <th title="Cuánto de la pelea cubre cada habilidad con duración y si alcanza a recargarse antes de que acabe">⏱ Habilidades</th>}
             <th />
           </tr>
         </thead>
@@ -487,7 +515,7 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
             <Fragment key={sec.group || 'all'}>
               {groupBy && (
                 <tr className="dps-group">
-                  <td colSpan={10}>
+                  <td colSpan={rechargeCol ? 11 : 10}>
                     {sectionTitle(sec.group)}
                     <span className="muted small">
                       {' '}· {sec.rows.length} unidad{sec.rows.length === 1 ? '' : 'es'}
@@ -528,6 +556,12 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
                           </span>
                         ))}
                         {r.info?.cost ? <span className="muted small"> · {r.info.cost}</span> : null}
+                        {/* En el celular las columnas no caben: resumen en la misma celda */}
+                        <span className="dps-msum small">
+                          <b>{r.dps}</b> DPS · matas en <b className={ttkCls}>{fmtT(r.timeToKill)}</b> · te matan en <b>{r.duel ? fmtT(r.duel.enemy.timeToKill) : '—'}</b>
+                          {r.duel && <> · <DuelBadge r={r} /></>}
+                          {rechargeCol && r.timing ? <RechargeBar r={r} timing={timing} /> : null}
+                        </span>
                         {r.contact?.onThem.length ? <span className="tag contact-on" title={`Afectada por: ${r.contact.onThem.join(', ')} (efecto de contacto al golpearla)`}>🧪 {r.contact.onThem.join(', ')}</span> : null}
                         {r.contact?.immune ? <span className="tag contact-imm" title="Inmune a los efectos de contacto: tu veneno y efectos al golpear no le afectan">🛡 Inmune a contacto</span> : null}
                       </td>
@@ -538,10 +572,11 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
                         <b>{r.dps}</b>
                         <span className="dps-bar"><span style={{ width: `${(r.dps / maxDps) * 100}%` }} /></span>
                       </td>
-                      <td className={'num ttk ' + ttkCls}>{Number.isFinite(r.timeToKill) ? `${r.timeToKill} s` : '—'}</td>
+                      <td className={'num ttk ' + ttkCls} title={r.timing ? timingTip(r) : undefined}>{Number.isFinite(r.timeToKill) ? `${r.timeToKill} s` : '—'}{r.timing && timing !== 'always' && r.timing.all.always.mine !== r.timeToKill ? <span className="ttk-alt" title="Si las habilidades duraran toda la pelea">{fmtT(r.timing.all.always.mine)}</span> : null}</td>
                       <td className="num">{r.duel ? (Number.isFinite(r.duel.enemy.timeToKill) ? `${r.duel.enemy.timeToKill} s` : '—') : ''}</td>
                       <td className="num"><DuelBadge r={r} /></td>
                       <td className="num">{r.efficiency ?? '—'}</td>
+                      {rechargeCol && <td className="dps-timeline-cell">{r.timing ? <RechargeBar r={r} timing={timing} /> : null}</td>}
                       <td><button className="ghost" title="Quitar" onClick={() => setTargets(targets.filter((t) => t !== r.target))}>×</button></td>
                     </tr>
                     {isOpen && (
@@ -736,5 +771,53 @@ function CalcLines({ d, hit, perHit, res, dps, ttk, large, hpPerModel, you }: {
         <b>{you ? 'Te matan en' : 'Tiempo para matar'}</b>: {d.hpTotal} vida ÷ {dps} = <b>{Number.isFinite(ttk) ? `${ttk} s` : '—'}</b>
       </li>
     </ul>
+  );
+}
+
+const LANE = ['#e0b84a', '#6fa3d9', '#a77be0', '#6fbf73', '#e07a2e'];
+const fmtT = (v: number) => (Number.isFinite(v) ? `${v} s` : '—');
+function timingTip(r: DpsRow) {
+  const a = r.timing!.all;
+  return `Tú los matas · ellos te matan\nToda la pelea: ${fmtT(a.always.mine)} · ${fmtT(a.always.theirs)}\nUn uso: ${fmtT(a.once.mine)} · ${fmtT(a.once.theirs)}\nRelanzar al recargar: ${fmtT(a.relaunch.mine)} · ${fmtT(a.relaunch.theirs)}`;
+}
+
+/** Control de botones (una opción activa) */
+function Seg<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: [T, React.ReactNode][] }) {
+  return (
+    <span className="seg">
+      {options.map(([k, label]) => (
+        <button key={k} type="button" className={k === value ? 'on' : ''} onClick={() => onChange(k)}>{label}</button>
+      ))}
+    </span>
+  );
+}
+
+/** Línea de la pelea: cuándo está puesta cada habilidad hasta que cae uno de los dos, y si se recarga a tiempo */
+function RechargeBar({ r, timing }: { r: DpsRow; timing: AbilityTiming }) {
+  const t = r.timing!;
+  const len = t.fight ?? Math.max(...t.abilities.map((a) => a.dur + a.cd), 1);
+  return (
+    <div className="rbar" title={t.abilities.map((a) => `${a.name}: puesta ${a.on} s de ${t.fight ?? '∞'} s · ${a.casts} uso${a.casts === 1 ? '' : 's'}${a.recharges ? ' · se recarga a tiempo' : ' · no alcanza a recargarse'}`).join('\n')}>
+      {t.abilities.map((a, i) => {
+        const segs: [number, number][] = [];
+        if (timing === 'always') segs.push([0, len]);
+        else if (timing === 'once') segs.push([0, Math.min(a.dur, len)]);
+        else for (let s = 0; s < len; s += Math.max(a.dur + a.cd, 0.1)) segs.push([s, Math.min(s + a.dur, len)]);
+        return (
+          <div key={a.name} className="rbar-lane">
+            {segs.map(([s0, s1], j) => (
+              <span key={j} style={{ left: `${(s0 / len) * 100}%`, width: `${((s1 - s0) / len) * 100}%`, background: LANE[i % LANE.length] }} />
+            ))}
+          </div>
+        );
+      })}
+      <div className="rbar-txt small">
+        {t.abilities.some((a) => a.recharges && timing === 'relaunch')
+          ? <span className="ok">⟳ ×{Math.max(...t.abilities.map((a) => a.casts))}</span>
+          : t.abilities.every((a) => a.on >= (t.fight ?? Infinity) - 0.1) ? <span className="ok">cubre todo</span>
+          : <span className="warn">sin recarga</span>}
+        <span className="muted"> · {t.fight ?? '∞'} s</span>
+      </div>
+    </div>
   );
 }
