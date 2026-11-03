@@ -820,7 +820,8 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
   for (const [dk, dn] of Object.entries(DANCE_ES)) for (const tempo of [1, 2, 3]) {
     const set = `wh3_dlc27_eternal_dance_of_${dk}_tempo_${tempo}`;
     const items = iniItemsOf(set);
-    if (items.length) dances.push({ k: `dance:${set}`, cat: 'DANCE', n: `${dn} · Tempo ${tempo}`, max: 1, items });
+    // Solo la Máscara de Slaanesh (La Tropa Maldita) tiene la Danza Eterna
+    if (items.length) dances.push({ k: `dance:${set}`, cat: 'DANCE', fac: 'wh3_dlc27_sla_masque_of_slaanesh', n: `${dn} · Tempo ${tempo}`, max: 1, items });
   }
   const forceInitFor = (type: string, scs: string[]): Row[] => type !== 'general' ? [] : [
     ...(scs.includes('wh_main_sc_grn_greenskins') ? daPlan : []),

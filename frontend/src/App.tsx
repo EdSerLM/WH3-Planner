@@ -505,16 +505,16 @@ export default function App() {
                     {currentTree.spellSlots.every((x) => x.rarity === 'name') ? '👑 Nombres de poder' : '🔮 Hechizos (fragmentos)'}
                   </button>
                 ) : null}
-                {currentTree.initiativeSets?.length ? (
+                {visibleSets(currentTree.initiativeSets, army.campaign).length ? (
                   <button className={leftView === 'initiatives' ? 'active' : ''} onClick={() => setLeftView('initiatives')} title="Regalos del Caos, devociones y otras mecánicas del personaje">
-                    {mechTabLabel(currentTree.initiativeSets, army.campaign)}
+                    {mechTabLabel(currentTree.initiativeSets ?? [], army.campaign)}
                   </button>
                 ) : null}
                 <button className={leftView === 'summary' ? 'active' : ''} onClick={() => setLeftView('summary')}>Efectos acumulados</button>
               </nav>
               {leftView === 'gifts' && currentTree.armory ? (
                 <ArmoryPanel tree={currentTree} selection={currentSel} onChange={updateSelection} />
-              ) : leftView === 'initiatives' && currentTree.initiativeSets?.length ? (
+              ) : leftView === 'initiatives' && visibleSets(currentTree.initiativeSets, army.campaign).length ? (
                 <InitiativesPanel
                   tree={currentTree} selection={currentSel} onChange={updateSelection} campaign={army.campaign}
                   army={tab === 'lord' ? {
@@ -716,8 +716,12 @@ const MECH_TAB: [RegExp, string][] = [
   [/^GUNNERY$/, '🔫 Escuela de Artillería'], [/^KISLEV$/, '❄️ Kislev'], [/^HELLFORGE$/, '🔥 Forja Infernal'], [/^GLOTTKIN$/, '🌿 Rituales Podridos'],
   [/^COOKING$/, '🍲 Caldero de Grom'], [/^LAIR$/, '🦇 Guarida de Vampiros'], [/^BREW$/, '⚗️ Brebajes de Ostankya'], [/^MARKS$/, '💜 Marcas de Crueldad'], [/^ULRIC$/, '🐺 Rituales de Ulric'], [/^CHIEF$/, '🪓 Jefes de Tamurkhan'], [/^FORGE_BUFF$/, '🔥 Bendiciones de Daith'], [/^PLAGUE$/, '🧪 Plagas de Nurgle'], [/^OFFER_TO_THE_MAW$/, '🍖 Ofrenda a las Fauces'], [/BOOKS_OF_NAGASH/, '📕 Libros de Nagash'],
 ];
+/** Mecánicas que se ven con la facción de campaña elegida (las de otra facción se ocultan; las cortes siempre) */
+function visibleSets<T extends { category: string; faction?: string }>(sets: T[] | undefined, campaign?: string): T[] {
+  return (sets ?? []).filter((s) => !s.faction || !campaign || s.faction === campaign || s.category === 'COURT');
+}
 function mechTabLabel(sets: { category: string; faction?: string }[], campaign?: string) {
-  const mine = sets.filter((s) => !s.faction || !campaign || s.faction === campaign || s.category === 'COURT');
+  const mine = visibleSets(sets, campaign);
   const labels = MECH_TAB.filter(([re]) => mine.some((s) => re.test(s.category))).map(([, l]) => l);
   return labels.length === 0 ? '🌟 Mecánicas' : labels.length <= 2 ? labels.join(' / ') : `${labels[0]} +${labels.length - 1}`;
 }
