@@ -352,7 +352,8 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     for (const r of bAb.get(key) ?? []) {
       if (r.bonus_value_id === 'enable') { ability(r.unit_ability); out.push({ kind: 'ability', target: tgt === 'chars' ? 'chars' : 'self', who, ability: r.unit_ability }); }
       else if (r.bonus_value_id === 'disable') out.push({ kind: 'ability', target: 'self', disable: r.unit_ability });
-      else out.push({ kind: 'magic', target: 'self' });
+      // Cambio a una habilidad concreta (duración, recarga, coste...): se guarda cuál y qué valor, para aplicarlo aunque el texto no la nombre
+      else out.push({ kind: 'magic', target: 'self', on: r.unit_ability, bv: r.bonus_value_id, value });
     }
     // "Activa ataques envenenados/desgarradores/encantados..." no tienen tabla de bonificación: atributo con el nombre del texto
     if (!out.length && /enable_[a-z_]*attacks/.test(key) && tgt !== 'none') {

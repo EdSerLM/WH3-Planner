@@ -216,6 +216,10 @@ export interface ParsedEffect {
   scope?: string;
   /** Rango mínimo de la unidad para que aplique */
   rankMin?: number;
+  /** Tipo de cambio a una habilidad concreta (bonus_value_id del juego: duración, recarga, coste...) */
+  bv?: string;
+  /** Habilidad a la que se aplica ese cambio */
+  abilityTarget?: string;
   ability?: string;
   /** Tecnologías "a los personajes": solo señores, solo héroes o solo hechiceros */
   who?: 'lord' | 'hero' | 'wizard';

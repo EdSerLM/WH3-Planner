@@ -327,6 +327,8 @@ function gameEffect(e: GameEffect, first: boolean, keyText: string): ParsedEffec
     unitList: x.u,
     attribute: x.attribute ? translateAttribute(x.attribute) : undefined,
     ability: x.ability,
+    bv: (x as { bv?: string }).bv,
+    abilityTarget: (x as { on?: string }).on,
     disable: x.disable,
     action: x.action,
     exact: true,

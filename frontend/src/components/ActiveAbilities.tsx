@@ -35,14 +35,15 @@ export function ActiveAbilities({ abilities, inAura, onToggle, onAura, showEnemi
       <ul>
         {toggles.map((a) => (
           <li key={a.id} className={a.active ? 'on' : ''}>
-            <label title={[...a.stats, ...a.attributes].join('\n')}>
+            <label title={[...a.stats, ...a.attributes, ...(a.mods ?? [])].join('\n')}>
               <input type="checkbox" checked={a.active} onChange={() => onToggle(a)} />
               <AbilityImg icon={a.icon} title={a.name} /> <b>{a.name}</b> <AbilityIcons a={a} />
               <span className="muted small ab-meta">
                 {a.owner}
-                {a.duration > 0 ? ` · ${a.duration} s` : ''}
-                {a.cooldown && a.cooldown > 0 ? ` · recarga ${a.cooldown} s` : ''}
-                {a.mana ? ` · ${a.mana} maná` : ''}
+                {/* Con lo comprado en el árbol (p. ej. Gran táctico duplica la duración de las inspiraciones) */}
+                {a.duration > 0 ? ` · ${a.final?.duration ?? a.duration} s` : ''}
+                {a.cooldown && a.cooldown > 0 ? ` · recarga ${a.final?.cooldown ?? a.cooldown} s` : ''}
+                {a.mana ? ` · ${a.final?.mana ?? a.mana} maná` : ''}
               </span>
             </label>
           </li>

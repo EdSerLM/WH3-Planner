@@ -195,9 +195,30 @@ function abilityMods(a: AbilityInfo, effects: { effect: ParsedEffect; skill: str
   const over = a.overcast ? abilities[a.overcast] : undefined;
   let mana = 0, overMana = 0, cdPct = 0, durPct = 0, rangePct = 0, uses = 0, unlocked = false;
   const mods: string[] = [];
+  const structured = new Set<string>();
+  // Cambios con la habilidad indicada en los datos (aunque el texto hable de un grupo: "habilidades de inspiración")
+  let groupText = '';
+  for (const { effect, skill } of effects) {
+    if (effect.text) groupText = effect.text;
+    if (effect.kind !== 'magic' || !effect.abilityTarget || !effect.bv || effect.value === undefined) continue;
+    const forBase = effect.abilityTarget === a.key, forOver = !!over && effect.abilityTarget === a.overcast;
+    if (!forBase && !forOver) continue;
+    const v = effect.value, bv = effect.bv;
+    // bonus_value_id del juego: active_time_mod, recharge_mod, cost_mod, target_intercept_range_mod, uses_mod, enable_overchage
+    if (bv === 'active_time_mod' && forBase) durPct += v;
+    else if (bv === 'recharge_mod' && forBase) cdPct += v;
+    else if (bv === 'cost_mod') { if (forBase) mana += v; else overMana += v; }
+    else if (bv === 'target_intercept_range_mod' && forBase) rangePct += v;
+    else if (bv === 'uses_mod' && forBase) uses += v;
+    else if (bv === 'enable_overchage') unlocked = true;
+    else continue;
+    mods.push(`${effect.text || groupText} — ${skill}`);
+    structured.add(skill + '|' + (effect.text || groupText));
+  }
   for (const { effect, skill } of effects) {
     const t = effect.text;
     if (!t || effect.kind === 'battle' || effect.kind === 'attribute') continue;
+    if (structured.has(skill + '|' + t)) continue;
     // "Hechizo: X" solo lo habilita (no cambia sus valores); "Hechizo potenciado: X" sí cuenta
     if (effect.kind === 'ability' && !/potenciad|bendición/i.test(t)) continue;
     // Los textos no siempre usan las mismas mayúsculas que el nombre ("Plaga de óxido" / "Plaga de Óxido")
@@ -288,6 +309,13 @@ function abilitiesOf(b: ResolvedBuild, armyRemoved?: Set<string>): { ability: Ab
   for (const it of b.tree.armory?.items ?? []) for (const e of it.effects) if (e.ability) gated.add(e.ability);
   for (const st of b.tree.armory?.sets ?? []) for (const e of st.effects) if (e.ability) gated.add(e.ability);
   for (const k of baseStats?.abilities ?? b.tree.stats?.abilities ?? []) if (!gated.has(k)) add(k, 'Innata');
+
+  // Versiones por nivel (Asalto inspirado I → III): la unidad trae la I y el árbol da la II o la III; solo cuenta la más alta
+  const ROMAN = ['i', 'ii', 'iii', 'iv', 'v'];
+  const tier = (k: string) => { const m = /_(i{1,3}|iv|v)$/.exec(k); return m ? { base: k.slice(0, -m[0].length), n: ROMAN.indexOf(m[1]) } : null; };
+  const topTier = new Map<string, number>();
+  for (const { ability } of out) { const t = tier(ability.key); if (t) topTier.set(t.base, Math.max(topTier.get(t.base) ?? -1, t.n)); }
+  for (let i = out.length - 1; i >= 0; i--) { const t = tier(out[i].ability.key); if (t && t.n < topTier.get(t.base)!) out.splice(i, 1); }
 
   // Reemplazos: si un efecto dice Replaces: "X", quitamos la habilidad X
   const replaced = new Set<string>();
