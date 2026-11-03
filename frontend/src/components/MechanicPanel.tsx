@@ -55,12 +55,13 @@ const HELP: Record<string, string> = {
   MARKS: 'Dechala marca a sus personajes con Marcas de Crueldad (nivel I a III). Elige una por fila; los efectos se suman a la tarjeta.',
   ULRIC: 'Rituales de Ulric del ejército de Middenland (Boris Todbringer): elige los que tengas activos en este ejército.',
   FORGE_BUFF: 'Bendiciones de facción de la Forja de Daith: duran unos turnos y afectan a todos los ejércitos. Marca las que tengas activas.',
+  WORKSHOP: 'Taller de Ikit (Clan Skryre): mejoras de las armas que se investigan en el taller. Afectan a todas esas unidades de la facción; marca las que tengas. Bajo el nombre ves el nivel de taller que piden.',
   CHIEF: 'Jefes vasallos de Tamurkhan: cada nivel de lealtad añade un paquete de efectos a la facción, y algunos jefes dan una habilidad a su propio ejército. Marca los niveles que tengas.',
   PATH_TO_GLORY_BOON: 'Marca los regalos que tienes en tu campaña; cada uno muestra la condición para conseguirlo.',
 };
 const EMOJI: Record<string, string> = {
   DA_PLAN: '📜', FORGE: '⚒️', CLOAK: '💀', GUNNERY: '🔫', KISLEV: '❄️', HELLFORGE: '🔥', GLOTTKIN: '🌿', COOKING: '🍲', PLAGUE: '🧪',
-  DANCE: '💃', PATRONAGE: '🦅', COURT: '🌳', LAIR: '🦇', BREW: '⚗️', MARKS: '💜', ULRIC: '🐺', CHIEF: '🪓', FORGE_BUFF: '🔥',
+  DANCE: '💃', PATRONAGE: '🦅', COURT: '🌳', LAIR: '🦇', BREW: '⚗️', MARKS: '💜', ULRIC: '🐺', CHIEF: '🪓', WORKSHOP: '⚙️', FORGE_BUFF: '🔥',
 };
 
 /** Fila y nivel de una pieza: del dato (group/level) o del nombre ("X · nivel 2: Y", "Coraza del Dragón III") */

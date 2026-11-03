@@ -964,7 +964,7 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     });
     mech.push({
       who: (sub) => sub === 'wh3_dlc29_chs_glottkin',
-      sets: [{ k: 'mech:glottkin', cat: 'GLOTTKIN', n: 'Rituales Podridos de los Glottkin', max: 0, rows: true, items }],
+      sets: [{ k: 'mech:glottkin', cat: 'GLOTTKIN', fac: 'wh3_dlc29_chs_host_of_the_triplets', n: 'Rituales Podridos de los Glottkin', max: 0, rows: true, items }],
     });
   }
   // Caldero de Grom: platos (efectos para Grom) e ingredientes (efectos de facción)
@@ -993,8 +993,8 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     mech.push({
       who: (sub) => sub === 'wh2_dlc15_grn_grom_the_paunch',
       sets: [
-        { k: 'mech:grom_dishes', cat: 'COOKING', n: 'Caldero de Grom: platos', max: 1, items: dishes, secs: ['Platos', 'Platos especiales'] },
-        { k: 'mech:grom_ingredients', cat: 'COOKING', n: 'Caldero de Grom: ingredientes', max: 4, items: ings, secs },
+        { k: 'mech:grom_dishes', cat: 'COOKING', fac: 'wh2_dlc15_grn_broken_axe', n: 'Caldero de Grom: platos', max: 1, items: dishes, secs: ['Platos', 'Platos especiales'] },
+        { k: 'mech:grom_ingredients', cat: 'COOKING', fac: 'wh2_dlc15_grn_broken_axe', n: 'Caldero de Grom: ingredientes', max: 4, items: ings, secs },
       ],
     });
   }
@@ -1035,6 +1035,38 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     if (items.length) mech.push({
       who: (sub, t, scs) => scs.includes('wh_dlc05_sc_wef_wood_elves'),
       sets: [{ k: 'mech:daith_buffs', cat: 'FORGE_BUFF', fac: 'wh2_dlc16_wef_sisters_of_twilight', n: 'Forja de Daith · bendiciones de facción', max: 0, items }],
+    });
+  }
+  // Taller de Ikit (Clan Skryre): mejoras de las armas de los equipos, Ruedas de Muerte, Picadoras y Monstruormentas.
+  // Rituales del script wh2_dlc12_ikit_workshop.lua; el nivel de taller que pide cada uno es su índice en workshop_rite_keys.
+  {
+    const LEVELS: string[][] = [
+      ['gatling_part_1', 'jezail_part_0', 'warpfire_part_2', 'doomwheel_part_0', 'doomwheel_part_2', 'doomwheel_part_6', 'doomwheel_part_9', 'doomflayer_part_1', 'doomflayer_part_5', 'doomflayer_part_6', 'doomflayer_part_9', 'poison_wind_globaldier_0', 'poison_wind_mortar_0', 'warpgrinder_0', 'stormfiend_melee_type_0', 'stormfiend_ranged_type_0'],
+      ['gatling_part_2', 'jezail_part_2', 'warpfire_part_1', 'doomwheel_part_1', 'doomwheel_part_4', 'doomwheel_part_8', 'doomflayer_part_0', 'doomflayer_part_2', 'doomflayer_part_7', 'poison_wind_globaldier_1', 'poison_wind_mortar_1', 'warpgrinder_1', 'stormfiend_ranged_type_1', 'stormfiend_melee_type_1'],
+      ['gatling_part_0', 'jezail_part_1', 'warpfire_part_0', 'doomwheel_part_5', 'doomwheel_part_7', 'doomflayer_part_3', 'doomflayer_part_8', 'poison_wind_globaldier_2', 'poison_wind_mortar_2', 'warpgrinder_2', 'stormfiend_ranged_type_2', 'stormfiend_melee_type_2'],
+      ['doomwheel_part_3', 'doomflayer_part_4'],
+    ];
+    const UNITS: [RegExp, string][] = [
+      [/gatling/, 'Amerratadoras'], [/jezail/, 'Jezzails'], [/warpfire/, 'Lanzallamas de Disformidad'], [/globaldier/, 'Lanzadores de Viento Envenenado'],
+      [/mortar/, 'Morteros de Viento Envenenado'], [/warpgrinder/, 'Tuneladoras de disformidad'], [/stormfiend_melee/, 'Monstruormentas (cuerpo a cuerpo)'],
+      [/stormfiend_ranged/, 'Monstruormentas (a distancia)'], [/doomwheel/, 'Rueda de Muerte'], [/doomflayer/, 'Picadoras de condenación'],
+    ];
+    const rit = by('rituals_tables', 'key');
+    const items: Row[] = [];
+    LEVELS.forEach((list, lvl) => {
+      for (const part of list) {
+        const key = (part.startsWith('stormfiend') ? 'wh3_dlc29_ikit_workshop_' : 'wh2_dlc12_ikit_workshop_') + part;
+        const r = rit.get(key);
+        if (!r) continue;
+        const u = UNITS.findIndex(([re]) => re.test(part));
+        const it = ritualItem(r, { tier: u + 1, req: `Taller nivel ${lvl + 1}` });
+        if (it.e?.length) items.push(it);
+      }
+    });
+    items.sort((a, b) => a.tier - b.tier || String(a.req).localeCompare(String(b.req)));
+    if (items.length) mech.push({
+      who: (sub, t, scs) => scs.includes('wh2_main_sc_skv_skaven'),
+      sets: [{ k: 'mech:ikit_workshop', cat: 'WORKSHOP', fac: 'wh2_main_skv_clan_skryre', n: 'Taller de Ikit', max: 0, items, secs: UNITS.map(([, n]) => n) }],
     });
   }
   // Tamurkhan: jefes vasallos. Datos del script wh3_dlc25_campaign_nur_chieftains.lua (paquetes por nivel de lealtad
@@ -1378,6 +1410,8 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     const up = upgBy.get(s.purchasable_effect);
     if (!up) continue;
     const title = L(`unit_purchasable_effects_onscreen_name_${up.key}`) ?? L(`effect_bundles_localised_title_${up.effect_bundle}`) ?? up.key;
+    // Las ocultas del Laboratorio de Moulder (descuentos, mantenimiento, inestabilidades sin texto) las pone el script, no se eligen
+    if (title === up.key || /_hidden_/.test(up.key)) continue;
     (unitUpgrades[s.unit] ??= []).push(strip({
       k: up.key, cat: up.category, catN: L(`unit_purchasable_effects_categories_onscreen_name_${up.category}`) ?? UPG_CAT_ES[up.category] ?? up.category,
       n: title, x: s.is_exclusive || null, ban: (upgBans.get(up.key) ?? []).map((b) => b.faction) , e: effRows(bundleEff.get(up.effect_bundle) ?? [], 'effect_key'),
