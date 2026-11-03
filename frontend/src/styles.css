@@ -863,3 +863,7 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
   .cp-grid { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); }
   .cp-tile .cp-art { width: 40px; height: 66px; }
 }
+
+/* Efectos de contacto en la tabla de DPS */
+.tag.contact-on { background: #1f2d14; color: #b9e08a; border-color: #4a6a2a; }
+.tag.contact-imm { background: #22222c; color: #c9c9e6; border-color: #4a4a66; }

@@ -142,7 +142,7 @@ const LORD_SCOPE = /^(agent_to_parent_army_general_own|character_to_army_general
 const CHARS_SCOPE = /^faction_to_character_own/;
 const whoOf = (sc: string) => (/heroes_only|_agents/.test(sc) ? 'hero' : /lords_only|armytext/.test(sc) ? 'lord' : /wizard/.test(sc) ? 'wizard' : null);
 
-const ABILITY_STAT_ES: Record<string, string> = {
+export const ABILITY_STAT_ES: Record<string, string> = {
   stat_melee_attack: 'Ataque cuerpo a cuerpo', stat_melee_defence: 'Defensa cuerpo a cuerpo', stat_armour: 'Armadura',
   stat_morale: 'Liderazgo', stat_charge_bonus: 'Bonificación de carga', stat_melee_damage_base: 'Daño base de arma',
   stat_melee_damage_ap: 'Daño perforante de arma', scalar_speed: 'Velocidad', scalar_charge_speed: 'Velocidad de carga',

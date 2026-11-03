@@ -117,7 +117,12 @@ export interface SkillsFile {
   unitLists: string[][];
 }
 
+/** Efecto de contacto: lo que el arma o el proyectil le pone al enemigo que golpea (¡Veneno!, Armadura destrozada...) */
+export interface ContactEffect { n: string; dur: number; stats: { stat: string; how: string; v: number; d: string }[] }
+
 export interface UnitData {
+  /** Efectos de contacto de sus ataques cuerpo a cuerpo y a distancia */
+  contact?: { melee?: ContactEffect; missile?: ContactEffect };
   /** Mejoras de campaña que puede comprar la unidad (aspectos de Dríades y Árboles, mejoras de Ogros, genes...) */
   upgrades?: { key: string; name: string; category: string; categoryName: string; banned?: string[]; texts: string[] }[];
   key: string;

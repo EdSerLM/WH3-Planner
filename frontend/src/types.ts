@@ -175,6 +175,8 @@ export interface ItemInfo {
 }
 
 export interface UnitData {
+  /** Efectos de contacto de sus ataques (¡Veneno!, Armadura destrozada...): lo que le pone al enemigo que golpea */
+  contact?: { melee?: { n: string; dur: number; stats: { d: string }[] }; missile?: { n: string; dur: number; stats: { d: string }[] } };
   /** Mejoras de campaña que puede comprar la unidad (aspectos de Dríades y Árboles, mejoras de Ogros, genes...) */
   upgrades?: { key: string; name: string; category: string; categoryName: string; banned?: string[]; texts: string[] }[];
   key: string;
@@ -389,6 +391,8 @@ export interface DpsRow {
   resistanceUsed: number;
   dps: number;
   timeToKill: number;
+  /** Efectos de contacto: el tuyo, el suyo, cuáles le cayeron y si alguno es inmune */
+  contact?: { mine?: string; theirs?: string; immune?: boolean; meImmune?: boolean; onThem: string[] };
   efficiency: number | null;
   /** Números usados en el cálculo */
   detail?: {

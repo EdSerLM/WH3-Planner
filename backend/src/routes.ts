@@ -2,12 +2,13 @@
  * Rutas de la API sin depender de Express: las usa el servidor (index.ts) y también la web estática del celular
  * (frontend en modo estático: el mismo código corre en el navegador, sin servidor).
  */
+import { ABILITY_STAT_MAP } from './engine.js';
 import { abilities, DEFAULT_FACTION, getCharacter, getGraph, getTechTree, listGraphs, techSummary, listTechTrees, getUnit, listCampaign, listCharacterFactions, listCharacters, listRoster, listSubcultures, listTargets, sources, targetInfo, getTarget, bulletsInfo, groupIcons, unitAbilityInfo } from './data.js';
 import { compute } from './engine.js';
 import { type AttackDir, type AttackMode, applyDebuffs, attackDps, cardAsTarget, DPS_DISCLAIMER, DPS_RANGED_DISCLAIMER, duel, targetsFromCards, unitAsAttacker } from './dps.js';
 import { deleteBuild, getBuild, listBuilds, upsertBuild } from './builds.js';
 import { STAT_LABELS_ES } from './effects.js';
-import type { ComputeRequest, ComputedCard } from './types.js';
+import type { ComputeRequest, ComputedCard, UnitData } from './types.js';
 
 export class HttpError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -96,16 +97,54 @@ function potential(body: Body) {
   return out;
 }
 
+const IMMUNE_CONTACT = 'Inmune a los efectos de contacto';
+type Debuff = ReturnType<typeof compute>['enemyDebuffs'][number];
+/** Efecto de contacto del arma (cuerpo a cuerpo) o del proyectil (a distancia) como debuff de quien recibe el golpe */
+function contactDebuff(u: UnitData | undefined, m: AttackMode, owner: string): Debuff | undefined {
+  const c = u?.contact?.[m === 'ranged' ? 'missile' : 'melee'];
+  if (!c) return undefined;
+  const stats = c.stats.filter((s: { stat: string }) => ABILITY_STAT_MAP[s.stat]).map((s: { stat: string; how: string; v: number }) => ({ stat: ABILITY_STAT_MAP[s.stat], how: s.how, v: s.v }));
+  return stats.length ? { ability: c.n, owner, contact: c.n, stats } : undefined;
+}
+/** Quita los efectos de contacto si el que los recibe es inmune y no repite el mismo efecto (no se acumula) */
+function landed(list: (Debuff | undefined)[], immune: boolean): Debuff[] {
+  const seen = new Set<string>();
+  return list.filter((d): d is Debuff => !!d && !(immune && d.contact)).filter((d) => !d.contact || (!seen.has(d.contact) && !!seen.add(d.contact)));
+}
+/** Tu tarjeta con los debuffs que le ponen (efecto de contacto del enemigo al golpearte) */
+function debuffedCard(c: ComputedCard, ds: Debuff[]): ComputedCard {
+  if (!ds.length) return c;
+  const stats = { ...c.stats };
+  for (const d of ds) for (const s of d.stats) {
+    const cur = stats[s.stat];
+    if (!cur) continue;
+    stats[s.stat] = { ...cur, final: Math.max(0, s.how === 'mult' ? cur.final * s.v : cur.final + s.v) };
+  }
+  return { ...c, stats };
+}
+
 function dpsRows(att: ComputedCard, targets: string[] | undefined, d: AttackDir, debuffs: ReturnType<typeof compute>['enemyDebuffs'], m: AttackMode = 'melee') {
-  return targetsFromCards(targets ?? [])
-    .map((t) => applyDebuffs(t, debuffs))
-    .map((t) => {
-      const mine = attackDps(m, att, t, d);
-      // Al revés: el enemigo (stats base, con tus debufos) contra tu unidad (con sus bufos), del mismo modo
-      const u = getTarget(t.id);
-      const back = u ? duel(mine, attackDps(m, unitAsAttacker(u, debuffs), cardAsTarget(att))) : undefined;
-      return { ...mine, duel: back };
-    });
+  const myUnit = att.kind === 'unit' ? getTarget(att.id) : undefined;
+  const meImmune = !!myUnit?.attrs?.includes(IMMUNE_CONTACT) || att.attributes?.some((a) => a.name === IMMUNE_CONTACT);
+  const mine0 = contactDebuff(myUnit, m, att.name);
+  return targetsFromCards(targets ?? []).map((t0) => {
+    const u = getTarget(t0.id);
+    const immune = !!u?.attrs?.includes(IMMUNE_CONTACT);
+    // Lo que le cae al enemigo: tus hechizos/habilidades y el efecto de contacto de tu arma, salvo que sea inmune
+    const onThem = landed([...debuffs, mine0], immune);
+    const t = applyDebuffs(t0, onThem);
+    const mine = attackDps(m, att, t, d);
+    // Al revés: el enemigo (stats base, con lo que le cae) contra tu unidad; su efecto de contacto te baja a ti en el duelo
+    const theirs = landed([contactDebuff(u, m, u?.name ?? '')], meImmune);
+    const back = u ? duel(theirs.length ? attackDps(m, debuffedCard(att, theirs), t, d) : mine, attackDps(m, unitAsAttacker(u, onThem), cardAsTarget(att))) : undefined;
+    const contact = {
+      mine: mine0?.contact, theirs: u?.contact?.[m === 'ranged' ? 'missile' : 'melee']?.n,
+      immune: immune && onThem.length < [...debuffs, mine0].filter(Boolean).length ? true : undefined,
+      meImmune: meImmune && !!u?.contact?.[m === 'ranged' ? 'missile' : 'melee'] ? true : undefined,
+      onThem: onThem.filter((x) => x.contact).map((x) => x.contact!),
+    };
+    return { ...mine, duel: back, contact };
+  });
 }
 
 const dirOf = (dir: unknown): AttackDir => (dir === 'flank' || dir === 'rear' ? dir : 'front');

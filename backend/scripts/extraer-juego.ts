@@ -16,7 +16,7 @@ import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, 
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decompress as zstdDecompress } from 'fzstd';
-import { SKILL_TABLES, buildAllSkills } from './arboles.js';
+import { SKILL_TABLES, buildAllSkills, ABILITY_STAT_ES } from './arboles.js';
 import { cultureCode, lockedToOtherFaction, type RosterTables } from '../src/rosterRules.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -194,6 +194,8 @@ function unitIcon(caste: string, grp: string, size: string, L: any, w: any, pj: 
   return 'sword';
 }
 
+const strip2 = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null));
+
 /** Stats de todas las unidades de todas las facciones (mismo cálculo que twwstats; verificado con las 176 del Caos). */
 function buildAllUnits(p: Pack, sp: Map<string, string>) {
   const T = loadTables(p, [
@@ -201,6 +203,8 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     'unit_shield_types_tables', 'missile_weapons_tables', 'projectiles_tables', 'mounts_tables',
     'units_custom_battle_permissions_tables', 'unit_attributes_to_groups_junctions_tables', 'factions_tables', 'unit_variants_tables',
     'unit_attributes_tables',
+    // Efectos de contacto de armas y proyectiles (veneno, armadura destrozada...): fase de habilidad con sus stats
+    'special_ability_phases_tables', 'special_ability_phase_stat_effects_tables',
     // Campaña: qué puede reclutar cada facción (grupo militar + exclusivas) y quién la lidera
     'units_to_groupings_military_permissions_tables', 'units_to_exclusive_faction_permissions_tables',
     'frontend_factions_tables', 'frontend_faction_leaders_tables', 'ui_unit_groupings_tables',
@@ -358,6 +362,27 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
   for (const g of T['ui_unit_groupings_tables']) if (!g.parent_group && iconName(g.icon)) groupIcons[g.key] = iconName(g.icon)!;
 
   const units: any[] = [];
+  // Efectos de contacto: lo que el arma o el proyectil le pone al enemigo que golpea
+  const phaseRow = idx('special_ability_phases_tables', 'id');
+  const phaseStats = new Map<string, any[]>();
+  for (const r of T['special_ability_phase_stat_effects_tables']) phaseStats.set(r.phase, [...(phaseStats.get(r.phase) ?? []), r]);
+  const contacts: Record<string, { n: string; dur: number; stats: { stat: string; how: string; v: number; d: string }[] }> = {};
+  const contactOf = (id?: string) => {
+    if (!id) return undefined;
+    if (!contacts[id]) {
+      const ph = phaseRow.get(id) ?? {};
+      const r2 = (x: number) => Math.round(x * 100) / 100;
+      contacts[id] = {
+        n: (sp.get(`special_ability_phases_onscreen_name_${id}`) ?? '').replace(/\[\[[^\]]*\]\]/g, '').split('\n')[0].trim() || String(id).replace(/^wh\d?_(main|dlc\d+)_/, '').replace(/_/g, ' '),
+        dur: ph.duration ?? 0,
+        stats: (phaseStats.get(id) ?? []).map((st) => {
+          const nm = ABILITY_STAT_ES[st.stat] ?? st.stat;
+          return { stat: st.stat, how: st.how, v: st.value, d: st.how === 'mult' ? `×${r2(st.value)} ${nm}` : `${st.value > 0 ? '+' : ''}${r2(st.value)} ${nm}` };
+        }),
+      };
+    }
+    return id;
+  };
   for (const mu of T['main_units_tables']) {
     if (mu.is_naval) continue;
     const L = lu.get(mu.land_unit);
@@ -409,6 +434,8 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     if (bl.length) u.bullets = bl;
     if (w.is_magical) u.magical = true;
     if (w.ignition_amount) u.flaming = true;
+    const cm = contactOf(w.contact_phase || undefined), cp = contactOf(pj?.contact_stat_effect || undefined);
+    if (cm || cp) u.contact = strip2({ melee: cm, missile: cp });
     if (pj) u.missile = { dmg: pj.damage, ap: pj.ap_damage, range: pj.effective_range, reload: pj.base_reload_time, shots: pj.projectile_number, ammo: L.primary_ammo, bvl: pj.bonus_v_large, bvi: pj.bonus_v_infantry };
     units.push(u);
   }
@@ -421,7 +448,7 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
   // Razas jugables en Imperios Inmortales (sin las del prólogo ni las que solo existen para batalla personalizada)
   const ieSubcultures = [...new Set([...ieFactions].map((k) => fac.get(k)?.subculture).filter(Boolean))].sort();
-  return { source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', subcultures: subs, ieSubcultures, units, campaign, bulletDefs, groupIcons, experience: readExperience(p) };
+  return { source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', subcultures: subs, ieSubcultures, units, contacts, campaign, bulletDefs, groupIcons, experience: readExperience(p) };
 }
 
 /**

@@ -723,6 +723,23 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building, ga
           </ul>
         </>
       )}
+      {unit?.contact && (unit.contact.melee || unit.contact.missile) && (
+        <>
+          <div className="ip-sub">Al golpear (efecto de contacto)</div>
+          <ul className="ip-abil">
+            {([['melee', 'Cuerpo a cuerpo'], ['missile', 'A distancia']] as const).map(([k, label]) => {
+              const c = unit.contact?.[k];
+              if (!c) return null;
+              return (
+                <li key={k}>
+                  <div className="ip-abil-head"><b>🧪 {c.n}</b><span className="muted small">{label}{c.dur > 0 ? ` · ${c.dur} s` : ''}</span></div>
+                  <ul><li>{c.stats.map((x) => x.d).join(', ')}</li><li className="muted">No afecta a quien es inmune a los efectos de contacto; el mismo efecto no se acumula.</li></ul>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
       {info.abilities.length > 0 && (
         <>
           <div className="ip-sub">Qué hacen sus habilidades</div>

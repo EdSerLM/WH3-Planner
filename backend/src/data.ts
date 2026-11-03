@@ -8,7 +8,7 @@ import {
   officialCount, officialCharacterName, translateAbilityStat, translateAttribute, translateEffect,
 } from './i18n.js';
 import type {
-  AbilityInfo, CharacterStats, CharacterSummary, ItemInfo, CharacterTree, ExclusiveGroup, ParsedEffect, RawAbility, RawNode, SkillNode, SkillsFile, StatKey, UnitData, UnitsFile,
+  AbilityInfo, CharacterStats, ContactEffect, CharacterSummary, ItemInfo, CharacterTree, ExclusiveGroup, ParsedEffect, RawAbility, RawNode, SkillNode, SkillsFile, StatKey, UnitData, UnitsFile,
 } from './types.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -893,7 +893,9 @@ export function getUnit(card: string): UnitData | undefined {
 interface CampaignRow { key: string; name: string; subculture: string; leaders: string[]; units: string[]; upgrades?: Record<string, number>; buildings?: Record<string, string[]> }
 interface AllUnitsFile {
   source: string; subcultures: { key: string; name: string; flag?: string }[];
-  units: (UnitData & { subcultures: string[]; casteKey?: string; uiGroup?: string; campOnly?: boolean })[];
+  units: (Omit<UnitData, 'contact'> & { subcultures: string[]; casteKey?: string; uiGroup?: string; campOnly?: boolean; contact?: { melee?: string; missile?: string } })[];
+  /** Efectos de contacto de armas y proyectiles (fase de habilidad del juego -> nombre, duración y stats) */
+  contacts?: Record<string, ContactEffect>;
   campaign?: CampaignRow[];
   /** Puntos fuertes/débiles: nombre, ayuda, estado (positive/negative/very_...) y orden */
   bulletDefs?: Record<string, { n: string; t?: string; s: string; o: number }>;
@@ -950,7 +952,17 @@ function asRosterUnit(u: AllUnitsFile['units'][number]): UnitData & { subculture
     group: GROUP_BY_UI[u.uiGroup ?? ''] ?? GROUP_BY_CASTE[u.casteKey ?? ''] ?? 'Infantry',
     tier: u.tier ?? 0, campaignOnly: !!u.campOnly, mounts: u.mounts ?? 0, entity: '', barrier: 0,
     attrs: u.attrs.map(translateAttribute),
+    contact: contactOfUnit(u.contact),
   };
+}
+function contactOfUnit(c?: { melee?: string; missile?: string }): UnitData['contact'] {
+  if (!c) return undefined;
+  const get = (id?: string) => {
+    const x = id ? allUnitsFile?.contacts?.[id] : undefined;
+    return x?.stats.length ? { ...x, stats: x.stats.map((st) => ({ ...st, d: translateAbilityStat(st.d) })) } : undefined;
+  };
+  const melee = get(c.melee), missile = get(c.missile);
+  return melee || missile ? { melee, missile } : undefined;
 }
 const allByKey = new Map((allUnitsFile?.units ?? []).map((u) => [u.key, asRosterUnit(u)]));
 const allByCard = new Map<string, UnitData>();

@@ -528,6 +528,8 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
                           </span>
                         ))}
                         {r.info?.cost ? <span className="muted small"> · {r.info.cost}</span> : null}
+                        {r.contact?.onThem.length ? <span className="tag contact-on" title={`Afectada por: ${r.contact.onThem.join(', ')} (efecto de contacto al golpearla)`}>🧪 {r.contact.onThem.join(', ')}</span> : null}
+                        {r.contact?.immune ? <span className="tag contact-imm" title="Inmune a los efectos de contacto: tu veneno y efectos al golpear no le afectan">🛡 Inmune a contacto</span> : null}
                       </td>
                       <td className="num">{r.hitChance}%</td>
                       <td className="num">{r.dmgPerHit}</td>
@@ -629,6 +631,13 @@ function TargetSheet({ r }: { r: DpsRow }) {
             <span key={a} className="chip" title="Atributo de la unidad">{a}</span>
           ))}
         </div>
+      )}
+      {r.contact && (r.contact.onThem.length > 0 || r.contact.immune || r.contact.theirs) && (
+        <p className="small">
+          {r.contact.onThem.length > 0 && <>🧪 Está afectada por <b>{r.contact.onThem.join(', ')}</b> (efecto de contacto al golpearla: ya contado en su defensa, armadura y daño). </>}
+          {r.contact.immune && <>🛡 Es <b>inmune a los efectos de contacto</b>: no le afecta {r.contact.mine ?? 'tu efecto al golpear'}. </>}
+          {r.contact.theirs && (r.contact.meImmune ? <>Sus ataques aplican {r.contact.theirs}, pero tu unidad es inmune. </> : <>Sus ataques te aplican <b>{r.contact.theirs}</b>: en el duelo baja tu daño. </>)}
+        </p>
       )}
       {d && <CalcLines d={d} hit={r.hitChance} perHit={r.dmgPerHit} res={r.resistanceUsed} dps={r.dps} ttk={r.timeToKill} large={!!i?.large} hpPerModel={i?.hpPerModel} you={false} />}
       {r.duel?.enemy.detail && (

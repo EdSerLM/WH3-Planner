@@ -28,7 +28,7 @@ export const ALL_STATS: StatKey[] = [
 const RES_STATS = new Set<StatKey>(['resPhysical', 'resMissile', 'resMagic', 'resFlame', 'resWard']);
 
 // Stat interno de las habilidades de batalla -> stat de la tarjeta
-const ABILITY_STAT_MAP: Record<string, StatKey> = {
+export const ABILITY_STAT_MAP: Record<string, StatKey> = {
   stat_melee_attack: 'ma',
   stat_melee_defence: 'md',
   stat_armour: 'armour',
@@ -447,7 +447,8 @@ export interface BuildSummary {
 export interface ComputeResult {
   cards: ComputedCard[];
   abilities: AbilityState[];
-  enemyDebuffs: { ability: string; owner: string; stats: { stat: StatKey; how: string; v: number }[] }[];
+  /** contact: nombre del efecto de contacto si el debuff solo llega al golpear (no afecta a quien es inmune a efectos de contacto) */
+  enemyDebuffs: { ability: string; owner: string; contact?: string; stats: { stat: StatKey; how: string; v: number }[] }[];
   builds: { character: string; name: string; pointsUsed: number; pointsAvailable: number; rank: number; minRank: number; warnings: string[]; mount?: string; summary: BuildSummary }[];
   campaign: { owner: string; skill: string; text: string }[];
   magic: { owner: string; skill: string; text: string }[];
@@ -527,7 +528,7 @@ export function compute(req: ComputeRequest): ComputeResult {
         isOn = ability.passive ? (ability.mode === 'self' || inAura) : isActive(ability.key, b);
         // La parte que la misma habilidad pone a los enemigos (p. ej. "Símbolo de depravación") va a sus debuffs, no a tu ejército
         const foeLines = (ability.enemyStats ?? []).filter((s) => ABILITY_STAT_MAP[s.stat]);
-        if (isOn && foeLines.length) enemyDebuffs.push({ ability: ability.name, owner: b.tree.name, stats: foeLines.map((s) => ({ stat: ABILITY_STAT_MAP[s.stat], how: s.how, v: s.v })) });
+        if (isOn && foeLines.length) enemyDebuffs.push({ ability: ability.name, owner: b.tree.name, ...(ability.contact ? { contact: ability.contact.replace(/\s*\(\d+ s\)$/, '') } : {}), stats: foeLines.map((s) => ({ stat: ABILITY_STAT_MAP[s.stat], how: s.how, v: s.v })) });
         if (isOn && hasBattleStats) {
           const scale = scaleOf(ability.key, b);
           const cond = ability.passive ? (ability.mode === 'self' ? 'pasiva' : 'aura') : 'activa';
