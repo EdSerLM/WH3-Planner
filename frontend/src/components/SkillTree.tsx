@@ -332,6 +332,7 @@ function Tooltip({ hover, tree, selection }: { hover: Hover; tree: CharacterTree
                   {a.cooldown ? ` · recarga ${a.cooldown} s` : ''}
                   {a.range ? ` · ${a.range} m` : ''}
                   {a.stats.length ? <div className="muted small">{a.stats.map((s) => s.d).join(', ')}</div> : null}
+                  {a.enemyStats?.length ? <div className="small bad">{a.contact ? `Al golpear aplica ${a.contact} a los enemigos` : 'Enemigos'}: {a.enemyStats.map((s) => s.d).join(', ')}</div> : null}
                 </li>
               );
             })}

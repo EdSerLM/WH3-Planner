@@ -78,6 +78,10 @@ export interface AbilityInfo {
   passive: boolean;
   magicalAttacks?: boolean;
   flamingAttacks?: boolean;
+  /** Efecto de contacto que imbuye en los ataques (p. ej. "¡Veneno! (10 s)") */
+  contact?: string;
+  /** Lo que la habilidad pone a los enemigos (fase de enemigos o efecto de contacto al golpear) */
+  enemyStats?: { stat: string; how: string; v: number; d: string }[];
   stats: { stat: string; how: string; v: number; d: string }[];
   attributes: string[];
 }

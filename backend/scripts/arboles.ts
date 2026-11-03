@@ -273,9 +273,18 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
         const d = st.how === 'mult' ? `×${r2(st.value)} ${nm}` : `${st.value > 0 ? '+' : ''}${r2(st.value)} ${nm}`;
         return { stat: st.stat, how: st.how, v: st.value, d };
       });
+      // Imbuir: los ataques aplican un efecto de contacto a los enemigos que golpean (p. ej. "¡Veneno!" de Bendecido con roña)
+      const ic = p.imbue_contact ? ph.get(p.imbue_contact) : undefined;
+      const imb = ic ? {
+        n: L(`special_ability_phases_onscreen_name_${ic.id}`) ?? String(ic.id).replace(/^wh\d?_(main|dlc\d+)_/, '').replace(/_/g, ' '), dur: ic.duration ?? 0,
+        stats: (phSt.get(ic.id) ?? []).map((st) => {
+          const nm = ABILITY_STAT_ES[st.stat] ?? st.stat;
+          return { stat: st.stat, how: st.how, v: st.value, d: st.how === 'mult' ? `×${r2(st.value)} ${nm}` : `${st.value > 0 ? '+' : ''}${r2(st.value)} ${nm}` };
+        }),
+      } : null;
       return strip({
         dur: p.duration ?? 0, tf: j.target_friends, te: j.target_enemies, ts: j.target_self, type: p.effect_type,
-        mag: p.imbue_magical ? true : null, fire: p.imbue_ignition ? true : null, stats,
+        mag: p.imbue_magical ? true : null, fire: p.imbue_ignition ? true : null, imb, stats,
         attr: (phAt.get(j.phase) ?? []).filter((x) => x.attribute_type !== 'negative').map((x) => attrName(x.attribute)),
       });
     });

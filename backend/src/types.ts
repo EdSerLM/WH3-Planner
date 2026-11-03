@@ -8,6 +8,8 @@ export interface RawAbilityPhase {
   type?: string;
   mag?: boolean; // vuelve mágicos los ataques
   fire?: boolean; // vuelve flamígeros los ataques
+  /** Imbuir: los ataques aplican este efecto de contacto a los enemigos que golpean */
+  imb?: { n: string; dur: number; stats: { stat: string; how: string; v: number; d: string }[] };
   stats: { stat: string; how: 'add' | 'mult' | string; v: number; d: string }[];
   attr: string[];
 }
@@ -391,6 +393,8 @@ export interface AbilityInfo {
   magicalAttacks: boolean;
   flamingAttacks: boolean;
   stats: { stat: string; how: string; v: number; d: string }[];
+  /** Efecto de contacto que imbuye en los ataques (p. ej. "¡Veneno!") */
+  contact?: string;
   /** Efectos que la misma habilidad pone a los enemigos (no se suman a tu ejército) */
   enemyStats?: { stat: string; how: string; v: number; d: string }[];
   attributes: string[];

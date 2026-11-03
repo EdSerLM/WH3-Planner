@@ -518,7 +518,7 @@ export function compute(req: ComputeRequest): ComputeResult {
   for (const b of builds) {
     for (const { ability, skill } of abilitiesOf(b, armyRemoved)) {
       const statLines = ability.stats.filter((s) => ABILITY_STAT_MAP[s.stat]);
-      const hasBattleStats = statLines.length > 0 || ability.magicalAttacks || ability.flamingAttacks || ability.attributes.length > 0;
+      const hasBattleStats = statLines.length > 0 || ability.magicalAttacks || ability.flamingAttacks || ability.attributes.length > 0 || !!ability.enemyStats?.length;
       let isOn = false;
       if (ability.mode === 'enemies') {
         isOn = isActive(ability.key, b);
@@ -538,7 +538,7 @@ export function compute(req: ComputeRequest): ComputeResult {
         key: ability.key, id: `${ability.key}@${b.tree.key}`, ownerKey: b.tree.key, icon: ability.icon,
         name: ability.name, nameEn: ability.nameEn, owner: b.tree.name, skill, mode: ability.mode, passive: ability.passive,
         duration: ability.duration, cooldown: ability.cooldown, range: ability.range, mana: ability.mana, type: ability.type,
-        stats: [...ability.stats.map((s) => s.d), ...(ability.enemyStats ?? []).map((s) => `Enemigos: ${s.d}`)], attributes: ability.attributes, hasBattleStats, active: isOn,
+        stats: [...ability.stats.map((s) => s.d), ...(ability.enemyStats?.length ? [`${ability.contact ? `Al golpear aplica ${ability.contact} a los enemigos` : 'Enemigos'}: ${ability.enemyStats.map((s) => s.d).join(', ')}`] : [])], attributes: ability.attributes, hasBattleStats, active: isOn,
         effects: ability.stats.map((s) => ({ stat: s.stat, how: s.how, v: s.v })),
         spell: ability.spell || undefined, magical: ability.magicalAttacks || undefined, flaming: ability.flamingAttacks || undefined,
         ...abilityMods(ability, effectsOf(b)),
@@ -854,7 +854,7 @@ function summarize(b: ResolvedBuild): BuildSummary {
       ability.duration > 0 ? `${ability.duration} s` : '',
       ability.cooldown ? `recarga ${ability.cooldown} s` : '',
       ability.range ? `${ability.range} m` : '',
-      [...ability.stats.map((s) => s.d), ...(ability.enemyStats ?? []).map((s) => `enemigos ${s.d}`), ...ability.attributes].join(', '),
+      [...ability.stats.map((s) => s.d), ...(ability.enemyStats?.length ? [`${ability.contact ? `al golpear aplica ${ability.contact}` : 'enemigos'}: ${ability.enemyStats.map((s) => s.d).join(', ')}`] : []), ...ability.attributes].join(', '),
     ].filter(Boolean).join(' · ');
     sum.abilities.push({ name: ability.name, source: skill, passive: ability.passive, mode: ability.mode, detail });
   }

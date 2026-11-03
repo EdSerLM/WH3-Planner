@@ -183,7 +183,13 @@ function toAbility(a: RawAbility): AbilityInfo {
     // Cada fase dice a quién afecta: las de enemigos no se aplican a tu ejército (p. ej. "Símbolo de depravación": ellos ×0.5 velocidad, tú ×1.5)
     stats: mine.flatMap((p) => p.stats.map((st) => ({ ...st, d: translateAbilityStat(st.d) }))),
     attributes: mine.flatMap((p) => p.attr.map((x) => translateAttribute(x))).filter(Boolean),
-    enemyStats: foes.length ? foes.flatMap((p) => p.stats.map((st) => ({ ...st, d: translateAbilityStat(st.d) }))) : undefined,
+    enemyStats: (() => {
+      const own = foes.flatMap((p) => p.stats.map((st) => ({ ...st, d: translateAbilityStat(st.d) })));
+      // Efecto de contacto que tus ataques ponen a los enemigos que golpean (imbuir: "¡Veneno!" de Bendecido con roña)
+      const hit = mode === 'enemies' ? [] : a.phases.flatMap((p) => (p.imb ? p.imb.stats.map((st) => ({ ...st, d: translateAbilityStat(st.d) })) : []));
+      return own.length || hit.length ? [...own, ...hit] : undefined;
+    })(),
+    contact: a.phases.map((p) => (p.imb ? `${p.imb.n}${p.imb.dur > 0 ? ` (${p.imb.dur} s)` : ''}` : undefined)).find(Boolean),
     invalidTargets: a.inv?.length ? a.inv : undefined,
   };
 }
