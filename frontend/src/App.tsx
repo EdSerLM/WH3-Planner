@@ -78,10 +78,21 @@ function buffSources(now: ComputeResult, r7: ComputeResult, labels: Record<strin
 // Un ejército guardado en el navegador por facción
 const armyKey = (f: string) => (f === DEFAULT_FACTION ? STORAGE_KEY : `${STORAGE_KEY}:${f}`);
 
+/** Ejércitos guardados con huecos (héroes null por un JSON con arreglo disperso) rompían la página */
+function cleanArmy(a: ArmyState): ArmyState {
+  return {
+    ...a,
+    lord: a.lord && a.lord.character ? a.lord : null,
+    heroes: (a.heroes ?? []).filter((h): h is NonNullable<typeof h> => !!h && !!h.character),
+    units: (a.units ?? []).filter((u) => !!u && !!u.card),
+    activeAbilities: a.activeAbilities ?? [],
+  };
+}
+
 function loadLocal(faction: string): ArmyState {
   try {
     const raw = localStorage.getItem(armyKey(faction));
-    return raw ? { ...EMPTY, ...JSON.parse(raw), faction } : { ...EMPTY, faction };
+    return cleanArmy(raw ? { ...EMPTY, ...JSON.parse(raw), faction } : { ...EMPTY, faction });
   } catch {
     return { ...EMPTY, faction };
   }
@@ -272,7 +283,9 @@ export default function App() {
     const t = await ensureTree(key);
     setArmy((a) => {
       const heroes = [...a.heroes];
-      heroes[i] = emptyBuild(t);
+      // Nunca dejar huecos: si el índice ya no existe (se quitó un héroe o doble clic), se agrega al final
+      if (i < heroes.length) heroes[i] = emptyBuild(t);
+      else heroes.push(emptyBuild(t));
       return { ...a, heroes };
     });
   };
@@ -291,13 +304,14 @@ export default function App() {
     setArmy((a) => {
       if (tab === 'lord') return { ...a, lord: sel };
       if (tab === 'techs') return a;
+      if (tab >= a.heroes.length) return a;
       const heroes = [...a.heroes];
       heroes[tab] = sel;
       return { ...a, heroes };
     });
   };
 
-  const currentSel = tab === 'lord' ? army.lord : tab === 'techs' ? null : army.heroes[tab];
+  const currentSel = tab === 'lord' ? army.lord : tab === 'techs' ? null : army.heroes[tab] ?? null;
   const currentTree = currentSel ? trees[currentSel.character] : undefined;
   const currentInfo = result?.builds.find((b) => b.character === currentSel?.character);
   // Roster que puede tener la facción de campaña elegida (todo si no hay filtro)
@@ -326,7 +340,7 @@ export default function App() {
   };
   const open = (b: SavedBuild) => {
     const f = b.army.faction ?? DEFAULT_FACTION;
-    const next = { ...EMPTY, ...b.army, faction: f };
+    const next = cleanArmy({ ...EMPTY, ...b.army, faction: f });
     if (f !== faction) changeFaction(f, next);
     else setArmy(next);
     setCurrentId(b.id);

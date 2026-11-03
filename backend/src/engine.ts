@@ -486,7 +486,7 @@ export function compute(req: ComputeRequest): ComputeResult {
   const builds: ResolvedBuild[] = [];
   const lordBuild = req.lord ? resolveBuild(req.lord) : null;
   if (lordBuild) builds.push(lordBuild);
-  for (const h of req.heroes ?? []) {
+  for (const h of (req.heroes ?? []).filter((x) => x && x.character)) {
     const b = resolveBuild(h);
     if (b) builds.push(b);
   }
