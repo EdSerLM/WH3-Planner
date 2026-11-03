@@ -453,6 +453,10 @@ export function RosterDuelStrip({ units, matchups, best }: { units: UnitData[]; 
 }
 
 /** Tira de señores, héroes y unidades para elegir una (Tecnologías; unidades que reciben bufos de un personaje) */
+const BADGE_VIEW = 'wh3-planner:badge-strip-view';
+type BadgeGroup = '' | 'type' | 'tier';
+const ROMAN_T = ['', 'I', 'II', 'III', 'IV', 'V'];
+
 export function UnitBadgeStrip({ units, chars = [], badge, tip, dim, selected, onPick }: {
   units: UnitData[];
   /** Personajes: `id` es "lord:<clave>" o "hero:<clave>" */
@@ -466,47 +470,93 @@ export function UnitBadgeStrip({ units, chars = [], badge, tip, dim, selected, o
   selected: string | null;
   onPick: (id: string) => void;
 }) {
-  const list = [...units].sort((a, b) => groupIndex(a.group) - groupIndex(b.group) || (a.tier ?? 0) - (b.tier ?? 0) || a.cost - b.cost);
+  // Agrupar por tipo o por nivel, y ocultar las que no reciben nada (se recuerda en este navegador)
+  const [view, setView] = useState<{ group: BadgeGroup; onlyLit: boolean }>(() => {
+    try { return { group: 'type', onlyLit: false, ...JSON.parse(localStorage.getItem(BADGE_VIEW) ?? '{}') }; } catch { return { group: 'type', onlyLit: false }; }
+  });
+  useEffect(() => { try { localStorage.setItem(BADGE_VIEW, JSON.stringify(view)); } catch { /* sin almacenamiento */ } }, [view]);
+  const list = [...units]
+    .filter((u) => !view.onlyLit || !dim?.(u.card))
+    .sort((a, b) => groupIndex(a.group) - groupIndex(b.group) || (a.tier ?? 0) - (b.tier ?? 0) || a.cost - b.cost);
+  const hiddenCount = units.length - list.length;
   const mark = (id: string) => {
     const b = badge(id);
     return <span className={'ut-duels ut-techs' + (b.full ? ' full' : '')}>{b.text}</span>;
   };
+  const unitTile = (u: UnitData) => (
+    <button
+      key={u.card}
+      className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (selected === u.card ? ' sel' : '') + (dim?.(u.card) ? ' dim' : '')}
+      style={artStyle(u)}
+      title={`${u.name}\n${tip(u.card)}`}
+      onClick={() => onPick(u.card)}
+    >
+      <span className="ut-cost"><Tier t={u.tier} />{u.cost}</span>
+      <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u.catIcon} /><NatureBadges kind={iconOf(u)} cat={u.catIcon} attrs={u.attrs} /></span>
+      <span className="ut-name">{u.name}</span>
+      {mark(u.card)}
+    </button>
+  );
+  const charTiles = chars.map((c) => {
+    const k = c.kind === 'lord' ? 'lord' : 'hero';
+    const cat = c.kind === 'lord' ? 'commander' : 'hero';
+    return (
+      <button
+        key={c.id}
+        className={'utile g-' + k + (c.art ? ' has-art' : '') + (selected === c.id ? ' sel' : '')}
+        style={c.art ? { backgroundImage: `url(/units/${c.art}.png)` } : undefined}
+        title={`${c.name}\n${tip(c.id)}`}
+        onClick={() => onPick(c.id)}
+      >
+        <span className="ut-cost">{c.kind === 'lord' ? 'Señor' : 'Héroe'}</span>
+        <span className="ut-icon"><UnitIcon kind={k} cat={cat} /><NatureBadges kind={k} cat={cat} /></span>
+        <span className="ut-name">{c.name}</span>
+        {mark(c.id)}
+      </button>
+    );
+  });
+  // Secciones: por tipo (orden del juego) o por nivel (de élite a básicas)
+  const sections: { key: string; title: React.ReactNode; units: UnitData[] }[] = [];
+  if (!view.group) sections.push({ key: 'all', title: null, units: list });
+  else {
+    const m = new Map<string, UnitData[]>();
+    const keyOf = (u: UnitData) => (view.group === 'tier' ? String(u.tier ?? 0) : u.group ?? '');
+    for (const u of list) m.set(keyOf(u), [...(m.get(keyOf(u)) ?? []), u]);
+    const order = (k: string) => (view.group === 'tier' ? -Number(k) : groupIndex(k));
+    for (const [k, us] of [...m.entries()].sort((a, b) => order(a[0]) - order(b[0]))) {
+      const lit = us.filter((u) => !dim?.(u.card)).length;
+      sections.push({
+        key: k, units: us,
+        title: (
+          <>
+            {view.group === 'tier' ? <><Tier t={Number(k) || undefined} /> <b>{Number(k) ? `Nivel ${ROMAN_T[Number(k)] ?? k}` : 'Sin nivel'}</b></> : <><GroupIcon g={k} size={16} /> <b>{groupInfo(k).es}</b></>}
+            <span className="muted small"> · {us.length} unidad{us.length === 1 ? '' : 'es'}{dim ? ` · ${lit} con bufos` : ''}</span>
+          </>
+        ),
+      });
+    }
+  }
   return (
-    <div className="army-strip pick-strip">
-      {chars.map((c) => {
-        const k = c.kind === 'lord' ? 'lord' : 'hero';
-        const cat = c.kind === 'lord' ? 'commander' : 'hero';
-        return (
-          <button
-            key={c.id}
-            className={'utile g-' + k + (c.art ? ' has-art' : '') + (selected === c.id ? ' sel' : '')}
-            style={c.art ? { backgroundImage: `url(/units/${c.art}.png)` } : undefined}
-            title={`${c.name}\n${tip(c.id)}`}
-            onClick={() => onPick(c.id)}
-          >
-            <span className="ut-cost">{c.kind === 'lord' ? 'Señor' : 'Héroe'}</span>
-            <span className="ut-icon"><UnitIcon kind={k} cat={cat} /><NatureBadges kind={k} cat={cat} /></span>
-            <span className="ut-name">{c.name}</span>
-            {mark(c.id)}
-          </button>
-        );
-      })}
-      {list.map((u) => {
-        return (
-          <button
-            key={u.card}
-            className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (selected === u.card ? ' sel' : '') + (dim?.(u.card) ? ' dim' : '')}
-            style={artStyle(u)}
-            title={`${u.name}\n${tip(u.card)}`}
-            onClick={() => onPick(u.card)}
-          >
-            <span className="ut-cost"><Tier t={u.tier} />{u.cost}</span>
-            <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u.catIcon} /><NatureBadges kind={iconOf(u)} cat={u.catIcon} attrs={u.attrs} /></span>
-            <span className="ut-name">{u.name}</span>
-            {mark(u.card)}
-          </button>
-        );
-      })}
+    <div className="badge-strip">
+      <div className="badge-strip-tools small">
+        <span className="seg">
+          {([['', 'Sin agrupar'], ['type', 'Por tipo'], ['tier', 'Por nivel']] as [BadgeGroup, string][]).map(([k, l]) => (
+            <button key={k || 'none'} type="button" className={view.group === k ? 'on' : ''} onClick={() => setView((v) => ({ ...v, group: k }))}>{l}</button>
+          ))}
+        </span>
+        {dim && (
+          <label title="Oculta las unidades en gris (las que todavía no reciben nada)">
+            <input type="checkbox" checked={view.onlyLit} onChange={(e) => setView((v) => ({ ...v, onlyLit: e.target.checked }))} /> Solo las que reciben algo{view.onlyLit && hiddenCount ? ` (${hiddenCount} ocultas)` : ''}
+          </label>
+        )}
+      </div>
+      {charTiles.length > 0 && <div className="army-strip pick-strip">{charTiles}</div>}
+      {sections.map((sec) => (
+        <div key={sec.key} className="badge-sec">
+          {sec.title && <div className="badge-sec-head">{sec.title}</div>}
+          <div className="army-strip pick-strip">{sec.units.map(unitTile)}</div>
+        </div>
+      ))}
     </div>
   );
 }
