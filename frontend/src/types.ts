@@ -200,7 +200,7 @@ export interface UnitData {
   hpPerModel?: number; leadership?: number; speed?: number; ma?: number; md?: number; charge?: number;
   armour?: number; dmg?: number; ap?: number; bvl?: number; bvi?: number;
   res?: { physical: number; missile: number; magic: number; flame: number; ward: number };
-  missile?: { dmg: number; ap: number; range: number; reload: number; shots: number; ammo: number };
+  missile?: { dmg: number; ap: number; range: number; reload: number; shots: number; ammo: number; bvl?: number; bvi?: number };
   attrs?: string[];
   desc?: string;
   /** Icono genérico (tipo de arma/montura) */
@@ -312,6 +312,8 @@ export interface ComputedCard {
   magicalAttacks: boolean;
   flamingAttacks: boolean;
   stats: Record<StatKey, StatLine>;
+  /** Arma a distancia de la unidad (bonificación del proyectil contra grandes / infantería) */
+  missile?: { dmg: number; ap: number; shots?: number; bvl?: number; bvi?: number };
   attributes: { name: string; from?: string }[];
   notes: string[];
 }

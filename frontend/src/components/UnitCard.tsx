@@ -84,6 +84,17 @@ export function UnitCard({ card, labels, onSelect, selected, selfAbilities = [],
               </FragmentRow>
             );
           })}
+          {/* Bonificación del proyectil (jabalinas, arpones...): va aparte de la de cuerpo a cuerpo */}
+          {(card.missile?.bvl ?? 0) > 0 && (
+            <tr className="missile-bonus" title="Bonificación del proyectil contra grandes: se suma al daño de cada proyectil contra caballería, carros y monstruos (no la cambian los bufos de cuerpo a cuerpo)">
+              <td><StatImg stat="bvl" emoji="" size={14} /> Proyectil contra grandes</td><td /><td /><td className="num"><b>{card.missile!.bvl}</b></td><td />
+            </tr>
+          )}
+          {(card.missile?.bvi ?? 0) > 0 && (
+            <tr className="missile-bonus" title="Bonificación del proyectil contra infantería: se suma al daño de cada proyectil contra objetivos pequeños">
+              <td><StatImg stat="bvi" emoji="" size={14} /> Proyectil contra infantería</td><td /><td /><td className="num"><b>{card.missile!.bvi}</b></td><td />
+            </tr>
+          )}
         </tbody>
       </table>
       <div className="small">

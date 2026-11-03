@@ -382,11 +382,20 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
           <span className="small">
             {attCard.flamingAttacks && <span className="chip fire">Flamígero</span>}
             {attCard.magicalAttacks && <span className="chip magic">Mágico</span>}
-            {attCard.stats.bvl.final > 0 && (
-              <span className="chip" title="Bonificación contra grandes: se suma al ataque contra caballería, carros y monstruos">vs grandes +{fmtStat(attCard.stats.bvl.final)}</span>
-            )}
-            {attCard.stats.bvi.final > 0 && (
-              <span className="chip" title="Bonificación contra infantería: se suma al ataque contra objetivos pequeños">vs infantería +{fmtStat(attCard.stats.bvi.final)}</span>
+            {mode === 'ranged' ? (
+              <>
+                {(attCard.missile?.bvl ?? 0) > 0 && <span className="chip" title="Bonificación del proyectil contra grandes: se suma al daño de cada proyectil contra caballería, carros y monstruos">🏹 vs grandes +{attCard.missile!.bvl}</span>}
+                {(attCard.missile?.bvi ?? 0) > 0 && <span className="chip" title="Bonificación del proyectil contra infantería: se suma al daño de cada proyectil contra objetivos pequeños">🏹 vs infantería +{attCard.missile!.bvi}</span>}
+              </>
+            ) : (
+              <>
+                {attCard.stats.bvl.final > 0 && (
+                  <span className="chip" title="Bonificación contra grandes: se suma al ataque contra caballería, carros y monstruos">vs grandes +{fmtStat(attCard.stats.bvl.final)}</span>
+                )}
+                {attCard.stats.bvi.final > 0 && (
+                  <span className="chip" title="Bonificación contra infantería: se suma al ataque contra objetivos pequeños">vs infantería +{fmtStat(attCard.stats.bvi.final)}</span>
+                )}
+              </>
             )}
           </span>
         )}

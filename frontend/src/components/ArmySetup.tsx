@@ -1,5 +1,5 @@
 import { fmtStat, statDiff } from '../statFormat';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import { unitRank, type AbilityInfo, type ArmyUnitSelection, type CampaignFaction, type ComputedCard, type StatKey, type UnitData } from '../types';
 import type { RosterBuffs } from '../App';
@@ -756,6 +756,8 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building, ga
               {extraRow('missileDmg', '🏹', 'Daño de proyectil', mis ? stat('missileDmg') : null, mis ? 0 : missile!.dmg + missile!.ap)}
               {extraRow('range', '📏', 'Alcance', mis ? stat('range') : null, mis ? 0 : missile!.range)}
               {extraRow('ammo', '🎯', 'Munición', mis ? stat('ammo') : null, mis ? 0 : missile!.ammo)}
+              {(missile?.bvl ?? 0) > 0 && <Fragment key="mbvl">{extraRow('bvl', '🐘', 'Proyectil contra grandes', null, missile!.bvl!)}</Fragment>}
+              {(missile?.bvi ?? 0) > 0 && <Fragment key="mbvi">{extraRow('bvi', '🧍', 'Proyectil contra infantería', null, missile!.bvi!)}</Fragment>}
             </>
           )}
         </tbody>
