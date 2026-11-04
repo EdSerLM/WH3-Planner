@@ -71,7 +71,8 @@ export function buildDescription(cards: ComputedCard[], units: UnitData[], usedS
   const tiers = unitCards.filter((x) => x.u?.tier).map((x) => [x.u!.tier, x.c.count] as const);
   const tierAvg = tiers.length ? tiers.reduce((s, [t, k]) => s + t * k, 0) / tiers.reduce((s, [, k]) => s + k, 0) : 0;
   const mando: string[] = [];
-  mando.push(lord ? `Lo dirige ${lord.name}${heroes.length ? `, con ${heroes.map((h) => h.name).join(', ')}` : ''}.` : 'Sin señor elegido.');
+  const cn = (c: ComputedCard) => c.name.split(' · ')[0];
+  mando.push(lord ? `Lo dirige ${cn(lord)}${heroes.length ? `, con ${heroes.map(cn).join(', ')}` : ''}.` : 'Sin señor elegido.');
   if (n) mando.push(`${n} unidad${n === 1 ? '' : 'es'} (${usedSlots} de 20 espacios) · coste de unidades ${fmt(cost)} MP · vida total ${fmt(hp)}${tierAvg ? ` · nivel medio ${tierAvg.toFixed(1)}` : ''}.`);
   out.push({ title: 'Mando y tamaño', lines: mando });
   if (!n) return out;
@@ -118,9 +119,31 @@ export function buildDescription(cards: ComputedCard[], units: UnitData[], usedS
 
   // Cuánto aportan tus bufos (señor, héroes y tecnologías) a las unidades
   const buffed = unitCards.filter((x) => Object.values(x.c.stats).some((l) => l.contributions.length > 0));
+  // Las unidades que más ganan con tus bufos y en qué: cuánto sube cada stat respecto a su valor base (en %)
+  const STAT_ES: Partial<Record<string, string>> = {
+    ma: 'ataque c/c', md: 'defensa c/c', armour: 'armadura', charge: 'carga', ld: 'liderazgo', dmg: 'daño base', ap: 'daño perforante',
+    hp: 'vida', speed: 'velocidad', bvl: 'contra grandes', bvi: 'contra infantería', resPhysical: 'resistencia física', resMissile: 'resistencia a proyectiles',
+    resMagic: 'resistencia a hechizos', resFlame: 'resistencia al fuego', resWard: 'salvación especial', missileDmg: 'daño de proyectiles', range: 'alcance', reload: 'recarga', ammo: 'munición',
+  };
+  const RES = /^res/;
+  const gains = buffed.map((x) => {
+    const ups = Object.entries(x.c.stats).flatMap(([k, l]) => {
+      const d = l.final - l.base;
+      if (!STAT_ES[k] || Math.abs(d) < 0.5 || (k === 'reload' ? d > 0 : d < 0)) return [];
+      // Las resistencias y lo que parte de 0 cuentan en puntos; lo demás, en % del valor base
+      const pct = RES.test(k) || l.base <= 0 ? d : (Math.abs(d) / l.base) * 100;
+      return [{ k, d, pct, txt: `${d > 0 ? '+' : ''}${fmt(d)}${RES.test(k) ? '%' : ''} ${STAT_ES[k]}` }];
+    }).sort((a, b) => b.pct - a.pct);
+    return { name: x.c.name.replace(/\s*\([^)]*\)/g, '').split(' · ')[0], score: ups.reduce((s, u) => s + u.pct, 0), ups };
+  }).filter((g) => g.ups.length);
+  const seenB = new Set<string>();
+  const top = gains.sort((a, b) => b.score - a.score).filter((g) => !seenB.has(g.name) && !!seenB.add(g.name)).slice(0, 5);
   out.push({
     title: 'Bufos',
-    lines: [`${buffed.reduce((s, x) => s + x.c.count, 0)} de ${n} unidad${n === 1 ? '' : 'es'} reciben bufos de tu señor, héroes o tecnologías (sin contar habilidades activables encendidas aparte).`],
+    lines: [
+      `${buffed.reduce((s, x) => s + x.c.count, 0)} de ${n} unidad${n === 1 ? '' : 'es'} reciben bufos de tu señor, héroes o tecnologías (sin contar habilidades activables encendidas aparte).`,
+      ...(top.length ? ['Las que más ganan:', ...top.map((g) => `${g.name}: ${g.ups.slice(0, 4).map((u) => u.txt).join(', ')}`)] : []),
+    ],
   });
 
   out.push({
@@ -220,7 +243,7 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
   const traitText = (c: ComputedCard) => {
     const d = (titles[c.id]?.trait?.desc ?? '').replace(/\s+/g, ' ').trim();
     if (!d) return null;
-    const quote = /^["«“]/.test(d);
+    const quote = /^["«“¡¿]/.test(d);
     const body = quote ? d.replace(/^["«“]+/, '').replace(/["»”]+\.?$/, '').trim() : firstSentence(d).replace(/\.$/, '');
     return { quote, body };
   };
@@ -235,18 +258,20 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
     const plural = (t: string) => (many ? t.split(' ').map((w) => (/^(de|del|el|los|la|las|y|en|a|su)$/.test(w) ? w : /[aeiouáéó]$/.test(w) ? `${w}s` : /[lrnz]$/.test(w) ? `${w}es` : w)).join(' ') : t);
     const who = capS(andList(ss.map((x) => x.subj)));
     const lower = tt.body.charAt(0).toLowerCase() + tt.body.slice(1);
+    // Sin doble puntuación: "¿…?" o "¡…!" no llevan punto final
+    const endP = (t: string) => (/[.!?…»]$/.test(t) ? t : `${t}.`);
     if (tt.quote) {
       const lead = tp ? (tp.kind === 'adj' ? `, ${plural(tp.text)},` : `, ${many ? (allFem ? 'conocidas' : 'conocidos') : ss[0].fem ? 'conocida' : 'conocido'} por su ${tp.text},`) : '';
       return `${who}${lead} ${many ? 'suelen' : 'suele'} repetir: «${tt.body}»`;
     }
-    if (tp && tp.kind === 'adj') return `${who} ${many ? 'son' : 'es'} ${plural(tp.text)}: ${lower}.`;
+    if (tp && tp.kind === 'adj') return `${who} ${many ? 'son' : 'es'} ${plural(tp.text)}: ${endP(lower)}`;
     if (tp) {
       const known = many ? (allFem ? 'conocidas' : 'conocidos') : ss[0].fem ? 'conocida' : 'conocido';
       const VERB = /^(es|está|son|podría|puede|sabe|tiene|nunca|siempre|no|ha|hay|lleva|cree|odia|ama|prefiere|disfruta|vive|lucha|parece|suele|jamás|solo|nació|fue|era|se)\b/i;
       const pron = many ? (allFem ? 'ellas' : 'ellos') : ss[0].fem ? 'ella' : 'él';
       return `${who} ${many ? 'son' : 'es'} ${known} por su ${tp.text}: ${VERB.test(tt.body) ? `se dice que ${lower}` : `para ${pron}, ${lower}`}.`;
     }
-    return pick([`Se cuenta ${andList(ss.map((x) => x.de))} que ${lower}.`, `Dicen ${andList(ss.map((x) => x.de))} que ${lower}.`], seed, salt);
+    return pick([`Se cuenta ${andList(ss.map((x) => x.de))} que ${endP(lower)}`, `Dicen ${andList(ss.map((x) => x.de))} que ${endP(lower)}`], seed, salt);
   };
   const chars2 = [lord, ...heroes].filter((c): c is ComputedCard => !!c);
   const paras: string[] = [];
@@ -384,15 +409,6 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
   if (count((x) => has(x, 'Causa miedo') || has(x, 'Causa terror')) && v.fear) strong.push(v.fear);
   if (count((x) => has(x, 'Puede volar')) && v.fly) strong.push(v.fly);
   if (strong.length) out.push(strong.join(' '));
-
-  // 4. Su punto débil, dicho como lo diría la facción
-  const weak: string[] = [];
-  if (!count((x) => x.c.stats.bvl.final > 0)) weak.push('nada en sus filas está hecho para abatir monstruos ni caballería pesada');
-  if (!count((x) => x.c.stats.missileDmg.final > 0 || !!x.u?.missile)) weak.push('no tiene con qué responder a distancia');
-  if (!magicHits) weak.push('sus armas no hieren de verdad a espectros ni a seres etéreos');
-  if (!count((x) => x.c.stats.ap.final > 0 && x.c.stats.ap.final >= x.c.stats.dmg.final)) weak.push('la armadura pesada del enemigo le costará cara');
-  // "Aunque X sabe que…" no cierra la frase: se dice "Pero X sabe que…"
-  if (weak.length) out.push(`${(v.dread ?? 'Pero conviene recordar que').replace(/^Aunque /, 'Pero ')} ${weak.slice(0, 2).join(', y ')}.`);
 
   // 5. Grito de guerra
   out.push(`«${pick(v.cry, seed, 'c')}»`);
