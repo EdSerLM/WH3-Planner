@@ -365,6 +365,22 @@ export default function App() {
   const sideCard = sideSel ? cards.find((c) => c.id === sideSel.character && c.kind === sideKind) : undefined;
   const labels = meta?.statLabels ?? ({} as Meta['statLabels']);
   const legendaryKeys = useMemo(() => characters.filter((c) => c.legendary).map((c) => c.key), [characters]);
+  // Títulos que da la facción a cada personaje (cargo del Consejo o de la corte, Nombres de poder, votos): para la crónica
+  const charTitles = useMemo(() => {
+    const out: Record<string, { court?: { role: string; court: string }[]; names?: string[]; vow?: string }> = {};
+    for (const sel of [army.lord, ...army.heroes]) {
+      if (!sel) continue;
+      const t = trees[sel.character];
+      if (!t) continue;
+      const picked = new Set(sel.items ?? []);
+      const court = (t.initiativeSets ?? []).filter((st) => st.category === 'COURT').flatMap((st) => st.items.filter((i) => picked.has(i.key)).map((i) => ({ role: i.name, court: st.name.replace(/\s*\([^)]*\)\s*$/, '') })));
+      const names = (t.spellSlots ?? []).filter((x) => x.rarity === 'name').flatMap((x) => x.options.filter((o) => picked.has(o.key)).map((o) => (/"([^"]+)"/.exec(o.name)?.[1] ?? o.name)));
+      const vows = (t.initiativeSets ?? []).filter((st) => st.category === 'VOWS').flatMap((st) => st.items.filter((i) => picked.has(i.key)));
+      const vow = vows.sort((a, b) => (b.tier ?? 0) - (a.tier ?? 0))[0]?.name;
+      if (court.length || names.length || vow) out[sel.character] = { court: court.length ? court : undefined, names: names.length ? names : undefined, vow };
+    }
+    return out;
+  }, [army.lord, army.heroes, trees]);
   const heroTabName = (h: BuildSelection) => characters.find((c) => c.key === h.character)?.name ?? 'Héroe';
 
   const campaignGrouped = useMemo(() => {
@@ -609,7 +625,7 @@ export default function App() {
         />
         </ErrorBoundary>
         <ErrorBoundary label="la descripción del ejército" resetKey={faction}>
-          <ArmyDescription cards={cards} units={units} usedSlots={usedSlots} subculture={faction} abilities={result?.abilities} legendary={legendaryKeys} />
+          <ArmyDescription cards={cards} units={units} usedSlots={usedSlots} subculture={faction} abilities={result?.abilities} legendary={legendaryKeys} titles={charTitles} />
         </ErrorBoundary>
         {/* Tarjetas/DPS a la izquierda y activables fijas a la derecha: se encienden sin subir y bajar */}
         <div className="army-results">

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { AbilityState, ComputedCard, UnitData } from '../types';
 import { groupIndex, groupInfo } from '../unitGroups';
-import { pick, voiceOf } from '../armyLore';
+import { openFor, pick, voiceOf } from '../armyLore';
 
 /**
  * Descripción del ejército armado, generada con código a partir de las tarjetas (stats con tus bufos) y de los datos
@@ -17,7 +17,24 @@ interface Props {
   abilities?: AbilityState[];
   /** Claves de los personajes legendarios (los genéricos se nombran con artículo: "un Señor de los Vampiros") */
   legendary?: string[];
+  /** Títulos de cada personaje (clave del personaje): cargo de la corte, Nombres de poder, voto cumplido */
+  titles?: Record<string, CharTitles>;
 }
+export interface CharTitles { court?: { role: string; court: string }[]; names?: string[]; vow?: string }
+
+/** Saber de magia entre paréntesis en el nombre ("Aeda Mágico (Oscura)") dicho en prosa */
+const LORE: Record<string, string> = {
+  Muerte: 'el Saber de la Muerte', Luz: 'el Saber de la Luz', Sombras: 'el Saber de las Sombras', Bestias: 'el Saber de las Bestias',
+  Oscura: 'la Magia Oscura', Fuego: 'el Saber del Fuego', Cielos: 'el Saber de los Cielos', Vida: 'el Saber de la Vida', Metal: 'el Saber del Metal',
+  Alta: 'la Alta Magia', Salvaje: 'la magia salvaje del bosque', Vampiros: 'el Saber de los Vampiros', Profundidades: 'el Saber de las Profundidades',
+  Nehekhara: 'el Saber de Nehekhara', Oscuridad: 'el Saber de la Oscuridad', Plaga: 'el Saber de la Plaga', Ruina: 'el Saber de la Ruina',
+  Nurgle: 'el Saber de Nurgle', Tzeentch: 'el Saber de Tzeentch', Slaanesh: 'el Saber de Slaanesh', 'Caos Absoluto': 'el Caos Absoluto',
+  Hashut: 'el Saber de Hashut', Yang: 'el poder del Yang', Yin: 'el poder del Yin', Brujas: 'el Saber de las Brujas', 'No Muerte': 'el Saber de la No Muerte',
+  Hielo: 'el Saber del Hielo', Tempestad: 'el Saber de la Tempestad', 'Grandes Fauces': 'el Saber de las Grandes Fauces',
+};
+const FEM = /\b(Señora|Reina|Bruja|Doncella|Capitana|Gloriosa|Hechicera|Sacerdotisa|Profetisa|Damisela|Hada|Sirena|Vampiresa|Matriarca|Hermanas|Tejedora|Cantora)\b/;
+/** "del Consejo de los Elfos", "de la Congregación…", "de los Hablantes…" */
+const ofCourt = (c: string) => (/^Cargos de la corte/i.test(c) ? '' : /^(Consejo|Cónclave|Círculo)\b/.test(c) ? ` del ${c}` : /^(Hablantes|Señores)\b/.test(c) ? ` de los ${c}` : ` de la ${c}`);
 
 const SMALL = new Set(['small', 'very_small', '']);
 const fmt = (v: number) => Math.round(v).toLocaleString('es-MX');
@@ -111,7 +128,7 @@ const TROOP_OF: Record<string, 'inf' | 'missile' | 'cav' | 'monster' | 'art'> = 
 const andList = (l: string[]) => (l.length <= 1 ? l.join('') : `${l.slice(0, -1).join(', ')} y ${l[l.length - 1]}`);
 
 /** Crónica con la voz de la facción: lo que narra sale de las mismas tarjetas (nada inventado sobre el ejército) */
-export function buildChronicle(cards: ComputedCard[], units: UnitData[], subculture?: string, abilities: AbilityState[] = [], legendary: string[] = []): string[] {
+export function buildChronicle(cards: ComputedCard[], units: UnitData[], subculture?: string, abilities: AbilityState[] = [], legendary: string[] = [], titles: Record<string, CharTitles> = {}): string[] {
   const byCard = new Map(units.map((u) => [u.card, u]));
   const lord = cards.find((c) => c.kind === 'lord');
   const heroes = cards.filter((c) => c.kind === 'hero');
@@ -128,18 +145,32 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
   // Nombre como en la crónica: sin la traducción tras "·" y con artículo si es genérico ("un Rey Tumulario")
   const who = (c: ComputedCard) => {
     // Sin la montura entre paréntesis: en prosa se dice "montado en Malhandir" (solo legendarios con montura de nombre propio)
-    const n = (c.baseName ?? c.name.replace(/\s*\([^)]*\)\s*$/, '')).split(' · ')[0].trim();
+    const full = (c.baseName ?? c.name.replace(/\s*\([^)]*\)\s*$/, '')).split(' · ')[0].trim();
+    // El saber o la marca entre paréntesis ("Aeda Mágico (Oscura)") se dice en prosa; armas u otras aclaraciones se quitan
+    const tag = /\(([^)]*)\)\s*$/.exec(full)?.[1];
+    const n = full.replace(/\s*\([^)]*\)\s*$/, '').trim();
+    const fem = FEM.test(n);
+    const extra: string[] = [];
+    if (tag && LORE[tag]) extra.push(`${fem ? 'versada' : 'versado'} en ${LORE[tag]}`);
+    const t = titles[c.id];
+    if (t?.names?.length) extra.push(`${fem ? 'conocida' : 'conocido'} como ${andList(t.names.map((x) => `«${x}»`))}`);
+    // Cargo de la corte con su apodo: "Tejedor Oscuro («Cantor Oscuro»)" -> "Tejedor Oscuro de la Corte…, a quien llaman «Cantor Oscuro»"
+    for (const ct of t?.court ?? []) {
+      const m = /^(.*?)\s*\((«[^)]*»)\)\s*$/.exec(ct.role);
+      extra.push(m ? `${m[1]}${ofCourt(ct.court)}, a quien llaman ${m[2]}` : `${ct.role}${ofCourt(ct.court)}`);
+    }
+    if (t?.vow) extra.push(`que ha cumplido el ${t.vow}`);
+    let base: string;
     // Los señores de linaje y de Guarida vienen marcados como legendarios, pero su nombre es un título genérico
     if (legendary.includes(c.id) && !/^Señora? de (los|las) /.test(n)) {
       const m = c.mountNamed && c.mountName ? c.mountName.replace(/\s*\([^)]*\)/g, '').trim() : '';
-      return m ? `${n}, ${pick(['montado en', 'a lomos de'], seed, 'mt')} ${m}` : n;
-    }
-    const fem = /^(Señora|Reina|Bruja|Doncella|Capitana|Gloriosa|Hechicera|Sacerdotisa|Profetisa|Damisela|Hada|Sirena|Vampiresa)\b/.test(n);
-    return `${fem ? 'una' : 'un'} ${n}`;
+      base = m ? `${n}, ${pick(['montado en', 'a lomos de'], seed, 'mt')} ${m}` : n;
+    } else base = `${fem ? 'una' : 'un'} ${n}`;
+    return extra.length ? `${base}, ${andList(extra)}` : base;
   };
   const lead = lord ? `al mando de ${who(lord)}` : 'sin un señor que la guíe';
   const escort = heroes.length ? `, ${heroes.length === 1 ? 'con' : 'escoltado por'} ${andList(heroes.map(who))}` : '';
-  out.push(`${pick(v.open, seed, 'o')} ${host}, ${lead}${escort}.`);
+  out.push(`${openFor(pick(v.open, seed, 'o'), host)} ${host}, ${lead}${escort}.`);
   if (!unitCards.length) return out;
 
   // 2. Cómo se ve la hueste: el núcleo, los flancos, lo que se alza sobre ellos y la retaguardia (sin cifras, como en un relato)
@@ -195,9 +226,9 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
 }
 const GENERIC_T: Record<string, string> = { inf: 'infantería', missile: 'tiradores', cav: 'caballería', monster: 'monstruos', art: 'máquinas de guerra' };
 
-export function ArmyDescription({ cards, units, usedSlots, subculture, abilities, legendary }: Props) {
+export function ArmyDescription({ cards, units, usedSlots, subculture, abilities, legendary, titles }: Props) {
   const parts = useMemo(() => buildDescription(cards, units, usedSlots), [cards, units, usedSlots]);
-  const chronicle = useMemo(() => buildChronicle(cards, units, subculture, abilities, legendary), [cards, units, subculture, abilities, legendary]);
+  const chronicle = useMemo(() => buildChronicle(cards, units, subculture, abilities, legendary, titles), [cards, units, subculture, abilities, legendary, titles]);
   const [copied, setCopied] = useState(false);
   if (!parts.length) return null;
   const data = parts.map((p) => `${p.title}\n${p.lines.map((l) => `- ${l}`).join('\n')}`).join('\n\n');

@@ -171,7 +171,7 @@ const V: Record<string, LoreVoice> = {
   },
   wh3_main_sc_sla_slaanesh: {
     host: ['un séquito del Príncipe Oscuro', 'los devotos de Slaanesh', 'una hueste de deseo y exceso'],
-    open: ['Con perfumes embriagadores y risas crueles danza hacia la batalla', 'Buscando nuevas sensaciones avanza'],
+    open: ['Con perfumes embriagadores y risas crueles, danzando hacia la batalla, llega', 'Buscando nuevas sensaciones avanza'],
     cry: ['¡Por el Príncipe del Placer!', 'Que el dolor y el éxtasis sean uno.'],
     troops: { inf: 'diablillas de garras afiladas', missile: 'los pocos que disparan, pues prefieren el roce', cav: 'demonios corceles veloces', monster: 'guardianes de secretos y bestias seductoras', art: 'carros de Slaanesh' },
     magic: 'La magia de Slaanesh seduce y quiebra la mente.', fear: 'Su belleza aterradora paraliza al enemigo.', dread: 'Pero hasta el más hedonista sabe que',
@@ -185,7 +185,7 @@ const V: Record<string, LoreVoice> = {
   },
   wh3_main_sc_dae_daemons: {
     host: ['la hueste del Príncipe Demonio', 'un ejército de los Cuatro', 'los demonios sin dios'],
-    open: ['Ascendido por los Dioses Oscuros, el Príncipe Demonio guía', 'Con la gloria de los Cuatro sobre sus alas avanza'],
+    open: ['Ascendido por los Dioses Oscuros, el Príncipe Demonio conduce a', 'Con la gloria de los Cuatro sobre sus alas avanza'],
     cry: ['¡Gloria a los Cuatro!', 'El Caos indiviso no tiene rival.'],
     troops: { inf: 'demonios de todos los dioses', missile: 'demonios de fuego', cav: 'jinetes demoníacos', monster: 'demonios mayores', art: 'máquinas infernales' },
     magic: 'La magia del Caos fluye sin freno.', fear: 'Su visión quiebra la mente de los mortales.', dread: 'Pero ni un demonio olvida que',
@@ -213,4 +213,14 @@ export function pick<T>(list: T[], seed: string, salt = ''): T {
   let h = 2166136261;
   for (const ch of seed + salt) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
   return list[Math.abs(h) % list.length];
+}
+
+/** Si la hueste va en plural ("los hijos del bosque"), el verbo final de la apertura también: "surge" -> "surgen" */
+const PLURAL: Record<string, string> = {
+  surge: 'surgen', avanza: 'avanzan', marcha: 'marchan', alza: 'alzan', desembarca: 'desembarcan', cabalga: 'cabalgan', desciende: 'descienden',
+  emerge: 'emergen', irrumpe: 'irrumpen', llega: 'llegan', viene: 'vienen', despierta: 'despiertan', levanta: 'levantan',
+};
+export function openFor(open: string, host: string): string {
+  if (!/^(los|las) /i.test(host)) return open;
+  return open.replace(/(\S+)$/, (w) => PLURAL[w] ?? w);
 }
