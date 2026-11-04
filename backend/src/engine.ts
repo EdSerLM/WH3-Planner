@@ -920,13 +920,18 @@ const TARGET_FLAGS: Record<string, (t: AbilityTarget) => boolean> = {
 };
 
 function targetAllowed(a: AbilityInfo, owner: string, t: AbilityTarget, notes: string[]): boolean {
+  const pending: string[] = [];
   for (const flag of a.invalidTargets ?? []) {
     const rule = TARGET_FLAGS[flag];
     if (rule) {
       if (rule(t)) return false;
       continue;
     }
-    const note = `"${a.name}" (${owner}): el juego limita a quién afecta (${targetFlagText[flag] || flag}); esa regla aún no está en el planner y se aplica igual`;
+    pending.push(targetFlagText[flag] || flag);
+  }
+  // Una sola nota por habilidad, aunque tenga varios límites
+  if (pending.length) {
+    const note = `«${a.name}» (${owner}) se aplica sin su límite del juego: ${pending.join('; ')}`;
     if (!notes.includes(note)) notes.push(note);
   }
   return true;

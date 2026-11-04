@@ -945,3 +945,4 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .mech-eff li.eff-bad { color: #ef7d6e; }
 .mech-eff .eff-arrow { font-size: 10px; line-height: 16px; }
 .mech-eff:has(li.eff-good, li.eff-bad) { list-style: none; padding-left: 0; }
+.seg.ab-scope { margin: 0 0 8px; display: flex; } .seg.ab-scope button { flex: 1; justify-content: center; }

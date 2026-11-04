@@ -582,6 +582,7 @@ export default function App() {
                 )}
               </div>
               <AbilitiesPanel abilities={result?.abilities ?? []} inAura={army.inAura}
+                ownerId={sideCard?.id} ownerName={sideCard?.name} onToggle={toggleAbility}
                 onScale={(id, pct) => setArmy((a) => ({ ...a, abilityScale: { ...(a.abilityScale ?? {}), [id]: pct } }))} />
             </>
           )}
