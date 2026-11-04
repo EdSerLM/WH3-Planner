@@ -195,8 +195,29 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
   // En prosa sin la aclaración entre paréntesis: "Caballeros Negros (lanzas y bardas)" -> "Caballeros Negros"
   const prose = (n: string) => n.replace(/\s*\([^)]*\)/g, '').split(' · ')[0].trim();
   const elite = [...new Set([...unitCards].sort((a, b) => (b.u?.cost ?? 0) - (a.u?.cost ?? 0)).map((x) => prose(x.c.name)))].slice(0, 2);
-  const pride = elite.length ? ` ${pick([`Entre todos destacan, temidos y respetados, ${andList(elite)}.`, `Nadie olvida a ${andList(elite)}, el orgullo de la hueste.`], seed, 'e')}` : '';
+  // Sus mejores tropas: las dos más caras del ejército
+  const pride = elite.length ? ` ${pick([`Sus tropas más temidas son ${andList(elite)}.`, `Lo mejor de sus filas son ${andList(elite)}.`], seed, 'e')}` : '';
   out.push(`${cap(body).replace(/^Y en la/, 'En la').replace(/^Mientras /, 'Desde lo alto, ')}.${pride}`);
+
+  // Qué clase de ejército es: élite u horda (nivel medio de las unidades) y en qué se especializa (su composición)
+  const tiered = unitCards.filter((x) => x.u?.tier);
+  const tierAvg = tiered.length ? tiered.reduce((a, x) => a + x.u!.tier! * x.c.count, 0) / tiered.reduce((a, x) => a + x.c.count, 0) : 0;
+  const share = (t: string) => (groups.get(t) ?? 0) / total;
+  const armoured = count((x) => x.c.stats.armour.final >= 100) / total;
+  const kind = tierAvg >= 3.5
+    ? pick(['Es una fuerza de élite: pocos guerreros, pero cada uno vale por diez.', 'Es una hueste de élite, formada solo por lo mejor que su señor puede reunir.'], seed, 'q')
+    : tierAvg && tierAvg <= 1.6
+      ? pick(['Son tropas de leva, no de élite: confían más en su número que en su calidad.', 'No es una fuerza de élite: lo que le falta en calidad lo compensa con número.'], seed, 'q')
+      : '';
+  let spec = '';
+  if (share('cav') >= 0.4) spec = 'Su fuerza está en la carga: un ejército de choque que rompe líneas y persigue a los que huyen.';
+  else if (share('missile') + share('art') >= 0.45) spec = 'Es un ejército que pelea a distancia: el enemigo debe caer antes de llegar a sus filas.';
+  else if (share('monster') >= 0.4) spec = 'Es una hueste de bestias y monstruos que aplasta todo lo que toca.';
+  else if (armoured >= 0.5) spec = 'Es un muro de acero, difícil de quebrar.';
+  else if (share('art') >= 0.25) spec = 'Confía en su artillería para destrozar al enemigo desde lejos.';
+  else if (share('inf') >= 0.7 && !groups.has('missile')) spec = 'Es una fuerza de línea: aguanta el golpe y no retrocede.';
+  else if (groups.size >= 4) spec = 'Es una fuerza equilibrada, preparada para cualquier enemigo.';
+  if (kind || spec) out.push([kind, spec].filter(Boolean).join(' '));
 
   // 3. Lo que los hace temibles
   const strong: string[] = [];
@@ -209,7 +230,7 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
   if (count((x) => has(x, 'Causa miedo') || has(x, 'Causa terror')) && v.fear) strong.push(v.fear);
   if (count((x) => has(x, 'Puede volar')) && v.fly) strong.push(v.fly);
   const antiLarge = unitCards.filter((x) => x.c.stats.bvl.final > 0).map((x) => x.c.name.replace(/\s*\([^)]*\)/g, '').split(' · ')[0].trim());
-  if (antiLarge.length) strong.push(`${andList([...new Set(antiLarge)].slice(0, 2))} aguardan a los monstruos y a la caballería enemiga.`);
+  if (antiLarge.length) strong.push(`Contra monstruos y caballería pesada cuenta con ${andList([...new Set(antiLarge)].slice(0, 2))}.`);
   if (strong.length) out.push(strong.join(' '));
 
   // 4. Su punto débil, dicho como lo diría la facción
