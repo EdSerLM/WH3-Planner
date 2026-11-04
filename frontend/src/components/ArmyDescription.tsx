@@ -182,23 +182,51 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
     const first = /^(.*?[.!?])(\s|$)/.exec(t)?.[1] ?? t;
     return first;
   };
-  // Rasgo innato de cada personaje, con su texto del juego: "Katarin es «Reina de Hielo»: «¡Kislev es el pueblo…!»"
-  const traitOf = (c: ComputedCard) => {
-    const tr = titles[c.id]?.trait;
-    if (!tr) return '';
+  // Rasgo innato de cada personaje contado en prosa (sin el nombre del rasgo): "Se cuenta del Astromante que…",
+  // "Katarin suele repetir: «…»". Los que comparten rasgo van juntos.
+  const subjOf = (c: ComputedCard) => {
     const full = (c.baseName ?? c.name).split(' · ')[0].replace(/\s*\([^)]*\)\s*$/, '').trim();
     const isLegend = legendary.includes(c.id) && !/^Señora? de (los|las) /.test(full);
-    const subj = isLegend ? full.split(',')[0].replace(/^(Emperador|Rey|Reina|Zarina|Señor|Señora) /, '') : `${FEM.test(full) ? 'La' : 'El'} ${full}`;
-    const name = tr.name.replace(/\s*\([^)]*\)\s*$/, '').trim();
-    const d = (tr.desc ?? '').replace(/\s+/g, ' ').trim().replace(/\.$/, '');
-    if (!d) return `${subj} es «${name}».`;
-    const quote = /^["«“]/.test(d);
-    const text = quote ? `«${d.replace(/^["«“]|["»”]$/g, '').replace(/["»”]\.?$/, '')}»` : (/^(.*?[.!?])(\s|$)/.exec(d)?.[1] ?? d).replace(/\.$/, '');
-    return quote ? `${subj} es «${name}»: ${text}` : `${subj} es «${name}»: ${text.charAt(0).toLowerCase()}${text.slice(1)}.`;
+    if (isLegend) { const n = full.split(',')[0].replace(/^(Emperador|Rey|Reina|Zarina|Señor|Señora) /, ''); return { legend: true, subj: n, de: `de ${n}` }; }
+    const fem = FEM.test(full);
+    return { legend: false, subj: `${fem ? 'la' : 'el'} ${full}`, de: `${fem ? 'de la' : 'del'} ${full}` };
   };
-  const legends = [lord, ...heroes].filter((c): c is ComputedCard => !!c).map((c) => [loreOf(c), traitOf(c)].filter(Boolean).join(' ')).filter(Boolean);
-  // Un párrafo por personaje: se lee mejor que un bloque
-  out.push(...legends);
+  const traitText = (c: ComputedCard) => {
+    const d = (titles[c.id]?.trait?.desc ?? '').replace(/\s+/g, ' ').trim();
+    if (!d) return null;
+    const quote = /^["«“]/.test(d);
+    const body = quote ? d.replace(/^["«“]+/, '').replace(/["»”]+\.?$/, '').trim() : (/^(.*?[.!?])(\s|$)/.exec(d)?.[1] ?? d).replace(/\.$/, '');
+    return { quote, body };
+  };
+  const capS = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+  const traitSentence = (cs: ComputedCard[], tt: { quote: boolean; body: string }, salt: string) => {
+    const ss = cs.map(subjOf);
+    if (tt.quote) return `${capS(andList(ss.map((x) => x.subj)))} ${cs.length > 1 ? 'suelen' : 'suele'} repetir: «${tt.body}»`;
+    const lower = tt.body.charAt(0).toLowerCase() + tt.body.slice(1);
+    // Si el texto ya habla del personaje por su título ("La Caballera Dorada… recorre…"), va tal cual
+    const words = cs.flatMap((c) => (c.baseName ?? c.name).split(/[\s,()·]+/)).filter((w) => w.length > 3);
+    if (words.some((w) => new RegExp(`\\b${w}\\b`, 'i').test(tt.body))) return `${tt.body}.`;
+    // Si empieza con verbo ("podría desafiar…"): "Se cuenta del X que…"; si no ("la violencia es…"): "Para el X, …"
+    const VERB = /^(es|está|son|podría|puede|sabe|tiene|nunca|siempre|no|ha|hay|lleva|cree|odia|ama|prefiere|disfruta|vive|lucha|parece|suele|jamás|rara|apenas|solo|sólo|nació|fue|era|se|lo|la le)\b/i;
+    if (VERB.test(tt.body) || /^\S+(ía|aba|ó)\b/i.test(tt.body)) return pick([`Se cuenta ${andList(ss.map((x) => x.de))} que ${lower}.`, `Dicen ${andList(ss.map((x) => x.de))} que ${lower}.`], seed, salt);
+    return `Para ${andList(ss.map((x) => x.subj))}, ${lower}.`;
+  };
+  const chars2 = [lord, ...heroes].filter((c): c is ComputedCard => !!c);
+  const paras: string[] = [];
+  // Legendarios: su lore del juego y, en la misma línea, su rasgo
+  for (const c of chars2) {
+    const lo = loreOf(c);
+    if (!lo) continue;
+    const tt = traitText(c);
+    paras.push([lo, tt ? traitSentence([c], tt, c.id) : ''].filter(Boolean).join(' '));
+  }
+  // Genéricos (y legendarios sin lore): sus rasgos en un solo párrafo, agrupando los que dicen lo mismo
+  const rest = chars2.filter((c) => !loreOf(c));
+  const byText = new Map<string, { cs: ComputedCard[]; tt: { quote: boolean; body: string } }>();
+  for (const c of rest) { const tt = traitText(c); if (!tt) continue; const g = byText.get(tt.body) ?? { cs: [], tt }; g.cs.push(c); byText.set(tt.body, g); }
+  const restText = [...byText.values()].map((g, i) => traitSentence(g.cs, g.tt, `t${i}`)).join(' ');
+  if (restText) paras.push(restText);
+  out.push(...paras);
   if (!unitCards.length) return out;
 
   // 2. Cómo se ve la hueste: el núcleo, los flancos, lo que se alza sobre ellos y la retaguardia (sin cifras, como en un relato)
@@ -270,7 +298,8 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
   if (!count((x) => x.c.stats.missileDmg.final > 0 || !!x.u?.missile)) weak.push('no tiene con qué responder a distancia');
   if (!magicHits) weak.push('sus armas no hieren de verdad a espectros ni a seres etéreos');
   if (!count((x) => x.c.stats.ap.final > 0 && x.c.stats.ap.final >= x.c.stats.dmg.final)) weak.push('la armadura pesada del enemigo le costará cara');
-  if (weak.length) out.push(`${v.dread ?? 'Pero conviene recordar que'} ${andList(weak.slice(0, 2))}.`);
+  // "Aunque X sabe que…" no cierra la frase: se dice "Pero X sabe que…"
+  if (weak.length) out.push(`${(v.dread ?? 'Pero conviene recordar que').replace(/^Aunque /, 'Pero ')} ${weak.slice(0, 2).join(', y ')}.`);
 
   // 5. Grito de guerra
   out.push(`«${pick(v.cry, seed, 'c')}»`);
