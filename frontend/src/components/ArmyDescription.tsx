@@ -184,7 +184,7 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
   const ROLE: Record<string, (t: string, q: string) => string> = {
     inf: (t, q) => pick([`al frente avanza ${q || 'una muralla de'} ${t}`, `su corazón lo forman ${q || 'apretadas filas de'} ${t}`], seed, 'i'),
     missile: (t, q) => pick([`tras ellos, ${q ? q + ' ' : ''}${t} preparan sus armas`, `desde atrás, ${q ? q + ' ' : ''}${t} esperan su momento`], seed, 'r'),
-    cav: (t, q) => pick([`en los flancos aguardan ${q ? q + ' ' : ''}${t}`, `${q ? q + ' ' : ''}${t} piafan impacientes en las alas`], seed, 'k'),
+    cav: (t, q) => pick([`en los flancos aguardan ${q ? q + ' ' : ''}${t}`, `${q ? q + ' ' : ''}${t} esperan impacientes en las alas, listos para cargar`], seed, 'k'),
     monster: (t, q) => pick([`sobre todos ellos se alzan ${q ? q + ' ' : ''}${t}`, `${q ? q + ' ' : ''}${t} hacen temblar la tierra a su paso`], seed, 'b'),
     art: (t, q) => pick([`y en la retaguardia ${q ? q + ' ' : ''}${t} esperan la orden de fuego`, `mientras ${q ? q + ' ' : ''}${t} apuntan desde lo alto`], seed, 'a'),
   };

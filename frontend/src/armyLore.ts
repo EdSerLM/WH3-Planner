@@ -45,7 +45,7 @@ const V: Record<string, LoreVoice> = {
   wh_main_sc_vmp_vampire_counts: {
     host: ['una legión de No Muertos', 'la hueste de los Condes Vampiro', 'un ejército alzado de las tumbas'],
     open: ['Entre la niebla de Sylvania y el olor a tierra removida se alza', 'Bajo una luna enferma, al llamado de la sangre, despierta'],
-    cry: ['¡Levantaos, siervos, y servid a vuestro amo!', 'La muerte no es el final… es el reclutamiento.'],
+    cry: ['¡Levántense, siervos, y sirvan a su amo!', 'La muerte no es el final… es el reclutamiento.'],
     troops: { inf: 'muertos que no conocen el miedo', missile: 'sombras que acechan', cav: 'jinetes de la noche', monster: 'horrores alados y bestias de cripta', art: 'carros de la muerte' },
     magic: 'Los Vientos de la Muerte obedecen a su señor y alzan a los caídos.', fear: 'Los vivos huyen al verlos llegar.',
     fly: 'Murciélagos y espectros cubren el cielo.', dread: 'Y sin embargo, hasta un inmortal debe recordar que',
@@ -151,21 +151,21 @@ const V: Record<string, LoreVoice> = {
   wh_dlc03_sc_bst_beastmen: {
     host: ['una manada de guerra', 'los hijos del Caos', 'una horda bestial'],
     open: ['Desde lo profundo del bosque, al sonido de los cuernos, irrumpe', 'Destrozando todo lo civilizado a su paso avanza'],
-    cry: ['¡Destruid lo que construyeron!', '¡Gloria a la piedra de manada!'],
+    cry: ['¡Destruyan todo lo que construyeron!', '¡Gloria a la piedra de manada!'],
     troops: { inf: 'gors y ungors', missile: 'ungors hostigadores', cav: 'centigors salvajes', monster: 'minotauros y bestias del Caos', art: 'carros de bestias' },
     magic: 'Los chamanes bestiales invocan la magia salvaje.', fear: 'Su furia aterra a los civilizados.', dread: 'Aunque el más fiero de los bestias sabe que',
   },
   wh3_main_sc_kho_khorne: {
     host: ['una hueste del Dios de la Sangre', 'los elegidos de Khorne', 'una marea de sangre y bronce'],
     open: ['Al tronar de los cuernos de bronce y bajo cielos rojos irrumpe', 'Buscando cráneos para el Trono de Khorne avanza'],
-    cry: ['¡Sangre para el Dios de la Sangre! ¡Cráneos para el Trono de Cráneos!', '¡Matad, mutilad, quemad!'],
+    cry: ['¡Sangre para el Dios de la Sangre! ¡Cráneos para el Trono de Cráneos!', '¡Maten, mutilen, quemen!'],
     troops: { inf: 'desangradores y guerreros sedientos', missile: 'los pocos que disparan, porque Khorne prefiere el hacha', cav: 'jinetes de juggernauts', monster: 'demonios mayores y bestias de bronce', art: 'máquinas de matanza' },
     magic: 'Aunque Khorne desprecia la hechicería, sus heraldos traen la ira de su dios.', armour: 'El bronce de Khorne protege a sus favoritos.', fear: 'Su ferocidad hace temblar a cualquier mortal.', dread: 'Y aunque Khorne no tolera cobardes,',
   },
   wh3_main_sc_nur_nurgle: {
     host: ['una pestilencia en marcha', 'los hijos del Abuelo Nurgle', 'una hueste putrefacta'],
     open: ['Entre moscas, risas y el olor dulzón de la podredumbre avanza', 'Con la bendición del Abuelo Nurgle, lenta pero imparable, marcha'],
-    cry: ['¡Compartid los regalos del Abuelo!', 'Todo se pudre, todo renace.'],
+    cry: ['¡Compartan los regalos del Abuelo!', 'Todo se pudre, todo renace.'],
     troops: { inf: 'portadores de plaga incontables', missile: 'enjambres que escupen pestilencia', cav: 'bestias de Nurgle', monster: 'grandes inmundicias y horrores podridos', art: 'catapultas de plaga' },
     magic: 'Los hechiceros de la plaga reparten las enfermedades del Abuelo.', armour: 'Su carne podrida resiste golpes que matarían a cualquiera.', fear: 'Su visión revuelve el estómago de los vivos.', dread: 'Aun así, el Abuelo sabe que',
   },
