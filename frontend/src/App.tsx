@@ -364,6 +364,7 @@ export default function App() {
   const sideKind = tab === 'lord' || tab === 'techs' ? 'lord' : 'hero';
   const sideCard = sideSel ? cards.find((c) => c.id === sideSel.character && c.kind === sideKind) : undefined;
   const labels = meta?.statLabels ?? ({} as Meta['statLabels']);
+  const legendaryKeys = useMemo(() => characters.filter((c) => c.legendary).map((c) => c.key), [characters]);
   const heroTabName = (h: BuildSelection) => characters.find((c) => c.key === h.character)?.name ?? 'Héroe';
 
   const campaignGrouped = useMemo(() => {
@@ -608,7 +609,7 @@ export default function App() {
         />
         </ErrorBoundary>
         <ErrorBoundary label="la descripción del ejército" resetKey={faction}>
-          <ArmyDescription cards={cards} units={units} usedSlots={usedSlots} />
+          <ArmyDescription cards={cards} units={units} usedSlots={usedSlots} subculture={faction} abilities={result?.abilities} legendary={legendaryKeys} />
         </ErrorBoundary>
         {/* Tarjetas/DPS a la izquierda y activables fijas a la derecha: se encienden sin subir y bajar */}
         <div className="army-results">

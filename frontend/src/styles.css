@@ -946,3 +946,10 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .mech-eff .eff-arrow { font-size: 10px; line-height: 16px; }
 .mech-eff:has(li.eff-good, li.eff-bad) { list-style: none; padding-left: 0; }
 .seg.ab-scope { margin: 0 0 8px; display: flex; } .seg.ab-scope button { flex: 1; justify-content: center; }
+/* Crónica del ejército: texto narrativo con aire de pergamino */
+.ad-chronicle { margin: 10px 0 6px; padding: 12px 14px; border-left: 3px solid #b8913f; background: linear-gradient(90deg, rgba(184,145,63,.10), transparent); border-radius: 4px; }
+.ad-chronicle p { margin: 0 0 8px; font-family: Georgia, 'Times New Roman', serif; font-size: 14.5px; line-height: 1.55; color: #e8dcc0; }
+.ad-chronicle p:first-child::first-letter { font-size: 1.9em; float: left; line-height: 1; margin: 2px 6px 0 0; color: #d4b45a; }
+.ad-chronicle p.ad-cry { font-style: italic; color: #d4b45a; text-align: right; margin-bottom: 0; }
+.army-desc .ad-data { margin-top: 6px; }
+.army-desc .ad-data > summary { font-weight: 400; color: var(--muted); font-size: 13px; }

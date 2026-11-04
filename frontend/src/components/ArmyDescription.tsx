@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import type { ComputedCard, UnitData } from '../types';
+import type { AbilityState, ComputedCard, UnitData } from '../types';
 import { groupIndex, groupInfo } from '../unitGroups';
+import { pick, voiceOf } from '../armyLore';
 
 /**
  * Descripción del ejército armado, generada con código a partir de las tarjetas (stats con tus bufos) y de los datos
@@ -10,6 +11,12 @@ interface Props {
   cards: ComputedCard[];
   units: UnitData[];
   usedSlots: number;
+  /** Subcultura del ejército: elige la voz de la crónica */
+  subculture?: string;
+  /** Habilidades del ejército: para saber si el señor o los héroes lanzan hechizos */
+  abilities?: AbilityState[];
+  /** Claves de los personajes legendarios (los genéricos se nombran con artículo: "un Señor de los Vampiros") */
+  legendary?: string[];
 }
 
 const SMALL = new Set(['small', 'very_small', '']);
@@ -96,11 +103,83 @@ export function buildDescription(cards: ComputedCard[], units: UnitData[], usedS
   return out;
 }
 
-export function ArmyDescription({ cards, units, usedSlots }: Props) {
+
+const TROOP_OF: Record<string, 'inf' | 'missile' | 'cav' | 'monster' | 'art'> = {
+  Infantry: 'inf', 'Missile Infantry': 'missile', 'Cavalry & Chariots': 'cav', 'Missile Cavalry & Chariots': 'cav',
+  'Monsters & Beasts': 'monster', 'Missile Monsters & Beasts': 'monster', 'Artillery & War Machines': 'art',
+};
+const andList = (l: string[]) => (l.length <= 1 ? l.join('') : `${l.slice(0, -1).join(', ')} y ${l[l.length - 1]}`);
+
+/** Crónica con la voz de la facción: lo que narra sale de las mismas tarjetas (nada inventado sobre el ejército) */
+export function buildChronicle(cards: ComputedCard[], units: UnitData[], subculture?: string, abilities: AbilityState[] = [], legendary: string[] = []): string[] {
+  const byCard = new Map(units.map((u) => [u.card, u]));
+  const lord = cards.find((c) => c.kind === 'lord');
+  const heroes = cards.filter((c) => c.kind === 'hero');
+  const unitCards = cards.filter((c) => c.kind === 'unit').map((c) => ({ c, u: byCard.get(c.id) }));
+  if (!lord && !heroes.length && !unitCards.length) return [];
+  const v = voiceOf(subculture);
+  const seed = [lord?.id, ...heroes.map((h) => h.id), ...unitCards.map((x) => x.c.id + x.c.count)].join('|');
+  const has = (x: (typeof unitCards)[number], attr: string) => x.c.attributes.some((a) => a.name === attr);
+  const count = (pred: (x: (typeof unitCards)[number]) => boolean) => unitCards.filter(pred).reduce((s, x) => s + x.c.count, 0);
+  const out: string[] = [];
+
+  // 1. Quién marcha y quién manda
+  const host = pick(v.host, seed, 'h');
+  // Nombre como en la crónica: sin la traducción tras "·" y con artículo si es genérico ("un Rey Tumulario")
+  const who = (c: ComputedCard) => {
+    const n = c.name.split(' · ')[0].trim();
+    // Los señores de linaje y de Guarida vienen marcados como legendarios, pero su nombre es un título genérico
+    if (legendary.includes(c.id) && !/^Señora? de (los|las) /.test(n)) return n;
+    const fem = /^(Señora|Reina|Bruja|Doncella|Capitana|Gloriosa|Hechicera|Sacerdotisa|Profetisa|Damisela|Hada|Sirena|Vampiresa)\b/.test(n);
+    return `${fem ? 'una' : 'un'} ${n}`;
+  };
+  const lead = lord ? `al mando de ${who(lord)}` : 'sin un señor que la guíe';
+  const escort = heroes.length ? `, ${heroes.length === 1 ? 'con' : 'escoltado por'} ${andList(heroes.map(who))}` : '';
+  out.push(`${pick(v.open, seed, 'o')} ${host}, ${lead}${escort}.`);
+  if (!unitCards.length) return out;
+
+  // 2. Sus filas (por tipo, de más a menos) y las tropas más caras
+  const groups = new Map<string, number>();
+  for (const x of unitCards) { const t = TROOP_OF[x.u?.group ?? ''] ?? 'inf'; groups.set(t, (groups.get(t) ?? 0) + x.c.count); }
+  const ranks = [...groups].sort((a, b) => b[1] - a[1]).map(([t, k]) => `${k} ${k === 1 ? 'unidad' : 'unidades'} de ${v.troops[t as keyof typeof v.troops] ?? GENERIC_T[t]}`);
+  const elite = [...unitCards].sort((a, b) => (b.u?.cost ?? 0) - (a.u?.cost ?? 0)).slice(0, 2).map((x) => x.c.name);
+  out.push(`Forman sus filas ${andList(ranks)}. ${elite.length ? `Su orgullo son ${andList([...new Set(elite)])}.` : ''}`.trim());
+
+  // 3. Lo que los hace temibles
+  const strong: string[] = [];
+  // Magia: si el señor o algún héroe lanza hechizos (con coste de maná)
+  const chars = new Set([lord?.id, ...heroes.map((h) => h.id)].filter(Boolean));
+  const casters = abilities.some((a) => chars.has(a.ownerKey) && ((a.mana ?? 0) > 0 || a.spell));
+  const magicHits = casters || lord?.magicalAttacks || heroes.some((h) => h.magicalAttacks) || count((x) => x.c.magicalAttacks) > 0;
+  if (casters && v.magic) strong.push(v.magic);
+  if (count((x) => x.c.stats.armour.final >= 100) >= 2 && v.armour) strong.push(v.armour);
+  if (count((x) => has(x, 'Causa miedo') || has(x, 'Causa terror')) && v.fear) strong.push(v.fear);
+  if (count((x) => has(x, 'Puede volar')) && v.fly) strong.push(v.fly);
+  const antiLarge = unitCards.filter((x) => x.c.stats.bvl.final > 0).map((x) => x.c.name);
+  if (antiLarge.length) strong.push(`${andList([...new Set(antiLarge)].slice(0, 2))} aguardan a los monstruos y a la caballería enemiga.`);
+  if (strong.length) out.push(strong.join(' '));
+
+  // 4. Su punto débil, dicho como lo diría la facción
+  const weak: string[] = [];
+  if (!count((x) => x.c.stats.bvl.final > 0)) weak.push('nada en sus filas está hecho para abatir monstruos ni caballería pesada');
+  if (!count((x) => x.c.stats.missileDmg.final > 0 || !!x.u?.missile)) weak.push('no tiene con qué responder a distancia');
+  if (!magicHits) weak.push('sus armas no hieren de verdad a espectros ni a seres etéreos');
+  if (!count((x) => x.c.stats.ap.final > 0 && x.c.stats.ap.final >= x.c.stats.dmg.final)) weak.push('la armadura pesada del enemigo le costará cara');
+  if (weak.length) out.push(`${v.dread ?? 'Pero conviene recordar que'} ${andList(weak.slice(0, 2))}.`);
+
+  // 5. Grito de guerra
+  out.push(`«${pick(v.cry, seed, 'c')}»`);
+  return out;
+}
+const GENERIC_T: Record<string, string> = { inf: 'infantería', missile: 'tiradores', cav: 'caballería', monster: 'monstruos', art: 'máquinas de guerra' };
+
+export function ArmyDescription({ cards, units, usedSlots, subculture, abilities, legendary }: Props) {
   const parts = useMemo(() => buildDescription(cards, units, usedSlots), [cards, units, usedSlots]);
+  const chronicle = useMemo(() => buildChronicle(cards, units, subculture, abilities, legendary), [cards, units, subculture, abilities, legendary]);
   const [copied, setCopied] = useState(false);
   if (!parts.length) return null;
-  const text = parts.map((p) => `${p.title}\n${p.lines.map((l) => `- ${l}`).join('\n')}`).join('\n\n');
+  const data = parts.map((p) => `${p.title}\n${p.lines.map((l) => `- ${l}`).join('\n')}`).join('\n\n');
+  const text = chronicle.length ? `${chronicle.join('\n\n')}\n\n— Datos del ejército —\n\n${data}` : data;
   const copy = () => {
     navigator.clipboard?.writeText(text).then(() => {
       setCopied(true);
@@ -108,17 +187,25 @@ export function ArmyDescription({ cards, units, usedSlots }: Props) {
     }).catch(() => {});
   };
   return (
-    <details className="army-desc">
-      <summary>📝 Descripción del ejército</summary>
+    <details className="army-desc" open>
+      <summary>📜 Crónica del ejército</summary>
       <button className="ghost small" onClick={copy}>{copied ? 'Copiado ✓' : 'Copiar texto'}</button>
-      {parts.filter((p) => p.lines.length).map((p) => (
-        <div key={p.title} className="ad-part">
-          <b>{p.title}</b>
-          <ul>
-            {p.lines.map((l) => <li key={l}>{l}</li>)}
-          </ul>
+      {chronicle.length > 0 && (
+        <div className="ad-chronicle">
+          {chronicle.map((p, i) => <p key={i} className={p.startsWith('«') ? 'ad-cry' : ''}>{p}</p>)}
         </div>
-      ))}
+      )}
+      <details className="ad-data">
+        <summary>Datos del ejército (números, carencias y lo que no cuenta)</summary>
+        {parts.filter((p) => p.lines.length).map((p) => (
+          <div key={p.title} className="ad-part">
+            <b>{p.title}</b>
+            <ul>
+              {p.lines.map((l) => <li key={l}>{l}</li>)}
+            </ul>
+          </div>
+        ))}
+      </details>
     </details>
   );
 }
