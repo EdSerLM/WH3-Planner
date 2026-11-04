@@ -321,6 +321,8 @@ export interface ComputedCard {
   attributes: { name: string; from?: string }[];
   /** Personajes: nombre sin montura, la montura y si tiene nombre propio (para la crónica) */
   baseName?: string; mountName?: string; mountNamed?: boolean;
+  /** Texto del juego sobre el personaje (descripción corta de su unidad) */
+  lore?: string;
   notes: string[];
 }
 

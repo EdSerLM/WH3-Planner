@@ -643,6 +643,8 @@ export function compute(req: ComputeRequest): ComputeResult {
     cards.push({
       id: b.tree.key, name: b.tree.name + (b.mountNode ? ` (${b.mountNode.name})` : ''), kind: isLord ? 'lord' : 'hero', count: 1,
       baseName: b.tree.name, mountName: b.mountNode?.name, mountNamed: b.mountNode ? isNamedMount(b.mountNode.name) : undefined,
+      // Texto del juego sobre el personaje (descripción corta de su unidad): lore para la crónica
+      lore: b.tree.stats?.unit ? getUnit(b.tree.stats.unit)?.desc : undefined,
       art: artOfUnit((b.mountNode?.levels[0].mountStats ?? b.tree.stats)?.unit) ?? artOfUnit(b.tree.stats?.unit),
       models: 1, size: base.size, interval: base.melee_attack_interval, splash: base.splash_attack_max_attacks,
       missile: base.unit ? getUnit(base.unit)?.missile : undefined,
