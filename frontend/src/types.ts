@@ -319,6 +319,8 @@ export interface ComputedCard {
   /** Arma a distancia de la unidad (bonificación del proyectil contra grandes / infantería) */
   missile?: { dmg: number; ap: number; shots?: number; bvl?: number; bvi?: number };
   attributes: { name: string; from?: string }[];
+  /** Personajes: nombre sin montura, la montura y si tiene nombre propio (para la crónica) */
+  baseName?: string; mountName?: string; mountNamed?: boolean;
   notes: string[];
 }
 

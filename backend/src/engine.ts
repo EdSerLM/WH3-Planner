@@ -1,4 +1,4 @@
-import { abilities, abilityByDisplayName, artOfUnit, getCharacter, getUnit, targetFlagText, techEffects, unitInList, unitUpgradeEffects } from './data.js';
+import { abilities, abilityByDisplayName, artOfUnit, isNamedMount, getCharacter, getUnit, targetFlagText, techEffects, unitInList, unitUpgradeEffects } from './data.js';
 import { translateAttribute } from './i18n.js';
 import { MAX_RANK, autoRank, effectiveLevel, isFreeLevel, pointsAtRank, pointsFor } from './rankRules.js';
 import { unitRank } from './types.js';
@@ -642,6 +642,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     finalize(lines);
     cards.push({
       id: b.tree.key, name: b.tree.name + (b.mountNode ? ` (${b.mountNode.name})` : ''), kind: isLord ? 'lord' : 'hero', count: 1,
+      baseName: b.tree.name, mountName: b.mountNode?.name, mountNamed: b.mountNode ? isNamedMount(b.mountNode.name) : undefined,
       art: artOfUnit((b.mountNode?.levels[0].mountStats ?? b.tree.stats)?.unit) ?? artOfUnit(b.tree.stats?.unit),
       models: 1, size: base.size, interval: base.melee_attack_interval, splash: base.splash_attack_max_attacks,
       missile: base.unit ? getUnit(base.unit)?.missile : undefined,

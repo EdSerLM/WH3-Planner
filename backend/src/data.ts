@@ -1116,3 +1116,24 @@ export function unitAbilityInfo(unitKey: string, names: string[]): { abilities: 
   const attrNames = new Set([...names, ...[...out.values()].flatMap((a) => a.attributes)]);
   return { abilities: [...out.values()], attrs: Object.fromEntries([...attrNames].filter((n) => desc[n]).map((n) => [n, desc[n]])) };
 }
+
+/**
+ * Monturas con nombre propio (Malhandir de Tyrion, Grymloq de Kroq-Gar, Destripahuesos de Thanquol...): solo las tiene
+ * un personaje y su nombre no es un tipo de bestia o carro. Sirve para la crónica: "montado en Malhandir".
+ */
+const GENERIC_MOUNT = /^(corcel|caballo|carro|araña|pebetero|tanque|mast[ií]n|mant[ií]cora|drag[oó]n|grifo|pegaso|engendro|leviat[aá]n|coloso|arca|necroserpiente|f[eé]nix|jabal[ií]|lobo|oso|trono|palanqu[ií]n|disco|juggernaut|bestia|bandada)\b/i;
+let mountOwners: Map<string, number> | null = null;
+export function isNamedMount(name: string): boolean {
+  if (!mountOwners) {
+    mountOwners = new Map();
+    for (const c of gameFile?.characters ?? []) {
+      const seen = new Set<string>();
+      for (const n of c.nodes) {
+        const sk = gameFile?.skills[n.s];
+        if (sk?.lv?.some((l) => (l as { ms?: unknown }).ms || l.e?.some((e) => e.s?.kind === 'mount'))) seen.add(officialSkillName(n.s.split('#')[0]) ?? sk.n);
+      }
+      for (const m of seen) mountOwners.set(m, (mountOwners.get(m) ?? 0) + 1);
+    }
+  }
+  return (mountOwners.get(name) ?? 0) === 1 && !GENERIC_MOUNT.test(name.trim());
+}

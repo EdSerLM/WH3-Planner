@@ -127,9 +127,13 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
   const host = pick(v.host, seed, 'h');
   // Nombre como en la crónica: sin la traducción tras "·" y con artículo si es genérico ("un Rey Tumulario")
   const who = (c: ComputedCard) => {
-    const n = c.name.split(' · ')[0].trim();
+    // Sin la montura entre paréntesis: en prosa se dice "montado en Malhandir" (solo legendarios con montura de nombre propio)
+    const n = (c.baseName ?? c.name.replace(/\s*\([^)]*\)\s*$/, '')).split(' · ')[0].trim();
     // Los señores de linaje y de Guarida vienen marcados como legendarios, pero su nombre es un título genérico
-    if (legendary.includes(c.id) && !/^Señora? de (los|las) /.test(n)) return n;
+    if (legendary.includes(c.id) && !/^Señora? de (los|las) /.test(n)) {
+      const m = c.mountNamed && c.mountName ? c.mountName.replace(/\s*\([^)]*\)/g, '').trim() : '';
+      return m ? `${n}, ${pick(['montado en', 'a lomos de'], seed, 'mt')} ${m}` : n;
+    }
     const fem = /^(Señora|Reina|Bruja|Doncella|Capitana|Gloriosa|Hechicera|Sacerdotisa|Profetisa|Damisela|Hada|Sirena|Vampiresa)\b/.test(n);
     return `${fem ? 'una' : 'un'} ${n}`;
   };

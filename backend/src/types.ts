@@ -494,6 +494,8 @@ export interface ComputedCard {
   flamingAttacks: boolean;
   stats: Record<StatKey, StatLine>;
   attributes: { name: string; from?: string }[];
+  /** Personajes: nombre sin montura, la montura y si tiene nombre propio (para la crónica) */
+  baseName?: string; mountName?: string; mountNamed?: boolean;
   notes: string[];
 }
 
