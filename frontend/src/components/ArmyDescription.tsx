@@ -20,7 +20,7 @@ interface Props {
   /** Títulos de cada personaje (clave del personaje): cargo de la corte, Nombres de poder, voto cumplido */
   titles?: Record<string, CharTitles>;
 }
-export interface CharTitles { court?: { role: string; court: string }[]; names?: string[]; vow?: string }
+export interface CharTitles { court?: { role: string; court: string }[]; names?: string[]; vow?: string; trait?: { name: string; desc?: string } }
 
 /** Saber de magia entre paréntesis en el nombre ("Aeda Mágico (Oscura)") dicho en prosa */
 const LORE: Record<string, string> = {
@@ -182,8 +182,23 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
     const first = /^(.*?[.!?])(\s|$)/.exec(t)?.[1] ?? t;
     return first;
   };
-  const legends = [lord, ...heroes].filter((c): c is ComputedCard => !!c).map(loreOf).filter(Boolean);
-  if (legends.length) out.push(legends.join(' '));
+  // Rasgo innato de cada personaje, con su texto del juego: "Katarin es «Reina de Hielo»: «¡Kislev es el pueblo…!»"
+  const traitOf = (c: ComputedCard) => {
+    const tr = titles[c.id]?.trait;
+    if (!tr) return '';
+    const full = (c.baseName ?? c.name).split(' · ')[0].replace(/\s*\([^)]*\)\s*$/, '').trim();
+    const isLegend = legendary.includes(c.id) && !/^Señora? de (los|las) /.test(full);
+    const subj = isLegend ? full.split(',')[0].replace(/^(Emperador|Rey|Reina|Zarina|Señor|Señora) /, '') : `${FEM.test(full) ? 'La' : 'El'} ${full}`;
+    const name = tr.name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+    const d = (tr.desc ?? '').replace(/\s+/g, ' ').trim().replace(/\.$/, '');
+    if (!d) return `${subj} es «${name}».`;
+    const quote = /^["«“]/.test(d);
+    const text = quote ? `«${d.replace(/^["«“]|["»”]$/g, '').replace(/["»”]\.?$/, '')}»` : (/^(.*?[.!?])(\s|$)/.exec(d)?.[1] ?? d).replace(/\.$/, '');
+    return quote ? `${subj} es «${name}»: ${text}` : `${subj} es «${name}»: ${text.charAt(0).toLowerCase()}${text.slice(1)}.`;
+  };
+  const legends = [lord, ...heroes].filter((c): c is ComputedCard => !!c).map((c) => [loreOf(c), traitOf(c)].filter(Boolean).join(' ')).filter(Boolean);
+  // Un párrafo por personaje: se lee mejor que un bloque
+  out.push(...legends);
   if (!unitCards.length) return out;
 
   // 2. Cómo se ve la hueste: el núcleo, los flancos, lo que se alza sobre ellos y la retaguardia (sin cifras, como en un relato)

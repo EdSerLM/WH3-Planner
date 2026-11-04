@@ -367,7 +367,7 @@ export default function App() {
   const legendaryKeys = useMemo(() => characters.filter((c) => c.legendary).map((c) => c.key), [characters]);
   // Títulos que da la facción a cada personaje (cargo del Consejo o de la corte, Nombres de poder, votos): para la crónica
   const charTitles = useMemo(() => {
-    const out: Record<string, { court?: { role: string; court: string }[]; names?: string[]; vow?: string }> = {};
+    const out: Record<string, { court?: { role: string; court: string }[]; names?: string[]; vow?: string; trait?: { name: string; desc?: string } }> = {};
     for (const sel of [army.lord, ...army.heroes]) {
       if (!sel) continue;
       const t = trees[sel.character];
@@ -377,7 +377,11 @@ export default function App() {
       const names = (t.spellSlots ?? []).filter((x) => x.rarity === 'name').flatMap((x) => x.options.filter((o) => picked.has(o.key)).map((o) => (/"([^"]+)"/.exec(o.name)?.[1] ?? o.name)));
       const vows = (t.initiativeSets ?? []).filter((st) => st.category === 'VOWS').flatMap((st) => st.items.filter((i) => picked.has(i.key)));
       const vow = vows.sort((a, b) => (b.tier ?? 0) - (a.tier ?? 0))[0]?.name;
-      if (court.length || names.length || vow) out[sel.character] = { court: court.length ? court : undefined, names: names.length ? names : undefined, vow };
+      // Rasgo innato elegido (o el que trae por defecto) con su texto del juego
+      const innateKey = sel.innate === undefined ? t.defaultInnate : sel.innate;
+      const inn = innateKey ? t.background.find((b) => b.key === innateKey) : undefined;
+      const trait = inn && inn.name && !/^wh\d?_/.test(inn.name) ? { name: inn.name, desc: inn.description } : undefined;
+      if (court.length || names.length || vow || trait) out[sel.character] = { court: court.length ? court : undefined, names: names.length ? names : undefined, vow, trait };
     }
     return out;
   }, [army.lord, army.heroes, trees]);
