@@ -399,7 +399,8 @@ export default function App() {
         const pool = (female ? nl.f : nl.m).filter((n) => !legendNames.has(n));
         const sur = (female ? nl.sf : nl.sm).filter((n) => !legendNames.has(n) && !/^(los|las) /.test(n));
         let h = 0; for (const ch of sel.character + (army.heroes.indexOf(sel) + 1)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-        if (pool.length) given = `${pool[h % pool.length]}${sur.length ? ` ${sur[(h >>> 8) % sur.length]}` : ''}`;
+        // Apodos con artículo en minúscula, como en el juego ("Richart el Pío", "Felnylsal la espada de…")
+        if (pool.length) given = `${pool[h % pool.length]}${sur.length ? ` ${sur[(h >>> 8) % sur.length].replace(/^(El|La) /, (m) => m.toLowerCase())}` : ''}`;
       }
       out[sel.character] = { court: court.length ? court : undefined, names: names.length ? names : undefined, vow, trait, given, female: summ?.legendary ? summ.female : female };
     }
