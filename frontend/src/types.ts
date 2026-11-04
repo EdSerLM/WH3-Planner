@@ -8,6 +8,10 @@ export type StatKey =
 export interface ParsedEffect {
   key: string;
   text: string;
+  /** Penalización (el juego la pinta en rojo) */
+  bad?: boolean;
+  /** Icono del efecto (public/effects) */
+  icon?: string;
   textEn?: string;
   kind: 'battle' | 'campaign' | 'magic' | 'ability' | 'mount' | 'attribute' | 'other';
   target: 'self' | 'army' | 'lord' | 'chars' | 'none';

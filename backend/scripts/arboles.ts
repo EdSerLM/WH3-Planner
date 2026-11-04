@@ -81,6 +81,8 @@ export const SKILL_TABLES = [
   // Corte de Hielo (Kislev): formación de Doncellas y Brujas de Hielo; Votos de Bretonia
   'character_training_dilemma_choice_traits_tables', 'character_training_dilemma_choices_tables', 'character_training_group_dilemma_junctions_tables',
   'character_training_groups_tables', 'character_training_dilemma_choice_agent_types_tables',
+  // Icono de cada efecto y si un valor positivo es bueno (para marcar bufos y penalizaciones)
+  'effects_tables',
   'bretonnia_vows_tables', 'bretonnia_vows_to_traits_tables', 'agent_subtype_to_vows_tables', 'character_trait_levels_tables',
   // Gloria demoníaca (Legión del Caos de Daniel): umbrales de gloria por dios -> ofrendas, unidades y dones
   'pooled_resource_threshold_operation_sets_tables', 'campaign_operation_set_effect_bundle_elements_tables', 'effect_bundles_tables', 'campaign_operation_effect_bundles_tables',
@@ -510,14 +512,27 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
   const armVar = group('armory_item_variants_tables', 'armory_item');
   const armSetItems = group('armory_item_set_items_tables', 'armory_item_set');
   const armSetEff = group('armory_item_set_to_effects_tables', 'armory_item_set');
+  const effMeta = by('effects_tables', 'effect');
+  /** Bufo o penalización como lo pinta el juego: verde si el valor es "bueno" según la tabla de efectos */
+  const effTone = (key: string, value: number, scope: string): { b?: 1; ic?: string } => {
+    const m = effMeta.get(key);
+    if (!m) return {};
+    const good = m.is_positive_value_good !== false;
+    // Igual que el juego: el color sale solo de is_positive_value_good (los efectos sobre enemigos ya vienen definidos así)
+    const bad = value === 0 ? false : (value > 0) !== good;
+    void scope;
+    const ic = String((bad && m.icon_negative) || m.icon || '').replace(/\.png$/i, '').toLowerCase();
+    return { ...(bad ? { b: 1 as const } : {}), ...(ic && ic !== 'placeholder' ? { ic } : {}) };
+  };
   const effRows = (list: Row[], kKey = 'effect') => {
     const e: Row[] = [];
     for (const r of list) {
       // armory_*_to_effects usan effect_scope; campaign_effect_list_effect_junctions usa scope
       const sc = r.effect_scope ?? r.scope ?? '';
       const text = effectText(r[kKey], r.value, sc);
-      parts(r[kKey], r.value, sc).forEach((p, j) => e.push({ k: r[kKey], d: j === 0 ? text : '', s: p }));
-      if (!parts(r[kKey], r.value, sc).length && text) e.push({ k: r[kKey], d: text, s: { kind: 'other', target: 'none' } });
+      const tone = effTone(r[kKey], Number(r.value ?? 0), sc);
+      parts(r[kKey], r.value, sc).forEach((p, j) => e.push(j === 0 ? { k: r[kKey], d: text, ...tone, s: p } : { k: r[kKey], d: '', s: p }));
+      if (!parts(r[kKey], r.value, sc).length && text) e.push({ k: r[kKey], d: text, ...tone, s: { kind: 'other', target: 'none' } });
     }
     return e;
   };

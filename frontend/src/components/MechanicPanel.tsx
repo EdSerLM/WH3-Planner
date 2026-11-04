@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import type { ArmyUnitSelection, BuildSelection, CharacterTree, InitiativeSet, UnitData } from '../types';
+import type { ArmyUnitSelection, BuildSelection, CharacterTree, InitiativeSet, ParsedEffect, UnitData } from '../types';
+import { OfficialImg, StatImg } from '../gameIcons';
 
 /**
  * Panel común de las mecánicas de campaña (Da Plan, Forja de Daith, Consejo, Corte del Rey Fénix, Danza Eterna,
@@ -183,9 +184,19 @@ export function MechanicPanel({ sets, selection, onChange, army }: Props) {
   const showFilter = sets.some((s) => s.items.length > 6) || unitOptions.rest.length > 0;
   const active = sets.flatMap((s) => s.items.filter((i) => items.includes(i.key)));
 
-  const effList = (it: Item, n = 4) => it.effects.map((e) => e.text).filter(Boolean).slice(0, n);
+  const effList = (it: Item, n = 6) => it.effects.filter((e) => e.text).slice(0, n);
+  /** Línea de efecto como en el juego: icono del efecto (o de la stat) y verde = bufo / rojo = penalización */
+  const effLi = (e: ParsedEffect, j: number) => (
+    <li key={j} className={e.bad ? 'eff-bad' : 'eff-good'} title={e.bad ? 'Penalización' : 'Bufo'}>
+      <span className="eff-ic">
+        <OfficialImg src={e.icon ? `/effects/${e.icon}.png` : undefined} size={16}
+          fallback={e.stat ? <StatImg stat={e.stat} emoji={e.bad ? '▼' : '▲'} size={16} /> : <span className="eff-arrow">{e.bad ? '▼' : '▲'}</span>} />
+      </span>
+      {e.text}
+    </li>
+  );
   const tip = (s: InitiativeSet, it: Item, extra = '') =>
-    [it.name, it.requirement, ...it.effects.map((e) => e.text).filter(Boolean), extra].filter(Boolean).join('\n');
+    [it.name, it.requirement, ...it.effects.filter((e) => e.text).map((e) => `${e.bad ? '▼' : '▲'} ${e.text}`), extra].filter(Boolean).join('\n');
 
   const forBadge = (s: InitiativeSet, it: Item) =>
     unitF && (helps(it, unitF) || asks(s, it, unitF)) ? (
@@ -219,7 +230,7 @@ export function MechanicPanel({ sets, selection, onChange, army }: Props) {
             })}
           </span>
         ) : reqShort ? <span className={'mech-cond' + (hard ? ' warn' : '')}>{hard ? '⚠ ' : ''}{reqShort.length > 140 ? reqShort.slice(0, 140) + '…' : reqShort}</span> : null}
-        <ul className="mech-eff">{effList(it).map((t, j) => <li key={j}>{t}</li>)}</ul>
+        <ul className="mech-eff">{effList(it).map(effLi)}</ul>
         {forBadge(s, it)}
         {p?.error ? <span className="mech-why">⛔ {p.error.split(':')[0]}</span>
           : p?.added.length ? <span className="mech-add">+{p.added.length} unidad{p.added.length === 1 ? '' : 'es'}</span>
@@ -258,7 +269,7 @@ export function MechanicPanel({ sets, selection, onChange, army }: Props) {
                   );
                 })}
               </div>
-              {cur && <ul className="mech-eff">{effList(cur, 6).map((t, j) => <li key={j}>{t}</li>)}</ul>}
+              {cur && <ul className="mech-eff">{effList(cur, 6).map(effLi)}</ul>}
             </div>
           );
         })}

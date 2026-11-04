@@ -33,7 +33,7 @@ const skillsFile: SkillsFile = existsSync(join(DATA_DIR, 'raw', 'wh3_chs_skills.
 
 // Árboles de TODAS las facciones sacados de tu instalación (npm run extraer). Si no existen, se usa el planner (solo Caos).
 interface GameNode { k: string; s: string; t: number; i: number; poc?: number; rnp?: number; pr?: string[]; psr?: string[]; sc?: string; ck?: string; fk?: string; bg?: boolean; auto?: boolean }
-interface GameEffect { k: string; d: string; s: { kind: string; target: string; who?: string; stat?: string; value?: number; pct?: boolean; u?: number; rank?: number; attribute?: string; ability?: string; disable?: string; action?: boolean } }
+interface GameEffect { k: string; d: string; b?: 1; ic?: string; s: { kind: string; target: string; who?: string; stat?: string; value?: number; pct?: boolean; u?: number; rank?: number; attribute?: string; ability?: string; disable?: string; action?: boolean } }
 interface GameSkill { sk: string; n: string; nEn?: string; d?: string; img?: string; bgSkill?: boolean; lv: { e: GameEffect[]; ab?: string[]; ur?: number; ar?: number }[] }
 interface GameCharacter {
   key: string; subtype: string; name: string; nameEn: string; unit: string; type: 'lord' | 'hero'; legendary: boolean;
@@ -333,6 +333,9 @@ function gameEffect(e: GameEffect, first: boolean, keyText: string): ParsedEffec
     action: x.action,
     exact: true,
     scope: x.target === 'army' ? scopeFromText(keyText) : undefined,
+    // Como en la lista de efectos del juego: penalización (rojo) e icono del efecto
+    ...(first && e.b ? { bad: true } : {}),
+    ...(first && e.ic ? { icon: e.ic } : {}),
   }, keyText), e.k, keyText);
 }
 

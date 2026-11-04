@@ -197,7 +197,11 @@ export type EffectTarget = 'self' | 'army' | 'lord' | 'chars' | 'none';
 
 export interface ParsedEffect {
   key: string;
-  text: string; // texto en español (oficial si hay loc, si no glosario)
+  text: string;
+  /** Penalización (el juego la pinta en rojo) */
+  bad?: boolean;
+  /** Icono del efecto (public/effects) */
+  icon?: string; // texto en español (oficial si hay loc, si no glosario)
   textEn?: string; // texto original del juego (inglés)
   kind: EffectKind;
   target: EffectTarget;

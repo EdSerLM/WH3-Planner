@@ -937,3 +937,11 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 @media (max-width: 700px) { .badge-strip .army-strip.pick-strip { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); } }
 
 .reward-tag { display:block; color: var(--gold, #d4b45a); margin: 2px 0 4px; }
+
+/* Efectos de mecánicas como en el juego: icono + verde (bufo) / rojo (penalización) */
+.mech-eff li { display: flex; gap: 4px; align-items: flex-start; }
+.mech-eff li .eff-ic { flex: 0 0 16px; display: inline-flex; justify-content: center; margin-top: 1px; }
+.mech-eff li.eff-good { color: #8fd18a; }
+.mech-eff li.eff-bad { color: #ef7d6e; }
+.mech-eff .eff-arrow { font-size: 10px; line-height: 16px; }
+.mech-eff:has(li.eff-good, li.eff-bad) { list-style: none; padding-left: 0; }

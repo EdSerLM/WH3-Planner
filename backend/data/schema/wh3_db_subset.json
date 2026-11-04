@@ -19656,6 +19656,60 @@
           "I32"
         ]
       ]
+    },
+    "effects_tables": {
+      "3": [
+        [
+          "effect",
+          "StringU8"
+        ],
+        [
+          "icon",
+          "OptionalStringU8"
+        ],
+        [
+          "priority",
+          "I32"
+        ],
+        [
+          "icon_negative",
+          "OptionalStringU8"
+        ],
+        [
+          "category",
+          "StringU8"
+        ],
+        [
+          "is_positive_value_good",
+          "Boolean"
+        ]
+      ],
+      "0": [
+        [
+          "effect",
+          "StringU8"
+        ],
+        [
+          "icon",
+          "OptionalStringU8"
+        ],
+        [
+          "priority",
+          "I32"
+        ],
+        [
+          "icon_negative",
+          "OptionalStringU8"
+        ],
+        [
+          "category",
+          "StringU8"
+        ],
+        [
+          "is_positive_value_good",
+          "Boolean"
+        ]
+      ]
     }
   }
 }

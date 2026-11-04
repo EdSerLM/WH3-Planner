@@ -836,6 +836,10 @@ for (const c of allSkills?.characters ?? []) for (const st of c.initiatives ?? [
 // Iconos de las piezas de mecánicas (rituales, Caldero de Grom, plagas...): cualquier .png de interfaz con ese nombre
 const wantedMechIcons = new Set<string>((allSkills?.characters ?? []).flatMap((c: any) => (c.initiatives ?? []).filter((s: any) => s.cat !== 'DA_PLAN').flatMap((s: any) => (s.items ?? []).map((i: any) => i.img).filter(Boolean))));
 const wantedBundleIcons = new Set<string>((allSkills?.characters ?? []).flatMap((c: any) => (c.initiatives ?? []).flatMap((s: any) => (s.track ?? []).map((t: any) => t.icon).filter(Boolean))));
+// Icono de cada efecto de las mecánicas (como en la lista de efectos del juego): ui/campaign ui/effect_bundles/<icono>
+const effectDir = join(FRONTEND, 'public/effects');
+mkdirSync(effectDir, { recursive: true });
+const wantedEffectIcons = new Set<string>((allSkills?.characters ?? []).flatMap((c: any) => (c.initiatives ?? []).flatMap((s: any) => (s.items ?? []).flatMap((i: any) => (i.e ?? []).map((x: any) => x.ic).filter(Boolean)))));
 const wantedAbilityIcons = new Set<string>(Object.values<any>(allSkills?.abilities ?? {}).map((a) => String(a.img ?? '').toLowerCase()).filter(Boolean));
 const attrKeys = new Set([...attrKeyByName.values()].map((k) => k.toLowerCase()));
 const attrFound = new Set<string>(), attrFromBundle = new Set<string>();
@@ -862,6 +866,7 @@ for (const f of packs) {
       const base = name.slice(name.lastIndexOf('/') + 1, -4);
       if (wantedArmory.has(base)) writeFileSync(join(armoryDir, `${base}.png`), readEntry(p, e));
       if (name.startsWith('ui/campaign ui/effect_bundles/') && wantedBundleIcons.has(base)) writeFileSync(join(bundleDir, `${base}.png`), readEntry(p, e));
+      if (name.startsWith('ui/campaign ui/effect_bundles/') && wantedEffectIcons.has(base)) writeFileSync(join(effectDir, `${base}.png`), readEntry(p, e));
       if (wantedMechIcons.has(base)) writeFileSync(join(mechDir, `${base}.png`), readEntry(p, e));
       // Da Plan (Gorbad): imágenes de las tácticas y de los conjuntos de unidades
       if (name.startsWith('ui/skins/default/dlc26_greenskins_da_plan/')) writeFileSync(join(daPlanDir, `${base}.png`), readEntry(p, e));
@@ -912,6 +917,7 @@ if (allUnitsOut) {
   writeFileSync(join(BACKEND, 'data/raw/wh3_all_units.json'), JSON.stringify(allUnitsOut));
   console.log(`Cartas de respaldo: ${fixed} unidades usan retrato o carta de su unidad base; ${still} siguen sin arte`);
 }
+console.log(`Iconos de efectos: ${readdirSync(effectDir).length} de ${wantedEffectIcons.size}`);
 console.log(`Iconos de dones: ${readdirSync(armoryDir).length} de ${wantedArmory.size} · de ofrendas: ${readdirSync(bundleDir).length}`);
 writeFileSync(join(attrDir, 'index.json'), JSON.stringify(Object.fromEntries([...attrKeyByName].filter(([, k]) => attrFound.has(k.toLowerCase())).map(([n, k]) => [n, k.toLowerCase()]))));
 console.log(`Iconos de habilidades: ${readdirSync(abilityDir).length} · de atributos: ${attrFound.size} · banderas: ${readdirSync(flagDir).length}`);
