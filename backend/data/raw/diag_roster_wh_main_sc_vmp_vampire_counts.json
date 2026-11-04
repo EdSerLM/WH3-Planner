@@ -57,7 +57,7 @@
   },
   {
    "key": "wh3_dlc29_vmp_neferata",
-   "military_group": "wh_main_group_vampire_counts",
+   "military_group": "wh3_dlc29_vmp_neferata",
    "is_quest_faction": false,
    "is_rebel": false
   },
@@ -161,11 +161,31 @@
  "units_to_groupings_military_permissions": [
   {
    "unit": "wh2_dlc09_tmb_inf_tomb_guard_0",
-   "military_group": "wh_main_group_vampire_counts"
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh2_dlc09_tmb_inf_tomb_guard_1",
-   "military_group": "wh_main_group_vampire_counts"
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh2_dlc09_tmb_mon_necrosphinx_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh2_dlc09_tmb_mon_sepulchral_stalkers_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh2_dlc09_tmb_mon_tomb_scorpion_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh2_dlc09_tmb_mon_ushabti_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh2_dlc11_cst_cha_mourngul_haunter",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh2_dlc11_cst_cha_mourngul_haunter",
@@ -173,7 +193,15 @@
   },
   {
    "unit": "wh2_dlc11_cst_mon_mournguls_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh2_dlc11_cst_mon_mournguls_0",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh2_dlc11_cst_mon_mournguls_ror_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh2_dlc11_cst_mon_mournguls_ror_0",
@@ -181,7 +209,15 @@
   },
   {
    "unit": "wh2_dlc11_vmp_cha_heinrich_kemmler_1",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh2_dlc11_vmp_cha_heinrich_kemmler_1",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh2_dlc11_vmp_inf_crossbowmen",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh2_dlc11_vmp_inf_crossbowmen",
@@ -189,7 +225,15 @@
   },
   {
    "unit": "wh2_dlc11_vmp_inf_handgunners",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh2_dlc11_vmp_inf_handgunners",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cav_drakenhof_templars",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh3_dlc29_vmp_cav_drakenhof_templars",
@@ -197,7 +241,15 @@
   },
   {
    "unit": "wh3_dlc29_vmp_cha_bloodline_lahmian_lord_coven_throne",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_bloodline_lahmian_lord_coven_throne",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_dieter_helsnicht_undead_manticore",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh3_dlc29_vmp_cha_dieter_helsnicht_undead_manticore",
@@ -205,7 +257,15 @@
   },
   {
    "unit": "wh3_dlc29_vmp_cha_dieter_helsnicht",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_dieter_helsnicht",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_krell",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh3_dlc29_vmp_cha_krell",
@@ -213,7 +273,15 @@
   },
   {
    "unit": "wh3_dlc29_vmp_cha_lahmian_vampire_barded_nightmare",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_lahmian_vampire_barded_nightmare",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_lahmian_vampire_hellsteed",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh3_dlc29_vmp_cha_lahmian_vampire_hellsteed",
@@ -221,7 +289,15 @@
   },
   {
    "unit": "wh3_dlc29_vmp_cha_lahmian_vampire",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_lahmian_vampire",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_mannfred_von_carstein_dread_abyssal",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh3_dlc29_vmp_cha_mannfred_von_carstein_dread_abyssal",
@@ -229,7 +305,15 @@
   },
   {
    "unit": "wh3_dlc29_vmp_cha_neferata_barded_nightmare",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_neferata_barded_nightmare",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_neferata_coven_throne",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh3_dlc29_vmp_cha_neferata_coven_throne",
@@ -237,7 +321,15 @@
   },
   {
    "unit": "wh3_dlc29_vmp_cha_neferata_dread_abyssal",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_neferata_dread_abyssal",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_neferata_hellsteed",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh3_dlc29_vmp_cha_neferata_hellsteed",
@@ -245,7 +337,15 @@
   },
   {
    "unit": "wh3_dlc29_vmp_cha_neferata_zombie_dragon",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_neferata_zombie_dragon",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_neferata",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh3_dlc29_vmp_cha_neferata",
@@ -253,7 +353,15 @@
   },
   {
    "unit": "wh3_dlc29_vmp_cha_vampire_lord_coven_throne",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_vampire_lord_coven_throne",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_walach_harkon_barded_nightmare",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh3_dlc29_vmp_cha_walach_harkon_barded_nightmare",
@@ -261,7 +369,15 @@
   },
   {
    "unit": "wh3_dlc29_vmp_cha_walach_harkon",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_cha_walach_harkon",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_inf_lahmian_handmaidens_death",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh3_dlc29_vmp_inf_lahmian_handmaidens_death",
@@ -269,7 +385,15 @@
   },
   {
    "unit": "wh3_dlc29_vmp_inf_lahmian_handmaidens_shadow",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_inf_lahmian_handmaidens_shadow",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_inf_spirit_host",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh3_dlc29_vmp_inf_spirit_host",
@@ -277,7 +401,15 @@
   },
   {
    "unit": "wh3_dlc29_vmp_mon_zombie_dragon",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_mon_zombie_dragon",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh3_dlc29_vmp_veh_coven_throne",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh3_dlc29_vmp_veh_coven_throne",
@@ -285,7 +417,15 @@
   },
   {
    "unit": "wh3_main_vmp_blood_knights_sword_shield",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh3_main_vmp_blood_knights_sword_shield",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh3_main_vmp_inf_grave_guard_2",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh3_main_vmp_inf_grave_guard_2",
@@ -293,7 +433,15 @@
   },
   {
    "unit": "wh_dlc02_vmp_cav_blood_knights_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_dlc02_vmp_cav_blood_knights_0",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_dlc04_vmp_cav_chillgheists_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_dlc04_vmp_cav_chillgheists_0",
@@ -301,7 +449,15 @@
   },
   {
    "unit": "wh_dlc04_vmp_cav_vereks_reavers_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_dlc04_vmp_cav_vereks_reavers_0",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_dlc04_vmp_inf_feasters_in_the_dusk_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_dlc04_vmp_inf_feasters_in_the_dusk_0",
@@ -309,7 +465,15 @@
   },
   {
    "unit": "wh_dlc04_vmp_inf_konigstein_stalkers_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_dlc04_vmp_inf_konigstein_stalkers_0",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_dlc04_vmp_inf_sternsmen_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_dlc04_vmp_inf_sternsmen_0",
@@ -317,7 +481,15 @@
   },
   {
    "unit": "wh_dlc04_vmp_inf_tithe_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_dlc04_vmp_inf_tithe_0",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_dlc04_vmp_mon_devils_swartzhafen_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_dlc04_vmp_mon_devils_swartzhafen_0",
@@ -325,7 +497,15 @@
   },
   {
    "unit": "wh_dlc04_vmp_mon_direpack_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_dlc04_vmp_mon_direpack_0",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_dlc04_vmp_veh_claw_of_nagash_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_dlc04_vmp_veh_claw_of_nagash_0",
@@ -333,7 +513,15 @@
   },
   {
    "unit": "wh_dlc04_vmp_veh_corpse_cart_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_dlc04_vmp_veh_corpse_cart_0",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_dlc04_vmp_veh_corpse_cart_1",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_dlc04_vmp_veh_corpse_cart_1",
@@ -341,7 +529,15 @@
   },
   {
    "unit": "wh_dlc04_vmp_veh_corpse_cart_2",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_dlc04_vmp_veh_corpse_cart_2",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_dlc04_vmp_veh_mortis_engine_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_dlc04_vmp_veh_mortis_engine_0",
@@ -349,7 +545,15 @@
   },
   {
    "unit": "wh_dlc05_vmp_cha_vampire_shadows_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_dlc05_vmp_cha_vampire_shadows_0",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_dlc05_vmp_cha_vampire_shadows_1",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_dlc05_vmp_cha_vampire_shadows_1",
@@ -357,7 +561,15 @@
   },
   {
    "unit": "wh_dlc05_vmp_cha_vampire_shadows_2",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_dlc05_vmp_cha_vampire_shadows_2",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_cav_black_knights_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_cav_black_knights_0",
@@ -365,7 +577,15 @@
   },
   {
    "unit": "wh_main_vmp_cav_black_knights_3",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_cav_black_knights_3",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_cav_hexwraiths",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_cav_hexwraiths",
@@ -373,7 +593,15 @@
   },
   {
    "unit": "wh_main_vmp_cha_banshee",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_cha_banshee",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_cha_heinrich_kemmler",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_cha_heinrich_kemmler",
@@ -381,7 +609,15 @@
   },
   {
    "unit": "wh_main_vmp_cha_mannfred_von_carstein_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_cha_mannfred_von_carstein_0",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_cha_mannfred_von_carstein_2",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_cha_mannfred_von_carstein_2",
@@ -389,7 +625,15 @@
   },
   {
    "unit": "wh_main_vmp_cha_mannfred_von_carstein_3",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_cha_mannfred_von_carstein_3",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_cha_mannfred_von_carstein_4",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_cha_mannfred_von_carstein_4",
@@ -397,7 +641,15 @@
   },
   {
    "unit": "wh_main_vmp_cha_master_necromancer_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_cha_master_necromancer_0",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_cha_master_necromancer_4",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_cha_master_necromancer_4",
@@ -405,7 +657,15 @@
   },
   {
    "unit": "wh_main_vmp_cha_master_necromancer_5",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_cha_master_necromancer_5",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_cha_necromancer_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_cha_necromancer_0",
@@ -413,7 +673,15 @@
   },
   {
    "unit": "wh_main_vmp_cha_necromancer_5",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_cha_necromancer_5",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_cha_vampire_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_cha_vampire_0",
@@ -421,7 +689,15 @@
   },
   {
    "unit": "wh_main_vmp_cha_vampire_1",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_cha_vampire_1",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_cha_vampire_2",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_cha_vampire_2",
@@ -429,7 +705,15 @@
   },
   {
    "unit": "wh_main_vmp_cha_vampire_lord_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_cha_vampire_lord_0",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_cha_vampire_lord_2",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_cha_vampire_lord_2",
@@ -437,7 +721,15 @@
   },
   {
    "unit": "wh_main_vmp_cha_vampire_lord_3",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_cha_vampire_lord_3",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_cha_vampire_lord_5",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_cha_vampire_lord_5",
@@ -445,7 +737,15 @@
   },
   {
    "unit": "wh_main_vmp_cha_wight_king_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_cha_wight_king_0",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_cha_wight_king_1",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_cha_wight_king_1",
@@ -453,7 +753,15 @@
   },
   {
    "unit": "wh_main_vmp_cha_wight_king_2",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_cha_wight_king_2",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_inf_cairn_wraiths",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_inf_cairn_wraiths",
@@ -461,7 +769,15 @@
   },
   {
    "unit": "wh_main_vmp_inf_crypt_ghouls",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_inf_crypt_ghouls",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_inf_grave_guard_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_inf_grave_guard_0",
@@ -469,7 +785,15 @@
   },
   {
    "unit": "wh_main_vmp_inf_grave_guard_1",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_inf_grave_guard_1",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_inf_skeleton_warriors_0",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_inf_skeleton_warriors_0",
@@ -477,7 +801,15 @@
   },
   {
    "unit": "wh_main_vmp_inf_skeleton_warriors_1",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_inf_skeleton_warriors_1",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_inf_zombie",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_inf_zombie",
@@ -485,7 +817,15 @@
   },
   {
    "unit": "wh_main_vmp_mon_crypt_horrors",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_mon_crypt_horrors",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_mon_dire_wolves",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_mon_dire_wolves",
@@ -493,7 +833,15 @@
   },
   {
    "unit": "wh_main_vmp_mon_fell_bats",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_mon_fell_bats",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_mon_terrorgheist",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_mon_terrorgheist",
@@ -501,11 +849,23 @@
   },
   {
    "unit": "wh_main_vmp_mon_vargheists",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_mon_vargheists",
    "military_group": "wh_main_group_vampire_counts"
   },
   {
    "unit": "wh_main_vmp_mon_varghulf",
+   "military_group": "wh3_dlc29_vmp_neferata"
+  },
+  {
+   "unit": "wh_main_vmp_mon_varghulf",
    "military_group": "wh_main_group_vampire_counts"
+  },
+  {
+   "unit": "wh_main_vmp_veh_black_coach",
+   "military_group": "wh3_dlc29_vmp_neferata"
   },
   {
    "unit": "wh_main_vmp_veh_black_coach",
@@ -556,6 +916,110 @@
    "faction": "wh3_dlc29_nag_host_of_nagash",
    "general_unit": false,
    "unit": "wh2_dlc09_tmb_inf_tomb_guard_1",
+   "siege_unit_attacker": true,
+   "siege_unit_defender": true,
+   "general_portrait": null,
+   "general_uniform": null,
+   "set_piece_character": null,
+   "campaign_exclusive": false,
+   "armory_item_set": null,
+   "supports_upgrades": false
+  },
+  {
+   "faction": "wh2_dlc09_tmb_tomb_kings",
+   "general_unit": false,
+   "unit": "wh2_dlc09_tmb_mon_necrosphinx_0",
+   "siege_unit_attacker": true,
+   "siege_unit_defender": true,
+   "general_portrait": null,
+   "general_uniform": null,
+   "set_piece_character": null,
+   "campaign_exclusive": false,
+   "armory_item_set": null,
+   "supports_upgrades": false
+  },
+  {
+   "faction": "wh3_dlc29_nag_host_of_nagash",
+   "general_unit": false,
+   "unit": "wh2_dlc09_tmb_mon_necrosphinx_0",
+   "siege_unit_attacker": true,
+   "siege_unit_defender": true,
+   "general_portrait": null,
+   "general_uniform": null,
+   "set_piece_character": null,
+   "campaign_exclusive": false,
+   "armory_item_set": null,
+   "supports_upgrades": false
+  },
+  {
+   "faction": "wh2_dlc09_tmb_tomb_kings",
+   "general_unit": false,
+   "unit": "wh2_dlc09_tmb_mon_sepulchral_stalkers_0",
+   "siege_unit_attacker": true,
+   "siege_unit_defender": true,
+   "general_portrait": null,
+   "general_uniform": null,
+   "set_piece_character": null,
+   "campaign_exclusive": false,
+   "armory_item_set": null,
+   "supports_upgrades": false
+  },
+  {
+   "faction": "wh3_dlc29_nag_host_of_nagash",
+   "general_unit": false,
+   "unit": "wh2_dlc09_tmb_mon_sepulchral_stalkers_0",
+   "siege_unit_attacker": true,
+   "siege_unit_defender": true,
+   "general_portrait": null,
+   "general_uniform": null,
+   "set_piece_character": null,
+   "campaign_exclusive": false,
+   "armory_item_set": null,
+   "supports_upgrades": false
+  },
+  {
+   "faction": "wh2_dlc09_tmb_tomb_kings",
+   "general_unit": false,
+   "unit": "wh2_dlc09_tmb_mon_tomb_scorpion_0",
+   "siege_unit_attacker": true,
+   "siege_unit_defender": true,
+   "general_portrait": null,
+   "general_uniform": null,
+   "set_piece_character": null,
+   "campaign_exclusive": false,
+   "armory_item_set": null,
+   "supports_upgrades": false
+  },
+  {
+   "faction": "wh3_dlc29_nag_host_of_nagash",
+   "general_unit": false,
+   "unit": "wh2_dlc09_tmb_mon_tomb_scorpion_0",
+   "siege_unit_attacker": true,
+   "siege_unit_defender": true,
+   "general_portrait": null,
+   "general_uniform": null,
+   "set_piece_character": null,
+   "campaign_exclusive": false,
+   "armory_item_set": null,
+   "supports_upgrades": false
+  },
+  {
+   "faction": "wh2_dlc09_tmb_tomb_kings",
+   "general_unit": false,
+   "unit": "wh2_dlc09_tmb_mon_ushabti_0",
+   "siege_unit_attacker": true,
+   "siege_unit_defender": true,
+   "general_portrait": null,
+   "general_uniform": null,
+   "set_piece_character": null,
+   "campaign_exclusive": false,
+   "armory_item_set": null,
+   "supports_upgrades": false
+  },
+  {
+   "faction": "wh3_dlc29_nag_host_of_nagash",
+   "general_unit": false,
+   "unit": "wh2_dlc09_tmb_mon_ushabti_0",
    "siege_unit_attacker": true,
    "siege_unit_defender": true,
    "general_portrait": null,
@@ -3359,6 +3823,15 @@
    "enabled": false
   },
   {
+   "building": "wh_main_vmp_vampires_4",
+   "unit": "wh3_dlc29_vmp_inf_lahmian_handmaidens_death",
+   "XP": 0,
+   "key": 1016870134,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_nag_necropolis_military_monsters_5",
    "unit": "wh3_dlc29_vmp_mon_zombie_dragon",
    "XP": 0,
@@ -3476,10 +3949,28 @@
    "enabled": false
   },
   {
+   "building": "wh3_dlc29_nag_necropolis_military_constructs_4",
+   "unit": "wh2_dlc09_tmb_mon_ushabti_0",
+   "XP": 0,
+   "key": 1146875248,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_nag_necropolis_military_cavalry_4",
    "unit": "wh_main_vmp_cav_black_knights_3",
    "XP": 0,
    "key": 115215644,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh3_dlc29_nag_necropolis_military_constructs_4",
+   "unit": "wh2_dlc09_tmb_mon_necrosphinx_0",
+   "XP": 0,
+   "key": 1152228842,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -3593,6 +4084,15 @@
    "enabled": false
   },
   {
+   "building": "wh_main_vmp_vampires_4",
+   "unit": "wh3_dlc29_vmp_inf_lahmian_handmaidens_shadow",
+   "XP": 0,
+   "key": 1206081097,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh2_main_rogue_settlement_major_3",
    "unit": "wh_main_vmp_cav_black_knights_3",
    "XP": 0,
@@ -3624,6 +4124,15 @@
    "unit": "wh3_main_vmp_blood_knights_sword_shield",
    "XP": 0,
    "key": 1218293715,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh2_dlc09_tmb_cavalry_3",
+   "unit": "wh2_dlc09_tmb_mon_sepulchral_stalkers_0",
+   "XP": 0,
+   "key": 1223970513,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -3687,6 +4196,15 @@
    "unit": "wh_main_vmp_inf_grave_guard_0",
    "XP": 0,
    "key": 1253619582,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh3_dlc29_nag_necropolis_military_constructs_1",
+   "unit": "wh2_dlc09_tmb_mon_tomb_scorpion_0",
+   "XP": 0,
+   "key": 1254839793,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -3872,6 +4390,15 @@
    "enabled": false
   },
   {
+   "building": "wh2_dlc09_tmb_scorpions_1",
+   "unit": "wh2_dlc09_tmb_mon_tomb_scorpion_0",
+   "XP": 0,
+   "key": 1358199015,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh2_dlc15_special_morgheim_necropolis_vmp",
    "unit": "wh_main_vmp_mon_crypt_horrors",
    "XP": 0,
@@ -3935,6 +4462,15 @@
    "enabled": false
   },
   {
+   "building": "wh_main_vmp_cemetary_3",
+   "unit": "wh_main_vmp_inf_grave_guard_1",
+   "XP": 0,
+   "key": 144409793,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_nag_necropolis_military_melee_3",
    "unit": "wh2_dlc09_tmb_inf_tomb_guard_0",
    "XP": 0,
@@ -3980,6 +4516,15 @@
    "enabled": false
   },
   {
+   "building": "wh3_main_special_the_great_desert_tmb_2",
+   "unit": "wh2_dlc09_tmb_mon_ushabti_0",
+   "XP": 0,
+   "key": 1478053986,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_nag_necropolis_military_monsters_3",
    "unit": "wh_main_vmp_mon_fell_bats",
    "XP": 0,
@@ -4016,6 +4561,15 @@
    "enabled": false
   },
   {
+   "building": "wh_main_vmp_forest_4",
+   "unit": "wh2_dlc11_cst_mon_mournguls_0",
+   "XP": 0,
+   "key": 1506991669,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh2_dlc11_vampirecoast_support_monsters_2",
    "unit": "wh2_dlc11_cst_mon_mournguls_0",
    "XP": 0,
@@ -4043,6 +4597,15 @@
    "enabled": false
   },
   {
+   "building": "wh3_dlc29_nag_necropolis_military_constructs_2",
+   "unit": "wh2_dlc09_tmb_mon_sepulchral_stalkers_0",
+   "XP": 0,
+   "key": 1549662858,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_nag_settlement_mausoleum_1",
    "unit": "wh_main_vmp_inf_skeleton_warriors_1",
    "XP": 0,
@@ -4065,6 +4628,15 @@
    "unit": "wh_main_vmp_cav_black_knights_3",
    "XP": 0,
    "key": 1550772494,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_cemetary_3",
+   "unit": "wh_main_vmp_inf_grave_guard_0",
+   "XP": 0,
+   "key": 155149576,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -4115,6 +4687,15 @@
    "enabled": false
   },
   {
+   "building": "wh_main_vmp_cemetary_2",
+   "unit": "wh_main_vmp_inf_grave_guard_0",
+   "XP": 0,
+   "key": 1573642711,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_main_special_dragon_grave_4",
    "unit": "wh3_dlc29_vmp_mon_zombie_dragon",
    "XP": 0,
@@ -4128,6 +4709,15 @@
    "unit": "wh2_dlc11_cst_mon_mournguls_0",
    "XP": 0,
    "key": 159378817,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_vampires_4",
+   "unit": "wh3_dlc29_vmp_veh_coven_throne",
+   "XP": 0,
+   "key": 1600205588,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -4151,6 +4741,15 @@
    "enabled": false
   },
   {
+   "building": "wh_main_vmp_cemetary_4",
+   "unit": "wh_main_vmp_inf_grave_guard_0",
+   "XP": 0,
+   "key": 1604465999,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh2_main_horde_rogue_settlement_1",
    "unit": "wh_dlc02_vmp_cav_blood_knights_0",
    "XP": 0,
@@ -4164,6 +4763,15 @@
    "unit": "wh_main_vmp_cav_black_knights_0",
    "XP": 0,
    "key": 161118941,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh3_dlc29_nag_necropolis_military_constructs_2",
+   "unit": "wh2_dlc09_tmb_mon_ushabti_0",
+   "XP": 0,
+   "key": 1614882523,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -4322,6 +4930,15 @@
    "enabled": false
   },
   {
+   "building": "wh3_dlc29_nag_chambers_constructs_1",
+   "unit": "wh2_dlc09_tmb_mon_ushabti_0",
+   "XP": 0,
+   "key": 169757193,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_nag_settlement_mausoleum_1",
    "unit": "wh_main_vmp_inf_skeleton_warriors_0",
    "XP": 0,
@@ -4353,6 +4970,15 @@
    "unit": "wh_main_vmp_inf_skeleton_warriors_0",
    "XP": 0,
    "key": 1717380542,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh3_dlc29_nag_necropolis_military_constructs_1",
+   "unit": "wh2_dlc09_tmb_mon_ushabti_0",
+   "XP": 0,
+   "key": 1738803420,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -4430,10 +5056,37 @@
    "enabled": false
   },
   {
+   "building": "wh3_main_vmp_special_lahmia_temple_of_blood",
+   "unit": "wh2_dlc09_tmb_mon_necrosphinx_0",
+   "XP": 0,
+   "key": 1802343645,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_forest_5",
+   "unit": "wh_main_vmp_mon_vargheists",
+   "XP": 0,
+   "key": 1805694890,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_nag_necropolis_military_monsters_4",
    "unit": "wh_main_vmp_mon_crypt_horrors",
    "XP": 0,
    "key": 1815917242,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh3_main_vmp_special_lahmia_temple_of_blood",
+   "unit": "wh2_dlc09_tmb_mon_tomb_scorpion_0",
+   "XP": 0,
+   "key": 1824100208,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -4475,6 +5128,15 @@
    "enabled": false
   },
   {
+   "building": "wh3_main_vmp_special_lahmia_temple_of_blood",
+   "unit": "wh2_dlc09_tmb_mon_sepulchral_stalkers_0",
+   "XP": 0,
+   "key": 1852236351,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_nag_necropolis_military_cavalry_4",
    "unit": "wh_main_vmp_veh_black_coach",
    "XP": 0,
@@ -4488,6 +5150,15 @@
    "unit": "wh_dlc02_vmp_cav_blood_knights_0",
    "XP": 0,
    "key": 1859403123,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh3_dlc29_nag_necropolis_military_constructs_3",
+   "unit": "wh2_dlc09_tmb_mon_tomb_scorpion_0",
+   "XP": 0,
+   "key": 1861172151,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -4551,6 +5222,24 @@
    "unit": "wh3_dlc29_vmp_cav_drakenhof_templars",
    "XP": 0,
    "key": 1901693643,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_cemetary_4",
+   "unit": "wh_main_vmp_cav_black_knights_0",
+   "XP": 0,
+   "key": 1906041078,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_bindingcircle_2",
+   "unit": "wh_main_vmp_inf_crypt_ghouls",
+   "XP": 0,
+   "key": 1911369876,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -4628,10 +5317,37 @@
    "enabled": false
   },
   {
+   "building": "wh3_dlc29_nag_necropolis_military_constructs_3",
+   "unit": "wh2_dlc09_tmb_mon_sepulchral_stalkers_0",
+   "XP": 0,
+   "key": 196377497,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh2_dlc09_tmb_ushabti_1",
+   "unit": "wh2_dlc09_tmb_mon_ushabti_0",
+   "XP": 0,
+   "key": 1964467602,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh2_main_horde_rogue_settlement_1",
    "unit": "wh_main_vmp_mon_crypt_horrors",
    "XP": 0,
    "key": 1969309202,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh2_dlc09_tmb_necrosphinx_2",
+   "unit": "wh2_dlc09_tmb_mon_necrosphinx_0",
+   "XP": 0,
+   "key": 1970578182,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -4668,6 +5384,15 @@
    "unit": "wh_main_vmp_cav_black_knights_0",
    "XP": 0,
    "key": 1997434099,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_vampires_3",
+   "unit": "wh3_dlc29_vmp_inf_lahmian_handmaidens_death",
+   "XP": 0,
+   "key": 2001802114,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -4722,6 +5447,15 @@
    "unit": "wh3_dlc29_vmp_cav_drakenhof_templars",
    "XP": 0,
    "key": 2021320435,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_cemetary_4",
+   "unit": "wh_main_vmp_inf_grave_guard_1",
+   "XP": 0,
+   "key": 2032735808,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -4791,6 +5525,15 @@
   },
   {
    "building": "wh_main_vmp_vampires_3",
+   "unit": "wh3_dlc29_vmp_inf_lahmian_handmaidens_shadow",
+   "XP": 0,
+   "key": 2042774491,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_vampires_3",
    "unit": "wh3_dlc29_vmp_veh_coven_throne",
    "XP": 0,
    "key": 2051790685,
@@ -4803,6 +5546,15 @@
    "unit": "wh_main_vmp_cav_black_knights_3",
    "XP": 0,
    "key": 2060255195,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_cemetary_4",
+   "unit": "wh3_main_vmp_inf_grave_guard_2",
+   "XP": 0,
+   "key": 2070377012,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -4866,6 +5618,15 @@
    "unit": "wh_main_vmp_inf_zombie",
    "XP": 0,
    "key": 2122664857,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh2_dlc09_tmb_necrosphinx_1",
+   "unit": "wh2_dlc09_tmb_mon_necrosphinx_0",
+   "XP": 0,
+   "key": 2124852622,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -4943,6 +5704,15 @@
    "enabled": false
   },
   {
+   "building": "wh_main_vmp_bindingcircle_3",
+   "unit": "wh_main_vmp_inf_crypt_ghouls",
+   "XP": 0,
+   "key": 268421592,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_special_settlement_pyramid_of_nagash_nag_4",
    "unit": "wh_main_vmp_inf_skeleton_warriors_0",
    "XP": 0,
@@ -5015,6 +5785,15 @@
    "enabled": false
   },
   {
+   "building": "wh_main_vmp_forest_5",
+   "unit": "wh2_dlc11_cst_mon_mournguls_0",
+   "XP": 0,
+   "key": 314850289,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh2_main_rogue_settlement_minor_1",
    "unit": "wh_main_vmp_mon_crypt_horrors",
    "XP": 0,
@@ -5033,10 +5812,37 @@
    "enabled": false
   },
   {
+   "building": "wh_main_vmp_forest_5",
+   "unit": "wh_main_vmp_mon_varghulf",
+   "XP": 0,
+   "key": 333939443,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_bindingcircle_3",
+   "unit": "wh_dlc04_vmp_veh_corpse_cart_2",
+   "XP": 0,
+   "key": 3340856,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_nag_necropolis_military_melee_5",
    "unit": "wh_main_vmp_inf_crypt_ghouls",
    "XP": 0,
    "key": 334761405,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_forest_4",
+   "unit": "wh_main_vmp_mon_dire_wolves",
+   "XP": 0,
+   "key": 335693229,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -5186,6 +5992,15 @@
    "enabled": false
   },
   {
+   "building": "wh2_main_vmp_wraiths_1",
+   "unit": "wh_main_vmp_inf_cairn_wraiths",
+   "XP": 0,
+   "key": 453710346,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh2_main_rogue_settlement_major_1",
    "unit": "wh_main_vmp_mon_fell_bats",
    "XP": 0,
@@ -5199,6 +6014,15 @@
    "unit": "wh3_dlc29_vmp_cav_drakenhof_templars",
    "XP": 0,
    "key": 463883913,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_cemetary_3",
+   "unit": "wh3_main_vmp_inf_grave_guard_2",
+   "XP": 0,
+   "key": 47299826,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -5235,6 +6059,15 @@
    "unit": "wh_main_vmp_inf_crypt_ghouls",
    "XP": 0,
    "key": 488950323,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_forest_5",
+   "unit": "wh_main_vmp_mon_dire_wolves",
+   "XP": 0,
+   "key": 511353809,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -5285,6 +6118,15 @@
    "enabled": false
   },
   {
+   "building": "wh3_dlc29_nag_necropolis_military_constructs_3",
+   "unit": "wh2_dlc09_tmb_mon_ushabti_0",
+   "XP": 0,
+   "key": 549004005,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh2_main_horde_rogue_settlement_2",
    "unit": "wh_dlc02_vmp_cav_blood_knights_0",
    "XP": 0,
@@ -5303,10 +6145,37 @@
    "enabled": false
   },
   {
+   "building": "wh_main_vmp_cemetary_3",
+   "unit": "wh_main_vmp_cav_black_knights_0",
+   "XP": 0,
+   "key": 562047794,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_nag_necropolis_military_monsters_4",
    "unit": "wh_main_vmp_mon_fell_bats",
    "XP": 0,
    "key": 574600860,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_forest_3",
+   "unit": "wh2_dlc11_cst_mon_mournguls_0",
+   "XP": 0,
+   "key": 580212876,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_vampires_4",
+   "unit": "wh3_dlc29_vmp_cav_drakenhof_templars",
+   "XP": 0,
+   "key": 604744661,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -5343,6 +6212,15 @@
    "unit": "wh_main_vmp_mon_crypt_horrors",
    "XP": 0,
    "key": 626120507,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh2_dlc09_tmb_ushabti_2",
+   "unit": "wh2_dlc09_tmb_mon_ushabti_0",
+   "XP": 0,
+   "key": 626949272,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -5609,10 +6487,37 @@
    "enabled": false
   },
   {
+   "building": "wh2_dlc15_special_ka_sabar_city_of_bronze_tmb",
+   "unit": "wh2_dlc09_tmb_mon_ushabti_0",
+   "XP": 0,
+   "key": 678587228,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_nag_settlement_mausoleum_1",
    "unit": "wh_main_vmp_inf_zombie",
    "XP": 0,
    "key": 687030827,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh3_dlc29_tmb_scorpions_2",
+   "unit": "wh2_dlc09_tmb_mon_tomb_scorpion_0",
+   "XP": 0,
+   "key": 688238126,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_cemetary_2",
+   "unit": "wh_main_vmp_inf_grave_guard_1",
+   "XP": 0,
+   "key": 693446628,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -5753,10 +6658,46 @@
    "enabled": false
   },
   {
+   "building": "wh_main_vmp_bindingcircle_3",
+   "unit": "wh_dlc04_vmp_veh_corpse_cart_1",
+   "XP": 0,
+   "key": 754676014,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_cemetary_3",
+   "unit": "wh_main_vmp_cav_black_knights_3",
+   "XP": 0,
+   "key": 769941121,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh3_main_vmp_special_lahmia_temple_of_blood",
+   "unit": "wh2_dlc09_tmb_mon_ushabti_0",
+   "XP": 0,
+   "key": 779083501,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh2_main_rogue_settlement_minor_2",
    "unit": "wh_main_vmp_cav_black_knights_3",
    "XP": 0,
    "key": 779617314,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_cemetary_4",
+   "unit": "wh_main_vmp_cav_black_knights_3",
+   "XP": 0,
+   "key": 794065113,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -5825,6 +6766,33 @@
    "enabled": false
   },
   {
+   "building": "wh_main_vmp_cemetary_2",
+   "unit": "wh3_main_vmp_inf_grave_guard_2",
+   "XP": 0,
+   "key": 874781182,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_forest_2",
+   "unit": "wh_main_vmp_mon_dire_wolves",
+   "XP": 0,
+   "key": 87480955,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh3_dlc29_nag_necropolis_military_constructs_4",
+   "unit": "wh2_dlc09_tmb_mon_sepulchral_stalkers_0",
+   "XP": 0,
+   "key": 877726309,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_nag_settlement_necropolis_1",
    "unit": "wh_main_vmp_inf_zombie",
    "XP": 0,
@@ -5852,10 +6820,28 @@
    "enabled": false
   },
   {
+   "building": "wh3_dlc29_nag_necropolis_military_constructs_4",
+   "unit": "wh2_dlc09_tmb_mon_tomb_scorpion_0",
+   "XP": 0,
+   "key": 883310326,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_nef_coven_handmaiden_bonus_2",
    "unit": "wh3_dlc29_vmp_inf_lahmian_handmaidens_shadow",
    "XP": 0,
    "key": 888187887,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh3_dlc29_nag_necropolis_military_constructs_2",
+   "unit": "wh2_dlc09_tmb_mon_tomb_scorpion_0",
+   "XP": 0,
+   "key": 893748558,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -5906,6 +6892,15 @@
    "enabled": false
   },
   {
+   "building": "wh2_dlc09_tmb_cavalry_4",
+   "unit": "wh2_dlc09_tmb_mon_sepulchral_stalkers_0",
+   "XP": 0,
+   "key": 954270011,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_special_settlement_nagashizzar_nag_4",
    "unit": "wh_main_vmp_inf_zombie",
    "XP": 0,
@@ -5933,6 +6928,15 @@
    "enabled": false
   },
   {
+   "building": "wh_main_vmp_forest_3",
+   "unit": "wh_main_vmp_mon_dire_wolves",
+   "XP": 0,
+   "key": 966932259,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
    "building": "wh3_dlc29_nag_necropolis_military_spirits_3",
    "unit": "wh_main_vmp_inf_cairn_wraiths",
    "XP": 0,
@@ -5946,6 +6950,15 @@
    "unit": "wh_main_vmp_mon_varghulf",
    "XP": 0,
    "key": 985020930,
+   "conditions": 0,
+   "faction": null,
+   "enabled": false
+  },
+  {
+   "building": "wh_main_vmp_forest_4",
+   "unit": "wh_main_vmp_mon_vargheists",
+   "XP": 0,
+   "key": 991883558,
    "conditions": 0,
    "faction": null,
    "enabled": false
@@ -5979,6 +6992,42 @@
    "use_partial_replenishment": false,
    "max_replenish_per_turn": 100,
    "ui_order": 3
+  },
+  {
+   "chance_to_replenish": 1,
+   "key": "wh2_dlc09_tmb_mon_necrosphinx_0",
+   "max_count": 999999,
+   "unit_record": "wh2_dlc09_tmb_mon_necrosphinx_0",
+   "use_partial_replenishment": false,
+   "max_replenish_per_turn": 100,
+   "ui_order": 7
+  },
+  {
+   "chance_to_replenish": 1,
+   "key": "wh2_dlc09_tmb_mon_sepulchral_stalkers_0",
+   "max_count": 999999,
+   "unit_record": "wh2_dlc09_tmb_mon_sepulchral_stalkers_0",
+   "use_partial_replenishment": false,
+   "max_replenish_per_turn": 100,
+   "ui_order": 6
+  },
+  {
+   "chance_to_replenish": 1,
+   "key": "wh2_dlc09_tmb_mon_tomb_scorpion_0",
+   "max_count": 999999,
+   "unit_record": "wh2_dlc09_tmb_mon_tomb_scorpion_0",
+   "use_partial_replenishment": false,
+   "max_replenish_per_turn": 100,
+   "ui_order": 5
+  },
+  {
+   "chance_to_replenish": 1,
+   "key": "wh2_dlc09_tmb_mon_ushabti_0",
+   "max_count": 999999,
+   "unit_record": "wh2_dlc09_tmb_mon_ushabti_0",
+   "use_partial_replenishment": false,
+   "max_replenish_per_turn": 100,
+   "ui_order": 4
   },
   {
    "chance_to_replenish": 1,
@@ -6042,6 +7091,42 @@
    "use_partial_replenishment": false,
    "max_replenish_per_turn": 100,
    "ui_order": 6
+  },
+  {
+   "chance_to_replenish": 1,
+   "key": "wh3_dlc29_nag_tmb_mon_necrosphinx_0_faction_pool",
+   "max_count": 999999,
+   "unit_record": "wh2_dlc09_tmb_mon_necrosphinx_0",
+   "use_partial_replenishment": false,
+   "max_replenish_per_turn": 100,
+   "ui_order": 22
+  },
+  {
+   "chance_to_replenish": 1,
+   "key": "wh3_dlc29_nag_tmb_mon_sepulchral_stalkers_0_faction_pool",
+   "max_count": 999999,
+   "unit_record": "wh2_dlc09_tmb_mon_sepulchral_stalkers_0",
+   "use_partial_replenishment": false,
+   "max_replenish_per_turn": 100,
+   "ui_order": 19
+  },
+  {
+   "chance_to_replenish": 1,
+   "key": "wh3_dlc29_nag_tmb_mon_tomb_scorpion_0_faction_pool",
+   "max_count": 999999,
+   "unit_record": "wh2_dlc09_tmb_mon_tomb_scorpion_0",
+   "use_partial_replenishment": false,
+   "max_replenish_per_turn": 100,
+   "ui_order": 18
+  },
+  {
+   "chance_to_replenish": 1,
+   "key": "wh3_dlc29_nag_tmb_mon_ushabti_0_faction_pool",
+   "max_count": 999999,
+   "unit_record": "wh2_dlc09_tmb_mon_ushabti_0",
+   "use_partial_replenishment": false,
+   "max_replenish_per_turn": 100,
+   "ui_order": 16
   },
   {
    "chance_to_replenish": 1,
@@ -6676,6 +7761,15 @@
    "tech_requirement": null
   },
   {
+   "group": "wh2_dlc09_tmb_mon_ushabti_0",
+   "initial_unit_count": 999999,
+   "key": 1114378908,
+   "pool": "wh3_dlc29_vmp_additional_units",
+   "faction_requirement": "wh3_dlc29_vmp_neferata",
+   "subculture_requirement": null,
+   "tech_requirement": null
+  },
+  {
    "group": "wh3_dlc29_nag_vmp_mon_zombie_dragon_faction_pool",
    "initial_unit_count": 999999,
    "key": 1114438294,
@@ -6847,6 +7941,15 @@
    "tech_requirement": null
   },
   {
+   "group": "wh2_dlc09_tmb_mon_tomb_scorpion_0",
+   "initial_unit_count": 999999,
+   "key": 1595916067,
+   "pool": "wh3_dlc29_vmp_additional_units",
+   "faction_requirement": "wh3_dlc29_vmp_neferata",
+   "subculture_requirement": null,
+   "tech_requirement": null
+  },
+  {
    "group": "wh_dlc04_vmp_veh_claw_of_nagash_0",
    "initial_unit_count": 1,
    "key": 1660256185,
@@ -6937,6 +8040,15 @@
    "tech_requirement": null
   },
   {
+   "group": "wh2_dlc09_tmb_mon_sepulchral_stalkers_0",
+   "initial_unit_count": 999999,
+   "key": 1933053254,
+   "pool": "wh3_dlc29_vmp_additional_units",
+   "faction_requirement": "wh3_dlc29_vmp_neferata",
+   "subculture_requirement": null,
+   "tech_requirement": null
+  },
+  {
    "group": "wh_dlc04_vmp_mon_direpack_0",
    "initial_unit_count": 1,
    "key": 1952794473,
@@ -7013,6 +8125,15 @@
    "initial_unit_count": 1,
    "key": 212127271,
    "pool": "wh3_dlc29_nag_units_of_renown_ror",
+   "faction_requirement": null,
+   "subculture_requirement": "wh3_dlc29_sc_nag_undead_legions",
+   "tech_requirement": null
+  },
+  {
+   "group": "wh3_dlc29_nag_tmb_mon_sepulchral_stalkers_0_faction_pool",
+   "initial_unit_count": 999999,
+   "key": 2125544346,
+   "pool": "wh3_dlc29_nag_raise_dead_tmb_faction_pool",
    "faction_requirement": null,
    "subculture_requirement": "wh3_dlc29_sc_nag_undead_legions",
    "tech_requirement": null
@@ -7360,6 +8481,15 @@
    "tech_requirement": null
   },
   {
+   "group": "wh3_dlc29_nag_tmb_mon_tomb_scorpion_0_faction_pool",
+   "initial_unit_count": 999999,
+   "key": 425173003,
+   "pool": "wh3_dlc29_nag_raise_dead_tmb_faction_pool",
+   "faction_requirement": null,
+   "subculture_requirement": "wh3_dlc29_sc_nag_undead_legions",
+   "tech_requirement": null
+  },
+  {
    "group": "wh2_dlc09_tmb_inf_tomb_guard_0",
    "initial_unit_count": 999999,
    "key": 439418706,
@@ -7409,6 +8539,24 @@
    "initial_unit_count": 999999,
    "key": 557164636,
    "pool": "wh3_dlc29_nag_raise_dead_vmp_faction_pool",
+   "faction_requirement": null,
+   "subculture_requirement": "wh3_dlc29_sc_nag_undead_legions",
+   "tech_requirement": null
+  },
+  {
+   "group": "wh3_dlc29_nag_tmb_mon_ushabti_0_faction_pool",
+   "initial_unit_count": 999999,
+   "key": 563518952,
+   "pool": "wh3_dlc29_nag_raise_dead_tmb_faction_pool",
+   "faction_requirement": null,
+   "subculture_requirement": "wh3_dlc29_sc_nag_undead_legions",
+   "tech_requirement": null
+  },
+  {
+   "group": "wh3_dlc29_nag_tmb_mon_necrosphinx_0_faction_pool",
+   "initial_unit_count": 999999,
+   "key": 606974664,
+   "pool": "wh3_dlc29_nag_raise_dead_tmb_faction_pool",
    "faction_requirement": null,
    "subculture_requirement": "wh3_dlc29_sc_nag_undead_legions",
    "tech_requirement": null
@@ -7475,6 +8623,15 @@
    "faction_requirement": null,
    "subculture_requirement": "wh_main_sc_vmp_vampire_counts",
    "tech_requirement": null
+  },
+  {
+   "group": "wh2_dlc09_tmb_mon_necrosphinx_0",
+   "initial_unit_count": 999999,
+   "key": 930257577,
+   "pool": "wh3_dlc29_vmp_additional_units",
+   "faction_requirement": "wh3_dlc29_vmp_neferata",
+   "subculture_requirement": null,
+   "tech_requirement": null
   }
  ],
  "main_units": [
@@ -7489,6 +8646,38 @@
   {
    "unit": "wh2_dlc09_tmb_inf_tomb_guard_1",
    "caste": "melee_infantry",
+   "campaign_cap": 0,
+   "additional_building_requirement": null,
+   "resource_requirement": null,
+   "special_edition_mask": 0
+  },
+  {
+   "unit": "wh2_dlc09_tmb_mon_necrosphinx_0",
+   "caste": "monster",
+   "campaign_cap": 0,
+   "additional_building_requirement": null,
+   "resource_requirement": null,
+   "special_edition_mask": 0
+  },
+  {
+   "unit": "wh2_dlc09_tmb_mon_sepulchral_stalkers_0",
+   "caste": "monstrous_infantry",
+   "campaign_cap": 0,
+   "additional_building_requirement": null,
+   "resource_requirement": null,
+   "special_edition_mask": 0
+  },
+  {
+   "unit": "wh2_dlc09_tmb_mon_tomb_scorpion_0",
+   "caste": "monster",
+   "campaign_cap": 0,
+   "additional_building_requirement": null,
+   "resource_requirement": null,
+   "special_edition_mask": 0
+  },
+  {
+   "unit": "wh2_dlc09_tmb_mon_ushabti_0",
+   "caste": "monstrous_infantry",
    "campaign_cap": 0,
    "additional_building_requirement": null,
    "resource_requirement": null,
