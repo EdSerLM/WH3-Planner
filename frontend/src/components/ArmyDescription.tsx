@@ -32,7 +32,7 @@ const LORE: Record<string, string> = {
   Hashut: 'el Saber de Hashut', Yang: 'el poder del Yang', Yin: 'el poder del Yin', Brujas: 'el Saber de las Brujas', 'No Muerte': 'el Saber de la No Muerte',
   Hielo: 'el Saber del Hielo', Tempestad: 'el Saber de la Tempestad', 'Grandes Fauces': 'el Saber de las Grandes Fauces',
 };
-const FEM = /\b(Señora|Reina|Bruja|Doncella|Capitana|Gloriosa|Hechicera|Sacerdotisa|Profetisa|Damisela|Hada|Sirena|Vampiresa|Matriarca|Hermanas|Tejedora|Cantora)\b/;
+const FEM = /\b(Señora|Reina|Zarina|Bruja|Doncella|Capitana|Caballera|Gloriosa|Hechicera|Sacerdotisa|Profetisa|Damisela|Hada|Sirena|Vampiresa|Matriarca|Hermanas|Tejedora|Cantora|Katarin|Alarielle|Morathi|Neferata|Isabella|Khalida|Elspeth|Hellebron|Ostankya|Naryska|Ulrika|Miao Ying|Valkia|Repanse|Drycha|Crone)\b/;
 /** "del Consejo de los Elfos", "de la Congregación…", "de los Hablantes…" */
 const ofCourt = (c: string) => (/^Cargos de la corte/i.test(c) ? '' : /^(Consejo|Cónclave|Círculo)\b/.test(c) ? ` del ${c}` : /^(Hablantes|Señores)\b/.test(c) ? ` de los ${c}` : ` de la ${c}`);
 
@@ -169,7 +169,7 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
     return extra.length ? `${base}, ${andList(extra)}` : base;
   };
   const lead = lord ? `al mando de ${who(lord)}` : 'sin un señor que la guíe';
-  const escort = heroes.length ? `, ${heroes.length === 1 ? 'con' : 'escoltado por'} ${andList(heroes.map(who))}` : '';
+  const escort = heroes.length ? `, ${heroes.length === 1 ? 'con' : lord && FEM.test(lord.baseName ?? lord.name) ? 'escoltada por' : 'escoltado por'} ${andList(heroes.map(who))}` : '';
   out.push(`${openFor(pick(v.open, seed, 'o'), host)} ${host}, ${lead}${escort}.`);
   if (!unitCards.length) return out;
 
@@ -177,26 +177,31 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
   const groups = new Map<string, number>();
   for (const x of unitCards) { const t = TROOP_OF[x.u?.group ?? ''] ?? 'inf'; groups.set(t, (groups.get(t) ?? 0) + x.c.count); }
   const total = [...groups.values()].reduce((a, b) => a + b, 0);
-  const noun = (t: string) => v.troops[t as keyof typeof v.troops] ?? GENERIC_T[t];
-  // Cuántos, en palabras: la mayoría es una marea; uno solo, un puñado
-  const howMuch = (k: number) => (k / total >= 0.5 ? pick(['una marea de', 'un océano de', 'una legión de'], seed, 'm') : k <= 1 ? 'un puñado de' : '');
+  // Nombres reales de las tropas de cada tipo (sin aclaraciones entre paréntesis), de las más numerosas a las menos
+  const proseName = (n: string) => n.replace(/\s*\([^)]*\)/g, '').split(' · ')[0].trim();
+  const namesOf = (t: string) => {
+    const byName = new Map<string, number>();
+    for (const x of unitCards) if ((TROOP_OF[x.u?.group ?? ''] ?? 'inf') === t) { const n = proseName(x.c.name); byName.set(n, (byName.get(n) ?? 0) + x.c.count); }
+    const list = [...byName].sort((p, q) => q[1] - p[1]).map(([n]) => n);
+    return list.length > 3 ? `${list.slice(0, 3).join(', ')} y otras` : andList(list);
+  };
   const core = [...groups].sort((a, b) => b[1] - a[1])[0][0];
-  const ROLE: Record<string, (t: string, q: string) => string> = {
-    inf: (t, q) => pick([`al frente avanza ${q || 'una muralla de'} ${t}`, `su corazón lo forman ${q || 'apretadas filas de'} ${t}`], seed, 'i'),
-    missile: (t, q) => pick([`tras ellos, ${q ? q + ' ' : ''}${t} preparan sus armas`, `desde atrás, ${q ? q + ' ' : ''}${t} esperan su momento`], seed, 'r'),
-    cav: (t, q) => pick([`en los flancos aguardan ${q ? q + ' ' : ''}${t}`, `${q ? q + ' ' : ''}${t} esperan impacientes en las alas, listos para cargar`], seed, 'k'),
-    monster: (t, q) => pick([`sobre todos ellos se alzan ${q ? q + ' ' : ''}${t}`, `${q ? q + ' ' : ''}${t} hacen temblar la tierra a su paso`], seed, 'b'),
-    art: (t, q) => pick([`y en la retaguardia ${q ? q + ' ' : ''}${t} esperan la orden de fuego`, `mientras ${q ? q + ' ' : ''}${t} apuntan desde lo alto`], seed, 'a'),
+  const ROLE: Record<string, (n: string, first: boolean) => string> = {
+    inf: (n) => pick([`al frente forma su infantería —${n}—`, `el corazón de la hueste es su infantería —${n}—`], seed, 'i'),
+    missile: (n, first) => first ? `al frente se despliegan sus tiradores —${n}—` : pick([`tras ella, sus tiradores —${n}— preparan sus armas`, `desde atrás, sus tiradores —${n}— esperan su momento`], seed, 'r'),
+    cav: (n, first) => first ? `su caballería —${n}— encabeza la marcha` : pick([`en las alas, su caballería —${n}— espera el momento de cargar`, `su caballería —${n}— aguarda en los flancos, lista para cargar`], seed, 'k'),
+    monster: (n, first) => first ? `sus bestias —${n}— encabezan la marcha` : pick([`sobre todos ellos se alzan sus bestias —${n}—`, `sus bestias —${n}— hacen temblar la tierra a su paso`], seed, 'b'),
+    art: (n, first) => first ? `su artillería —${n}— domina el campo` : `y en la retaguardia su artillería —${n}— espera la orden de fuego`,
   };
   const ORDER = ['inf', 'missile', 'cav', 'monster', 'art'];
-  const phrases = [core, ...ORDER.filter((t) => t !== core)].filter((t) => groups.has(t)).map((t) => ROLE[t](noun(t), howMuch(groups.get(t)!)));
+  const phrases = [core, ...ORDER.filter((t) => t !== core)].filter((t) => groups.has(t)).map((t, i) => ROLE[t](namesOf(t), i === 0));
   const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
   const body = phrases.length > 1 ? `${phrases.slice(0, -1).join('; ')}; ${phrases[phrases.length - 1]}` : phrases[0];
   // En prosa sin la aclaración entre paréntesis: "Caballeros Negros (lanzas y bardas)" -> "Caballeros Negros"
-  const prose = (n: string) => n.replace(/\s*\([^)]*\)/g, '').split(' · ')[0].trim();
+  const prose = proseName;
   const elite = [...new Set([...unitCards].sort((a, b) => (b.u?.cost ?? 0) - (a.u?.cost ?? 0)).map((x) => prose(x.c.name)))].slice(0, 2);
   // Sus mejores tropas: las dos más caras del ejército
-  const pride = elite.length ? ` ${pick([`Sus tropas más temidas son ${andList(elite)}.`, `Lo mejor de sus filas son ${andList(elite)}.`], seed, 'e')}` : '';
+  const pride = elite.length ? ` ${pick([`Sus tropas más temidas: ${andList(elite)}.`, `Lo mejor de sus filas: ${andList(elite)}.`], seed, 'e')}` : '';
   out.push(`${cap(body).replace(/^Y en la/, 'En la').replace(/^Mientras /, 'Desde lo alto, ')}.${pride}`);
 
   // Qué clase de ejército es: élite u horda (nivel medio de las unidades) y en qué se especializa (su composición)
