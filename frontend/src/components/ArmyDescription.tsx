@@ -125,6 +125,17 @@ const TROOP_OF: Record<string, 'inf' | 'missile' | 'cav' | 'monster' | 'art'> = 
   Infantry: 'inf', 'Missile Infantry': 'missile', 'Cavalry & Chariots': 'cav', 'Missile Cavalry & Chariots': 'cav',
   'Monsters & Beasts': 'monster', 'Missile Monsters & Beasts': 'monster', 'Artillery & War Machines': 'art',
 };
+/** Primera frase de un texto, sin cortar en abreviaturas ("El Dr. Festus…") */
+const firstSentence = (t: string) => {
+  const re = /[.!?](\s|$)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(t))) {
+    const before = t.slice(0, m.index);
+    if (/\b(Dr|Sr|Sra|Srta|St|Sto|Mr|etc)$/i.test(before)) continue;
+    return t.slice(0, m.index + 1);
+  }
+  return t;
+};
 const andList = (l: string[]) => (l.length <= 1 ? l.join('') : `${l.slice(0, -1).join(', ')} y ${l[l.length - 1]}`);
 
 /** Crónica con la voz de la facción: lo que narra sale de las mismas tarjetas (nada inventado sobre el ejército) */
@@ -179,7 +190,7 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
     if (!legendary.includes(c.id) || !c.lore || /^Señora? de (los|las) /.test(nm)) return '';
     const t = c.lore.replace(/\s+/g, ' ').trim();
     if (/^["«“]/.test(t)) return `${nm.replace(/\s*\([^)]*\)\s*$/, '').replace(/^(Emperador|Rey|Reina|Zarina|Señor|Señora) /, '')} lo proclama: ${t.replace(/^["“]|["”]$/g, '«').replace(/«([^«]*)«$/, '«$1»')}`;
-    const first = /^(.*?[.!?])(\s|$)/.exec(t)?.[1] ?? t;
+    const first = firstSentence(t);
     return first;
   };
   // Rasgo innato de cada personaje contado en prosa (sin el nombre del rasgo): "Se cuenta del Astromante que…",
@@ -195,7 +206,7 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
     const d = (titles[c.id]?.trait?.desc ?? '').replace(/\s+/g, ' ').trim();
     if (!d) return null;
     const quote = /^["«“]/.test(d);
-    const body = quote ? d.replace(/^["«“]+/, '').replace(/["»”]+\.?$/, '').trim() : (/^(.*?[.!?])(\s|$)/.exec(d)?.[1] ?? d).replace(/\.$/, '');
+    const body = quote ? d.replace(/^["«“]+/, '').replace(/["»”]+\.?$/, '').trim() : firstSentence(d).replace(/\.$/, '');
     return { quote, body };
   };
   const capS = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
@@ -205,7 +216,7 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
     const lower = tt.body.charAt(0).toLowerCase() + tt.body.slice(1);
     // Si el texto ya habla del personaje por su título ("La Caballera Dorada… recorre…"), va tal cual
     const words = cs.flatMap((c) => (c.baseName ?? c.name).split(/[\s,()·]+/)).filter((w) => w.length > 3);
-    if (words.some((w) => new RegExp(`\\b${w}\\b`, 'i').test(tt.body))) return `${tt.body}.`;
+    if (words.some((w) => new RegExp(`\\b${w}\\b`, 'i').test(tt.body)) || /^puede que\b/i.test(tt.body)) return `${tt.body}.`;
     // Si empieza con verbo ("podría desafiar…"): "Se cuenta del X que…"; si no ("la violencia es…"): "Para el X, …"
     const VERB = /^(es|está|son|podría|puede|sabe|tiene|nunca|siempre|no|ha|hay|lleva|cree|odia|ama|prefiere|disfruta|vive|lucha|parece|suele|jamás|rara|apenas|solo|sólo|nació|fue|era|se|lo|la le)\b/i;
     if (VERB.test(tt.body) || /^\S+(ía|aba|ó)\b/i.test(tt.body)) return pick([`Se cuenta ${andList(ss.map((x) => x.de))} que ${lower}.`, `Dicen ${andList(ss.map((x) => x.de))} que ${lower}.`], seed, salt);
@@ -254,8 +265,36 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
   if (core !== 'missile' && groups.has('missile')) comp += pick([', con tiradores que la cubren desde atrás', ', protegida por sus tiradores'], seed, 'r');
   if (core !== 'cav' && groups.has('cav')) comp += pick([', mientras su caballería aguarda en las alas', ', mientras sus jinetes esperan en los flancos el momento de cargar'], seed, 'k');
   comp += '.';
-  const beasts = core === 'monster' ? [] : namesOf('monster');
-  if (beasts.length) comp += ` ${pick(['Con ella marchan sus bestias de guerra', 'Entre sus filas avanzan sus bestias de guerra', 'La tierra tiembla bajo sus bestias de guerra'], seed, 'b')}: ${andList(beasts.slice(0, 3).map(art))}.`;
+  // Monstruos según lo que son en el juego: demonios, constructos, colosos (gigantes, dragones…), elementales, no muertos o bestias
+  const monsterKind = (x: (typeof unitCards)[number]) => {
+    if (has(x, 'Demonio')) return 'demon';
+    if (has(x, 'Constructo')) return 'construct';
+    const n = proseName(x.c.name);
+    if (x.c.models === 1 && (/dragon|giant|hydra|mammoth|arachnarok/i.test(x.u?.catIcon ?? '') || /^(Dragón|Gigante|Hidra|Mamut|Mantícora|Araña Gigante|Arachnarok|Engendro del Terror|Colmillo)/.test(n))) return 'colossus';
+    if (has(x, 'Elemental')) return 'elemental';
+    if (has(x, 'No Muertos')) return 'undead';
+    return 'beast';
+  };
+  const KIND_SENT: Record<string, (l: string, many: boolean) => string> = {
+    demon: (l) => pick([`Los demonios acuden a su llamado: ${l}.`, `Entre sus filas marchan demonios: ${l}.`], seed, 'dm'),
+    construct: (l) => pick([`Sus constructos avanzan incansables: ${l}.`, `Constructos de piedra y magia marchan con ella: ${l}.`], seed, 'cs'),
+    elemental: (l) => `Espíritus elementales acompañan a la hueste: ${l}.`,
+    undead: (l) => pick([`Horrores no muertos se arrastran entre sus filas: ${l}.`, `La acompañan horrores no muertos: ${l}.`], seed, 'ud'),
+    beast: (l) => pick([`Con ella marchan sus bestias de guerra: ${l}.`, `La tierra tiembla bajo sus bestias de guerra: ${l}.`], seed, 'b'),
+    colossus: (l, many) => pick([`Y por encima de todos ${many ? 'se alzan' : 'se alza'} ${l}.`, `${l.charAt(0).toUpperCase() + l.slice(1)} ${many ? 'dominan' : 'domina'} el campo como ${many ? 'colosos' : 'un coloso'}.`], seed, 'co'),
+  };
+  if (core !== 'monster' || groups.size) {
+    const kinds = new Map<string, string[]>();
+    for (const x of unitCards) if ((TROOP_OF[x.u?.group ?? ''] ?? 'inf') === 'monster') {
+      const k = monsterKind(x); const n = proseName(x.c.name);
+      const l = kinds.get(k) ?? []; if (!l.includes(n)) l.push(n); kinds.set(k, l);
+    }
+    for (const k of ['demon', 'construct', 'elemental', 'undead', 'beast', 'colossus']) {
+      const l = kinds.get(k); if (!l?.length) continue;
+      const names = l.slice(0, 3).map(art);
+      comp += ` ${KIND_SENT[k](andList(names), names.length > 1 || /^(los|las) /.test(names[0]))}`;
+    }
+  }
   const machines = core === 'art' ? [] : namesOf('art');
   if (machines.length) comp += ` En la retaguardia, ${andList(machines.slice(0, 3).map(art))} ${machines.length > 1 || /^(los|las) /.test(art(machines[0])) ? 'esperan' : 'espera'} la orden de fuego.`;
   out.push(comp);
@@ -273,7 +312,7 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
   let spec = '';
   if (share('cav') >= 0.4) spec = 'Su fuerza está en la carga: un ejército de choque que rompe líneas y persigue a los que huyen.';
   else if (share('missile') + share('art') >= 0.45) spec = 'Es un ejército que pelea a distancia: el enemigo debe caer antes de llegar a sus filas.';
-  else if (share('monster') >= 0.4) spec = 'Es una hueste de bestias y monstruos que aplasta todo lo que toca.';
+  else if (share('monster') >= 0.4) spec = 'Es una hueste de monstruos y horrores que aplasta todo lo que toca.';
   else if (armoured >= 0.5) spec = 'Es un muro de acero, difícil de quebrar.';
   else if (share('art') >= 0.25) spec = 'Confía en su artillería para destrozar al enemigo desde lejos.';
   else if (share('inf') >= 0.7 && !groups.has('missile')) spec = 'Es una fuerza de línea: aguanta el golpe y no retrocede.';
