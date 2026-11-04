@@ -935,3 +935,5 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .badge-sec-head { display: flex; align-items: center; gap: 6px; margin: 4px 2px; color: #e6d6a8; }
 .badge-strip .army-strip.pick-strip { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
 @media (max-width: 700px) { .badge-strip .army-strip.pick-strip { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); } }
+
+.reward-tag { display:block; color: var(--gold, #d4b45a); margin: 2px 0 4px; }

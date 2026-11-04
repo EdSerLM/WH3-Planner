@@ -54,7 +54,9 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info }: Pro
     onChange({ ...next, mount: levelOf(next, node) > 0 ? key : next.mount ?? null });
   };
   const mountRank = (n: SkillNode) => n.levels[0]?.autoRank ?? n.levels[0]?.requiredRank;
-  const innates = tree.background.filter((b) => !b.autoActive);
+  // Rasgos de recompensa de victoria (parche 9.0.5): el personaje que da la victoria corta llega con uno de estos
+  const isReward = (b: { skillKey?: string; key: string }) => /unique_reward/.test(b.skillKey ?? b.key);
+  const innates = tree.background.filter((b) => !b.autoActive).sort((a, b) => Number(isReward(b)) - Number(isReward(a)));
   const innateValue = selection.innate === undefined ? tree.defaultInnate : selection.innate;
   const [showInnates, setShowInnates] = useState(false);
   // Textos de efecto de un rasgo (y uno corto para el desplegable)
@@ -127,11 +129,16 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info }: Pro
               Rasgo innato:{' '}
               <select value={innateValue ?? ''} onChange={(e) => onChange({ ...selection, innate: e.target.value || null })}>
                 <option value="">Ninguno / no sé</option>
-                {innates.map((b) => (
-                  <option key={b.key} value={b.key} title={traitLines(b).map((l) => l.text).join('\n')}>
-                    {b.name || b.skillKey}{traitShort(b) ? ` — ${traitShort(b)}` : ''}
-                  </option>
-                ))}
+                {[true, false].map((rw) => {
+                  const list = innates.filter((b) => isReward(b) === rw);
+                  if (!list.length) return null;
+                  const opts = list.map((b) => (
+                    <option key={b.key} value={b.key} title={traitLines(b).map((l) => l.text).join('\n')}>
+                      {rw ? '🏆 ' : ''}{b.name || b.skillKey}{traitShort(b) ? ` — ${traitShort(b)}` : ''}
+                    </option>
+                  ));
+                  return rw ? <optgroup key="rw" label="Recompensa de victoria (campaña corta)">{opts}</optgroup> : <optgroup key="n" label="Rasgos normales">{opts}</optgroup>;
+                })}
               </select>{' '}
               <button type="button" className="ghost small" onClick={(e) => { e.preventDefault(); setShowInnates((v) => !v); }}>
                 {showInnates ? 'Ocultar' : `Ver todos (${innates.length})`}
@@ -182,7 +189,8 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info }: Pro
                 onClick={() => onChange({ ...selection, innate: b.key })}
                 title="Elegir este rasgo"
               >
-                <b>{b.name || b.skillKey}</b>
+                <b>{isReward(b) ? '🏆 ' : ''}{b.name || b.skillKey}</b>
+                {isReward(b) && <span className="small reward-tag">Recompensa de victoria: el personaje que da la victoria corta llega con este rasgo, rango 20 y objetos raros.</span>}
                 {b.description && <span className="muted small trait-desc">{b.description}</span>}
                 <ul>
                   {traitLines(b).map((l, i) => (
