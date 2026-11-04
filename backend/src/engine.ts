@@ -308,6 +308,10 @@ function abilitiesOf(b: ResolvedBuild, armyRemoved?: Set<string>): { ability: Ab
   const gated = new Set<string>();
   for (const it of b.tree.armory?.items ?? []) for (const e of it.effects) if (e.ability) gated.add(e.ability);
   for (const st of b.tree.armory?.sets ?? []) for (const e of st.effects) if (e.ability) gated.add(e.ability);
+  // Igual con las que da una habilidad del árbol (¡Mantened la formación!, ¡Ni un paso atrás! de Karl Franz): la unidad
+  // las lista para batalla personalizada, pero en campaña solo las tiene si compra esa habilidad
+  for (const row of b.tree.rows) for (const n of row) for (const lv of n.levels) for (const k of lv.abilities) gated.add(k);
+  for (const n of b.tree.background) for (const lv of n.levels) for (const k of lv.abilities) gated.add(k);
   for (const k of baseStats?.abilities ?? b.tree.stats?.abilities ?? []) if (!gated.has(k)) add(k, 'Innata');
 
   // Versiones por nivel (Asalto inspirado I → III): la unidad trae la I y el árbol da la II o la III; solo cuenta la más alta
