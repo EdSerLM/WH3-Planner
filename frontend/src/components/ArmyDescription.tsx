@@ -138,12 +138,30 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
   out.push(`${pick(v.open, seed, 'o')} ${host}, ${lead}${escort}.`);
   if (!unitCards.length) return out;
 
-  // 2. Sus filas (por tipo, de más a menos) y las tropas más caras
+  // 2. Cómo se ve la hueste: el núcleo, los flancos, lo que se alza sobre ellos y la retaguardia (sin cifras, como en un relato)
   const groups = new Map<string, number>();
   for (const x of unitCards) { const t = TROOP_OF[x.u?.group ?? ''] ?? 'inf'; groups.set(t, (groups.get(t) ?? 0) + x.c.count); }
-  const ranks = [...groups].sort((a, b) => b[1] - a[1]).map(([t, k]) => `${k} ${k === 1 ? 'unidad' : 'unidades'} de ${v.troops[t as keyof typeof v.troops] ?? GENERIC_T[t]}`);
-  const elite = [...unitCards].sort((a, b) => (b.u?.cost ?? 0) - (a.u?.cost ?? 0)).slice(0, 2).map((x) => x.c.name);
-  out.push(`Forman sus filas ${andList(ranks)}. ${elite.length ? `Su orgullo son ${andList([...new Set(elite)])}.` : ''}`.trim());
+  const total = [...groups.values()].reduce((a, b) => a + b, 0);
+  const noun = (t: string) => v.troops[t as keyof typeof v.troops] ?? GENERIC_T[t];
+  // Cuántos, en palabras: la mayoría es una marea; uno solo, un puñado
+  const howMuch = (k: number) => (k / total >= 0.5 ? pick(['una marea de', 'un océano de', 'una legión de'], seed, 'm') : k <= 1 ? 'un puñado de' : '');
+  const core = [...groups].sort((a, b) => b[1] - a[1])[0][0];
+  const ROLE: Record<string, (t: string, q: string) => string> = {
+    inf: (t, q) => pick([`al frente avanza ${q || 'una muralla de'} ${t}`, `su corazón lo forman ${q || 'apretadas filas de'} ${t}`], seed, 'i'),
+    missile: (t, q) => pick([`tras ellos, ${q ? q + ' ' : ''}${t} preparan sus armas`, `desde atrás, ${q ? q + ' ' : ''}${t} esperan su momento`], seed, 'r'),
+    cav: (t, q) => pick([`en los flancos aguardan ${q ? q + ' ' : ''}${t}`, `${q ? q + ' ' : ''}${t} piafan impacientes en las alas`], seed, 'k'),
+    monster: (t, q) => pick([`sobre todos ellos se alzan ${q ? q + ' ' : ''}${t}`, `${q ? q + ' ' : ''}${t} hacen temblar la tierra a su paso`], seed, 'b'),
+    art: (t, q) => pick([`y en la retaguardia ${q ? q + ' ' : ''}${t} esperan la orden de fuego`, `mientras ${q ? q + ' ' : ''}${t} apuntan desde lo alto`], seed, 'a'),
+  };
+  const ORDER = ['inf', 'missile', 'cav', 'monster', 'art'];
+  const phrases = [core, ...ORDER.filter((t) => t !== core)].filter((t) => groups.has(t)).map((t) => ROLE[t](noun(t), howMuch(groups.get(t)!)));
+  const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+  const body = phrases.length > 1 ? `${phrases.slice(0, -1).join('; ')}; ${phrases[phrases.length - 1]}` : phrases[0];
+  // En prosa sin la aclaración entre paréntesis: "Caballeros Negros (lanzas y bardas)" -> "Caballeros Negros"
+  const prose = (n: string) => n.replace(/\s*\([^)]*\)/g, '').split(' · ')[0].trim();
+  const elite = [...new Set([...unitCards].sort((a, b) => (b.u?.cost ?? 0) - (a.u?.cost ?? 0)).map((x) => prose(x.c.name)))].slice(0, 2);
+  const pride = elite.length ? ` ${pick([`Entre todos destacan, temidos y respetados, ${andList(elite)}.`, `Nadie olvida a ${andList(elite)}, el orgullo de la hueste.`], seed, 'e')}` : '';
+  out.push(`${cap(body).replace(/^Y en la/, 'En la').replace(/^Mientras /, 'Desde lo alto, ')}.${pride}`);
 
   // 3. Lo que los hace temibles
   const strong: string[] = [];
@@ -155,7 +173,7 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
   if (count((x) => x.c.stats.armour.final >= 100) >= 2 && v.armour) strong.push(v.armour);
   if (count((x) => has(x, 'Causa miedo') || has(x, 'Causa terror')) && v.fear) strong.push(v.fear);
   if (count((x) => has(x, 'Puede volar')) && v.fly) strong.push(v.fly);
-  const antiLarge = unitCards.filter((x) => x.c.stats.bvl.final > 0).map((x) => x.c.name);
+  const antiLarge = unitCards.filter((x) => x.c.stats.bvl.final > 0).map((x) => x.c.name.replace(/\s*\([^)]*\)/g, '').split(' · ')[0].trim());
   if (antiLarge.length) strong.push(`${andList([...new Set(antiLarge)].slice(0, 2))} aguardan a los monstruos y a la caballería enemiga.`);
   if (strong.length) out.push(strong.join(' '));
 
