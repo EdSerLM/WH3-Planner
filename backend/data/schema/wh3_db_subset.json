@@ -19500,6 +19500,162 @@
           "StringU8"
         ]
       ]
+    },
+    "character_training_dilemma_choice_agent_types_tables": {
+      "0": [
+        [
+          "agent_subtype_key",
+          "StringU8"
+        ],
+        [
+          "agent_key",
+          "StringU8"
+        ],
+        [
+          "choice_key",
+          "StringU8"
+        ],
+        [
+          "ui_icon_path",
+          "StringU8"
+        ]
+      ]
+    },
+    "character_training_dilemma_choice_traits_tables": {
+      "0": [
+        [
+          "m_character_trait_level_key",
+          "StringU8"
+        ],
+        [
+          "choice_key",
+          "StringU8"
+        ]
+      ]
+    },
+    "character_training_dilemma_choices_tables": {
+      "0": [
+        [
+          "dilemma_key",
+          "StringU8"
+        ],
+        [
+          "index",
+          "StringU8"
+        ],
+        [
+          "key",
+          "StringU8"
+        ]
+      ]
+    },
+    "character_training_group_dilemma_junctions_tables": {
+      "0": [
+        [
+          "group_key",
+          "StringU8"
+        ],
+        [
+          "dilemma_key",
+          "StringU8"
+        ]
+      ]
+    },
+    "character_training_groups_tables": {
+      "2": [
+        [
+          "key",
+          "StringU8"
+        ],
+        [
+          "max_slots",
+          "I64"
+        ],
+        [
+          "duration_in_rounds",
+          "I64"
+        ],
+        [
+          "dilemmas_number",
+          "I64"
+        ],
+        [
+          "initial_portrait_ui_icon_path",
+          "StringU8"
+        ],
+        [
+          "localised_name",
+          "StringU8"
+        ],
+        [
+          "training_treasury_cost",
+          "I64"
+        ]
+      ]
+    },
+    "bretonnia_vows_tables": {
+      "1": [
+        [
+          "key",
+          "StringU8"
+        ],
+        [
+          "order",
+          "I32"
+        ],
+        [
+          "image",
+          "StringU8"
+        ]
+      ]
+    },
+    "bretonnia_vows_to_traits_tables": {
+      "0": [
+        [
+          "order",
+          "I32"
+        ],
+        [
+          "trait",
+          "StringU8"
+        ],
+        [
+          "vow",
+          "StringU8"
+        ]
+      ]
+    },
+    "agent_subtype_to_vows_tables": {
+      "0": [
+        [
+          "agent_subtype",
+          "StringU8"
+        ],
+        [
+          "vow",
+          "StringU8"
+        ]
+      ]
+    },
+    "character_trait_levels_tables": {
+      "0": [
+        [
+          "key",
+          "StringU8"
+        ],
+        [
+          "level",
+          "I32"
+        ],
+        [
+          "trait",
+          "StringU8"
+        ],
+        [
+          "threshold_points",
+          "I32"
+        ]
+      ]
     }
   }
 }

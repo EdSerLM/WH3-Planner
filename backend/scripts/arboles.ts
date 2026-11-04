@@ -78,6 +78,10 @@ export const SKILL_TABLES = [
   // Iniciativas de personaje (Senda a la Gloria: dones y devociones), ligadas al subtipo por grupos de campaña
   // Nombres de poder (Elfos Oscuros): habilidad -> dilema al azar con 2 nombres -> rasgo con efectos
   'character_skill_level_to_dilemmas_junctions_tables', 'cdir_events_dilemma_payloads_tables', 'trait_level_effects_tables',
+  // Corte de Hielo (Kislev): formación de Doncellas y Brujas de Hielo; Votos de Bretonia
+  'character_training_dilemma_choice_traits_tables', 'character_training_dilemma_choices_tables', 'character_training_group_dilemma_junctions_tables',
+  'character_training_groups_tables', 'character_training_dilemma_choice_agent_types_tables',
+  'bretonnia_vows_tables', 'bretonnia_vows_to_traits_tables', 'agent_subtype_to_vows_tables', 'character_trait_levels_tables',
   // Gloria demoníaca (Legión del Caos de Daniel): umbrales de gloria por dios -> ofrendas, unidades y dones
   'pooled_resource_threshold_operation_sets_tables', 'campaign_operation_set_effect_bundle_elements_tables', 'effect_bundles_tables', 'campaign_operation_effect_bundles_tables',
   'campaign_operation_set_armory_item_elements_tables', 'campaign_operation_armory_items_tables',
@@ -1160,6 +1164,81 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       sets: [{ k: 'mech:vampire_lair', cat: 'LAIR', n: 'Guarida de Vampiros: despertar', max: 6, items, secs: LAIR_SEC.map(([, n]) => n) }],
     });
   }
+  // Corte de Hielo (Kislev): una Doncella de Hielo (héroe) o Bruja de Hielo (señora) en formación pasa por 3 dilemas
+  // y en cada uno elige 1 de 4 rasgos (character_training_*). Los rasgos de la Doncella llevan el sufijo _hero.
+  {
+    const traitEff = group('trait_level_effects_tables', 'trait_level');
+    const levelsOf = group('character_trait_levels_tables', 'trait');
+    const choiceTrait = new Map(T['character_training_dilemma_choice_traits_tables'].map((r) => [r.choice_key as string, r.m_character_trait_level_key as string]));
+    const choicesOf = group('character_training_dilemma_choices_tables', 'dilemma_key');
+    const ORDER = ['FIRST', 'SECOND', 'THIRD', 'FOURTH'];
+    const lastLevel = (trait: string) => (levelsOf.get(trait) ?? []).sort((a, b) => b.level - a.level)[0]?.key ?? trait;
+    for (const g of T['character_training_groups_tables']) {
+      const dilemmas = T['character_training_group_dilemma_junctions_tables'].filter((j) => j.group_key === g.key).map((j) => j.dilemma_key as string)
+        .filter((d) => (choicesOf.get(d) ?? []).some((c) => choiceTrait.has(c.key))).sort();
+      const items = dilemmas.flatMap((d, i) => {
+        const title = L(`character_training_dilemmas_localised_title_${d}`) ?? `Dilema ${i + 1}`;
+        return (choicesOf.get(d) ?? []).filter((c) => choiceTrait.has(c.key)).sort((a, b) => ORDER.indexOf(a.index) - ORDER.indexOf(b.index)).map((c) => {
+          const tl = lastLevel(choiceTrait.get(c.key)!);
+          return strip({ k: `icecourt:${tl}`, n: L(`character_trait_levels_onscreen_name_${tl}`) ?? pretty(tl.replace(/^.*ice_training_/, '')), g: `${i + 1}. ${title}`, l: L(`character_trait_levels_onscreen_name_${tl}`) ?? undefined, e: effRows(traitEff.get(tl) ?? [], 'effect') });
+        });
+      }).filter((it) => it.e.length);
+      const hero = /frost_maiden/.test(g.key);
+      if (items.length) mech.push({
+        who: (sub) => (hero ? /^wh3_main_ksl_frost_maiden_/ : /^wh3_main_ksl_ice_witch_/).test(sub),
+        sets: [{ k: `mech:icecourt:${hero ? 'maiden' : 'witch'}`, cat: 'ICE_COURT', n: `Corte de Hielo: formación (${hero ? 'Doncella de Hielo' : 'Bruja de Hielo'})`, max: 0, rows: true, items }],
+      });
+    }
+  }
+  // Votos de Bretonia: el señor jura el Voto del Caballero, luego el de la Búsqueda y el del Grial (las damiselas, Promesas);
+  // cada voto se cumple con uno de 3 juramentos y el rasgo de su último nivel trae los efectos.
+  {
+    const traitEff = group('trait_level_effects_tables', 'trait_level');
+    const levelsOf = group('character_trait_levels_tables', 'trait');
+    const vowOrder = new Map(T['bretonnia_vows_tables'].map((v) => [v.key as string, v.order as number]));
+    const traitsOf = group('bretonnia_vows_to_traits_tables', 'vow');
+    const vowsOf = group('agent_subtype_to_vows_tables', 'agent_subtype');
+    const lastLevel = (trait: string) => (levelsOf.get(trait) ?? []).sort((a, b) => b.level - a.level)[0]?.key ?? trait;
+    const setFor = new Map<string, Row>();
+    for (const [sub, vs] of vowsOf) {
+      const vows = vs.map((v) => v.vow as string).sort((a, b) => (vowOrder.get(a) ?? 0) - (vowOrder.get(b) ?? 0));
+      const sig = vows.join('|');
+      if (!setFor.has(sig)) {
+        // Los 3 juramentos de un voto dan los mismos efectos (solo cambia cómo se cumple): una pieza por voto
+        const items = vows.flatMap((v, i) => {
+          const ps = (traitsOf.get(v) ?? []).sort((a, b) => a.order - b.order).map((t) => lastLevel(t.trait));
+          const effs = ps.map((tl) => effRows(traitEff.get(tl) ?? [], 'effect'));
+          const same = effs.every((e) => JSON.stringify(e) === JSON.stringify(effs[0]));
+          const vn = L(`bretonnia_vows_localised_name_${v}`) ?? pretty(v);
+          const pn = (tl: string) => L(`character_trait_levels_onscreen_name_${tl}`) ?? pretty(tl);
+          return (same ? [ps[0]] : ps).map((tl, j) => strip({
+            k: `vow:${tl}`, n: same ? vn : `${vn}: ${pn(tl)}`, tier: i + 1,
+            req: same ? `Se cumple con uno de sus juramentos: ${ps.map(pn).join(', ')}.${i ? ' Requiere haber cumplido el voto anterior.' : ''}` : undefined,
+            e: same ? effs[0] : effs[j],
+          }));
+        }).filter((it) => it.e.length);
+        const secs = vows.map((v) => L(`bretonnia_vows_localised_name_${v}`) ?? pretty(v));
+        setFor.set(sig, { k: `mech:vows:${setFor.size}`, cat: 'VOWS', n: vows.some((v) => /troth/.test(v)) ? 'Promesas de la Dama' : 'Votos de Bretonia', max: 0, items, secs });
+      }
+      const set = setFor.get(sig)!;
+      if (set.items.length) mech.push({ who: (s) => s === sub, sets: [set] });
+    }
+  }
+  // Costa del Vampiro: la Saloma perdida. Cada verso encontrado da una habilidad de ejército y la canción completa, liderazgo.
+  {
+    const bundleEff = group('effect_bundles_to_effects_junctions_tables', 'effect_bundle_key');
+    const keys = ['wh2_dlc11_bundle_sea_shanty_verse_1', 'wh2_dlc11_bundle_sea_shanty_verse_2', 'wh2_dlc11_bundle_sea_shanty_verse_3', 'wh2_dlc11_bundle_sea_shanty_complete'];
+    const items = keys.map((k, i) => strip({
+      k: `shanty:${k}`, n: L(`effect_bundles_localised_title_${k}`) ?? pretty(k.replace(/^.*shanty_/, '')),
+      req: i === 3 ? 'Con los 3 versos encontrados.' : undefined,
+      e: effRows(bundleEff.get(k) ?? [], 'effect_key'),
+    })).filter((it) => it.e.length);
+    if (items.length) mech.push({
+      who: (sub, t, scs) => isLord(t) && scs.includes('wh2_dlc11_sc_cst_vampire_coast'),
+      sets: [{ k: 'mech:shanty', cat: 'SHANTY', n: 'La Saloma perdida', max: 0, items }],
+    });
+  }
+  const trainedSubs = new Set(T['character_training_dilemma_choice_agent_types_tables'].map((r) => r.agent_subtype_key as string));
   const mechFor = (sub: string, type: string, scs: string[]): Row[] => mech.filter((m) => m.who(sub, type, scs)).flatMap((m) => m.sets).filter((s) => s.items.length);
 
   /** Cortes a las que puede pertenecer un personaje: de su subcultura, sin los cargos que el juego le prohíbe */
@@ -1263,7 +1342,8 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     if (!outNodes.length) continue;
     // Marcados como no generados en el juego pero no son legendarios: los Príncipes Demonio que reclutan los Guerreros
     // del Caos y el del episodio de la Fortaleza Oscura
-    const legendary = !a.auto_generate && !/^wh3_dlc20_chs_daemon_prince_|^wh3_dlc29_episode_/.test(s.agent_subtype_key);
+    // Las Doncellas y Brujas de Hielo no se generan solas (salen de la formación de la Corte de Hielo), pero son genéricas
+    const legendary = !a.auto_generate && !/^wh3_dlc20_chs_daemon_prince_|^wh3_dlc29_episode_/.test(s.agent_subtype_key) && !trainedSubs.has(s.agent_subtype_key);
     let name = s.agent_subtype_key === 'wh3_main_dae_daemon_prince' ? 'Daniel, el Príncipe Demonio' : charName(s.agent_subtype_key, unit, legendary);
     if (s.faction_key) name += ` (${L(`factions_screen_name_${s.faction_key}`) ?? s.faction_key})`;
     characters.push(strip({
