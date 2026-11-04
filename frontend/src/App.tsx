@@ -365,9 +365,15 @@ export default function App() {
   const sideCard = sideSel ? cards.find((c) => c.id === sideSel.character && c.kind === sideKind) : undefined;
   const labels = meta?.statLabels ?? ({} as Meta['statLabels']);
   const legendaryKeys = useMemo(() => characters.filter((c) => c.legendary).map((c) => c.key), [characters]);
+  // Nombres del juego por grupo (para nombrar a los genéricos en la crónica): se cargan los que hacen falta
+  const [nameLists, setNameLists] = useState<Record<string, { m: string[]; f: string[]; sm: string[]; sf: string[] }>>({});
+  useEffect(() => {
+    const groups = [...new Set([army.lord, ...army.heroes].map((b) => (b ? characters.find((c) => c.key === b.character)?.namesGroup : undefined)).filter((g): g is string => !!g && !nameLists[g]))];
+    for (const g of groups) api.names(g).then((l) => setNameLists((m) => ({ ...m, [g]: l }))).catch(() => {});
+  }, [army.lord, army.heroes, characters, nameLists]);
   // Títulos que da la facción a cada personaje (cargo del Consejo o de la corte, Nombres de poder, votos): para la crónica
   const charTitles = useMemo(() => {
-    const out: Record<string, { court?: { role: string; court: string }[]; names?: string[]; vow?: string; trait?: { name: string; desc?: string } }> = {};
+    const out: Record<string, { court?: { role: string; court: string }[]; names?: string[]; vow?: string; trait?: { name: string; desc?: string }; given?: string; female?: boolean }> = {};
     for (const sel of [army.lord, ...army.heroes]) {
       if (!sel) continue;
       const t = trees[sel.character];
@@ -381,10 +387,24 @@ export default function App() {
       const innateKey = sel.innate === undefined ? t.defaultInnate : sel.innate;
       const inn = innateKey ? t.background.find((b) => b.key === innateKey) : undefined;
       const trait = inn && inn.name && !/^wh\d?_/.test(inn.name) ? { name: inn.name, desc: inn.description } : undefined;
-      if (court.length || names.length || vow || trait) out[sel.character] = { court: court.length ? court : undefined, names: names.length ? names : undefined, vow, trait };
+      // Nombre propio para los genéricos: uno fijo de la lista del juego (según su cultura y género)
+      const summ = characters.find((c) => c.key === sel.character);
+      const nl = summ?.namesGroup ? nameLists[summ.namesGroup] : undefined;
+      let given: string | undefined;
+      // Género: el del juego, salvo que el título sea masculino ("Señor Shugengan", "Aeda Mágico"): manda la gramática
+      const female = !!summ?.female && !/^(Señor|Rey|Príncipe|Caudillo|Kaudillo|Jefe|Gran Chamán|Paladín|Héroe|Maestro|Capitán|General)\b|^\S+o\b/.test((summ?.name ?? '').replace(/\s*\(.*$/, ''));
+      if (summ && !summ.legendary && nl) {
+        // Sin nombres de legendarios (Morathi, Hellebron…) para no confundir
+        const legendNames = new Set(characters.filter((c) => c.legendary).flatMap((c) => c.name.split(/[\s,]+/)));
+        const pool = (female ? nl.f : nl.m).filter((n) => !legendNames.has(n));
+        const sur = (female ? nl.sf : nl.sm).filter((n) => !legendNames.has(n) && !/^(los|las) /.test(n));
+        let h = 0; for (const ch of sel.character + (army.heroes.indexOf(sel) + 1)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+        if (pool.length) given = `${pool[h % pool.length]}${sur.length ? ` ${sur[(h >>> 8) % sur.length]}` : ''}`;
+      }
+      out[sel.character] = { court: court.length ? court : undefined, names: names.length ? names : undefined, vow, trait, given, female: summ?.legendary ? summ.female : female };
     }
     return out;
-  }, [army.lord, army.heroes, trees]);
+  }, [army.lord, army.heroes, trees, characters, nameLists]);
   const heroTabName = (h: BuildSelection) => characters.find((c) => c.key === h.character)?.name ?? 'Héroe';
 
   const campaignGrouped = useMemo(() => {

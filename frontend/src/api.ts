@@ -20,6 +20,7 @@ export const api = {
   meta: () => req<Meta>('/api/meta'),
   characterFactions: () => req<{ default: string; factions: { key: string; name: string; flag?: string }[] }>('/api/character-factions'),
   characters: (faction?: string) => req<CharacterSummary[]>(`/api/characters${faction ? `?faction=${encodeURIComponent(faction)}` : ''}`),
+  names: (group: string) => req<{ m: string[]; f: string[]; sm: string[]; sf: string[] }>(`/api/names/${encodeURIComponent(group)}`),
   character: (key: string) => req<CharacterTree>(`/api/characters/${encodeURIComponent(key)}`),
   unitAbilities: (unit: string, names: string[]) =>
     req<{ abilities: AbilityInfo[]; attrs: Record<string, string> }>(`/api/unit-abilities?unit=${encodeURIComponent(unit)}&names=${encodeURIComponent(names.join('|'))}`),

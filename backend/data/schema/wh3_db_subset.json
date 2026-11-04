@@ -19710,6 +19710,52 @@
           "Boolean"
         ]
       ]
+    },
+    "names_tables": {
+      "1": [
+        [
+          "names_group",
+          "I32"
+        ],
+        [
+          "type",
+          "I32"
+        ],
+        [
+          "gender",
+          "I32"
+        ],
+        [
+          "frequency",
+          "I32"
+        ],
+        [
+          "id",
+          "StringU8"
+        ]
+      ],
+      "0": [
+        [
+          "id",
+          "I64"
+        ],
+        [
+          "names_group",
+          "StringU8"
+        ],
+        [
+          "type",
+          "StringU8"
+        ],
+        [
+          "gender",
+          "StringU8"
+        ],
+        [
+          "frequency",
+          "I32"
+        ]
+      ]
     }
   }
 }

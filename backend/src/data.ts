@@ -37,6 +37,8 @@ interface GameEffect { k: string; d: string; b?: 1; ic?: string; s: { kind: stri
 interface GameSkill { sk: string; n: string; nEn?: string; d?: string; img?: string; bgSkill?: boolean; lv: { e: GameEffect[]; ab?: string[]; ur?: number; ar?: number }[] }
 interface GameCharacter {
   key: string; subtype: string; name: string; nameEn: string; unit: string; type: 'lord' | 'hero'; legendary: boolean;
+  /** Mujer (has_female_name) y grupo de nombres del juego */
+  fem?: boolean; ng?: string;
   /** Acciones de héroe que desbloquea su árbol */
   acts?: string[] | null;
   subcultures: string[]; home: string; nodes: GameNode[];
@@ -731,7 +733,7 @@ export function listCharacters(faction?: string): CharacterSummary[] {
   const names = factionNames(f);
   return gameFile.characters
     .filter((c) => c.subcultures.includes(f))
-    .map((c) => ({ key: charId(c, f), name: names.get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction: f, art: artOfUnit(c.unit), ...(c.factions ? { factions: c.factions } : {}) }))
+    .map((c) => ({ key: charId(c, f), name: names.get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction: f, art: artOfUnit(c.unit), ...(c.factions ? { factions: c.factions } : {}), ...(c.fem ? { female: true } : {}), ...(c.ng ? { namesGroup: c.ng } : {}) }))
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
 }
 
@@ -1136,4 +1138,9 @@ export function isNamedMount(name: string): boolean {
     }
   }
   return (mountOwners.get(name) ?? 0) === 1 && !GENERIC_MOUNT.test(name.trim());
+}
+
+/** Nombres que el juego da a los personajes de un grupo (nombres de hombre, de mujer y apellidos) */
+export function namesOf(group: string): { m: string[]; f: string[]; sm: string[]; sf: string[] } {
+  return (gameFile as unknown as { names?: Record<string, { m: string[]; f: string[]; sm: string[]; sf: string[] }> } | null)?.names?.[group] ?? { m: [], f: [], sm: [], sf: [] };
 }

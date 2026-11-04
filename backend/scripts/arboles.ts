@@ -83,6 +83,8 @@ export const SKILL_TABLES = [
   'character_training_groups_tables', 'character_training_dilemma_choice_agent_types_tables',
   // Icono de cada efecto y si un valor positivo es bueno (para marcar bufos y penalizaciones)
   'effects_tables',
+  // Nombres que el juego da a los personajes genéricos (por cultura y género)
+  'names_tables',
   'bretonnia_vows_tables', 'bretonnia_vows_to_traits_tables', 'agent_subtype_to_vows_tables', 'character_trait_levels_tables',
   // Gloria demoníaca (Legión del Caos de Daniel): umbrales de gloria por dios -> ofrendas, unidades y dones
   'pooled_resource_threshold_operation_sets_tables', 'campaign_operation_set_effect_bundle_elements_tables', 'effect_bundles_tables', 'campaign_operation_effect_bundles_tables',
@@ -1253,6 +1255,21 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       sets: [{ k: 'mech:shanty', cat: 'SHANTY', n: 'La Saloma perdida', max: 0, items }],
     });
   }
+  // Grupo de nombres de cada subcultura (el de su primera facción con grupo) y listas de nombres por grupo y género
+  const scNameGroup = new Map<string, string>();
+  for (const f of T['factions_tables']) if (f.name_group && !scNameGroup.has(f.subculture)) scNameGroup.set(f.subculture, f.name_group);
+  // Nombres y apellidos por género (los apellidos también: "la Hermosa" es de mujer)
+  const namesOut: Record<string, { m: string[]; f: string[]; sm: string[]; sf: string[] }> = {};
+  for (const r of T['names_tables']) {
+    const t = L(`names_name_${r.id}`);
+    if (!t || t.length > 30 || (r.type === 'forename' && /\s/.test(t))) continue;
+    const g = (namesOut[r.names_group] ??= { m: [], f: [], sm: [], sf: [] });
+    const [mk, fk] = r.type === 'family_name' ? (['sm', 'sf'] as const) : r.type === 'forename' ? (['m', 'f'] as const) : [null, null];
+    if (!mk) continue;
+    if (r.gender !== 'f') g[mk].push(t);
+    if (r.gender !== 'm') g[fk!].push(t);
+  }
+  for (const g of Object.values(namesOut)) for (const k of ['m', 'f', 'sm', 'sf'] as const) g[k] = [...new Set(g[k])].sort();
   const trainedSubs = new Set(T['character_training_dilemma_choice_agent_types_tables'].map((r) => r.agent_subtype_key as string));
   const mechFor = (sub: string, type: string, scs: string[]): Row[] => mech.filter((m) => m.who(sub, type, scs)).flatMap((m) => m.sets).filter((s) => s.items.length);
 
@@ -1364,6 +1381,8 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     characters.push(strip({
       key: s.key, subtype: s.agent_subtype_key, name, nameEn: a.key, unit,
       type: s.agent_key === 'general' ? 'lord' : 'hero', agent: s.agent_key, legendary,
+      // Género (has_female_name) y grupo de nombres del juego: para nombrar a los genéricos en la crónica
+      fem: a.has_female_name || undefined, ng: a.names_group || scNameGroup.get(homeSc(unit, scs) ?? '') || scNameGroup.get(scs[0]) || undefined,
       subcultures: scs, factions: only ?? undefined, home: homeSc(unit, scs), nodes: outNodes, bg, stats: charStats(unit), mounts: Object.keys(mounts).length ? mounts : null,
       items: legendary && itemsFor(s.agent_subtype_key).length ? itemsFor(s.agent_subtype_key) : null,
       armory: armoryFor(s.agent_subtype_key),
@@ -1549,7 +1568,7 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
   return {
     unitUpgrades, unitAbilities, attrDesc, heroActions,
     source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', format: 2,
-    subcultures: subs, characters, skills: skillsOut, abilities, unitLists, locks, techTrees, techs, ancillaries, itemSets, graphs,
+    subcultures: subs, characters, skills: skillsOut, names: namesOut, abilities, unitLists, locks, techTrees, techs, ancillaries, itemSets, graphs,
     // Solo las restricciones que usan las habilidades extraídas
     targetFlags: Object.fromEntries(Object.entries(targetFlags).filter(([k]) => Object.values(abilities).some((a) => a.inv?.includes(k)))),
   };

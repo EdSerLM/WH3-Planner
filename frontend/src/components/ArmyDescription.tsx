@@ -20,7 +20,7 @@ interface Props {
   /** Títulos de cada personaje (clave del personaje): cargo de la corte, Nombres de poder, voto cumplido */
   titles?: Record<string, CharTitles>;
 }
-export interface CharTitles { court?: { role: string; court: string }[]; names?: string[]; vow?: string; trait?: { name: string; desc?: string } }
+export interface CharTitles { court?: { role: string; court: string }[]; names?: string[]; vow?: string; trait?: { name: string; desc?: string }; given?: string; female?: boolean }
 
 /** Saber de magia entre paréntesis en el nombre ("Aeda Mágico (Oscura)") dicho en prosa */
 const LORE: Record<string, string> = {
@@ -33,6 +33,16 @@ const LORE: Record<string, string> = {
   Hielo: 'el Saber del Hielo', Tempestad: 'el Saber de la Tempestad', 'Grandes Fauces': 'el Saber de las Grandes Fauces',
 };
 const FEM = /\b(Señora|Reina|Zarina|Bruja|Doncella|Capitana|Caballera|Gloriosa|Hechicera|Sacerdotisa|Profetisa|Damisela|Hada|Sirena|Vampiresa|Matriarca|Hermanas|Tejedora|Cantora|Katarin|Alarielle|Morathi|Neferata|Isabella|Khalida|Elspeth|Hellebron|Ostankya|Naryska|Ulrika|Miao Ying|Valkia|Repanse|Drycha|Crone)\b/;
+/** Rasgo como adjetivo con su género ("Rencoroso" -> "rencorosa"); los sustantivos ("Agresividad") como "conocida por su agresividad" */
+function traitPhrase(name: string, fem: boolean): { kind: 'adj' | 'noun'; text: string } {
+  const n = name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+  const low = n.charAt(0).toLowerCase() + n.slice(1);
+  if (/(dad|tad|ez|eza|ción|sión|ura|ia|ía|ismo|aje)$/i.test(n.split(' ')[0])) return { kind: 'noun', text: low };
+  if (!fem) return { kind: 'adj', text: low };
+  // Femenino: solo la primera palabra ("Malévolo" -> "malévola"; "Reina de Hielo" queda igual)
+  const [w0, ...rest] = low.split(' ');
+  return { kind: 'adj', text: [w0.replace(/o$/, 'a').replace(/or$/, 'ora'), ...rest].join(' ') };
+}
 /** "del Consejo de los Elfos", "de la Congregación…", "de los Hablantes…" */
 const ofCourt = (c: string) => (/^Cargos de la corte/i.test(c) ? '' : /^(Consejo|Cónclave|Círculo)\b/.test(c) ? ` del ${c}` : /^(Hablantes|Señores)\b/.test(c) ? ` de los ${c}` : ` de la ${c}`);
 
@@ -160,7 +170,7 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
     // El saber o la marca entre paréntesis ("Aeda Mágico (Oscura)") se dice en prosa; armas u otras aclaraciones se quitan
     const tag = /\(([^)]*)\)\s*$/.exec(full)?.[1];
     const n = full.replace(/\s*\([^)]*\)\s*$/, '').trim();
-    const fem = FEM.test(n);
+    const fem = titles[c.id]?.female ?? FEM.test(n);
     const extra: string[] = [];
     if (tag && LORE[tag]) extra.push(`${fem ? 'versada' : 'versado'} en ${LORE[tag]}`);
     const t = titles[c.id];
@@ -176,11 +186,14 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
     if (legendary.includes(c.id) && !/^Señora? de (los|las) /.test(n)) {
       const m = c.mountNamed && c.mountName ? c.mountName.replace(/\s*\([^)]*\)/g, '').trim() : '';
       base = m ? `${n}, ${pick(['montado en', 'a lomos de'], seed, 'mt')} ${m}` : n;
-    } else base = `${fem ? 'una' : 'un'} ${n}`;
+    } else base = titles[c.id]?.given ? `${titles[c.id]!.given}, ${fem ? 'una' : 'un'} ${n}` : `${fem ? 'una' : 'un'} ${n}`;
+    // Con nombre propio, el título y su saber van juntos: "Ilythia, una Hechicera versada en…"
+    if (extra.length && titles[c.id]?.given && extra[0].startsWith('versad')) { const [lo, ...more] = extra; return `${base} ${lo}${more.length ? `, ${andList(more)}` : ''}`; }
     return extra.length ? `${base}, ${andList(extra)}` : base;
   };
   const lead = lord ? `al mando de ${who(lord)}` : 'sin un señor que la guíe';
-  const escort = heroes.length ? `, ${heroes.length === 1 ? 'con' : lord && FEM.test(lord.baseName ?? lord.name) ? 'escoltada por' : 'escoltado por'} ${andList(heroes.map(who))}` : '';
+  const lordFem = !!lord && (titles[lord.id]?.female ?? FEM.test(lord.baseName ?? lord.name));
+  const escort = heroes.length ? `, ${heroes.length === 1 ? 'con' : lordFem ? 'escoltada por' : 'escoltado por'} ${andList(heroes.map(who))}` : '';
   out.push(`${openFor(pick(v.open, seed, 'o'), host)} ${host}, ${lead}${escort}.`);
 
   // 1b. Quiénes son los legendarios que la guían, con el texto del propio juego (su primera frase)
@@ -197,10 +210,12 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
   // "Katarin suele repetir: «…»". Los que comparten rasgo van juntos.
   const subjOf = (c: ComputedCard) => {
     const full = (c.baseName ?? c.name).split(' · ')[0].replace(/\s*\([^)]*\)\s*$/, '').trim();
+    const fem = titles[c.id]?.female ?? FEM.test(full);
     const isLegend = legendary.includes(c.id) && !/^Señora? de (los|las) /.test(full);
-    if (isLegend) { const n = full.split(',')[0].replace(/^(Emperador|Rey|Reina|Zarina|Señor|Señora) /, ''); return { legend: true, subj: n, de: `de ${n}` }; }
-    const fem = FEM.test(full);
-    return { legend: false, subj: `${fem ? 'la' : 'el'} ${full}`, de: `${fem ? 'de la' : 'del'} ${full}` };
+    if (isLegend) { const n = full.split(',')[0].replace(/^(Emperador|Rey|Reina|Zarina|Señor|Señora) /, ''); return { legend: true, fem, subj: n, de: `de ${n}` }; }
+    const given = titles[c.id]?.given;
+    if (given) { const first = given.split(' ')[0]; return { legend: false, fem, subj: first, de: `de ${first}` }; }
+    return { legend: false, fem, subj: `${fem ? 'la' : 'el'} ${full}`, de: `${fem ? 'de la' : 'del'} ${full}` };
   };
   const traitText = (c: ComputedCard) => {
     const d = (titles[c.id]?.trait?.desc ?? '').replace(/\s+/g, ' ').trim();
@@ -212,15 +227,26 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
   const capS = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
   const traitSentence = (cs: ComputedCard[], tt: { quote: boolean; body: string }, salt: string) => {
     const ss = cs.map(subjOf);
-    if (tt.quote) return `${capS(andList(ss.map((x) => x.subj)))} ${cs.length > 1 ? 'suelen' : 'suele'} repetir: «${tt.body}»`;
+    const many = cs.length > 1;
+    const allFem = ss.every((x) => x.fem);
+    const tn = titles[cs[0].id]?.trait?.name ?? '';
+    // Rasgo unido al texto con su género: "Morgiana es rencorosa: …", "Lilith y Khaeleth, conocidas por su agresividad, …"
+    const tp = tn ? traitPhrase(tn, allFem) : null;
+    const plural = (t: string) => (many ? t.split(' ').map((w) => (/^(de|del|el|los|la|las|y|en|a|su)$/.test(w) ? w : /[aeiouáéó]$/.test(w) ? `${w}s` : /[lrnz]$/.test(w) ? `${w}es` : w)).join(' ') : t);
+    const who = capS(andList(ss.map((x) => x.subj)));
     const lower = tt.body.charAt(0).toLowerCase() + tt.body.slice(1);
-    // Si el texto ya habla del personaje por su título ("La Caballera Dorada… recorre…"), va tal cual
-    const words = cs.flatMap((c) => (c.baseName ?? c.name).split(/[\s,()·]+/)).filter((w) => w.length > 3);
-    if (words.some((w) => new RegExp(`\\b${w}\\b`, 'i').test(tt.body)) || /^puede que\b/i.test(tt.body)) return `${tt.body}.`;
-    // Si empieza con verbo ("podría desafiar…"): "Se cuenta del X que…"; si no ("la violencia es…"): "Para el X, …"
-    const VERB = /^(es|está|son|podría|puede|sabe|tiene|nunca|siempre|no|ha|hay|lleva|cree|odia|ama|prefiere|disfruta|vive|lucha|parece|suele|jamás|rara|apenas|solo|sólo|nació|fue|era|se|lo|la le)\b/i;
-    if (VERB.test(tt.body) || /^\S+(ía|aba|ó)\b/i.test(tt.body)) return pick([`Se cuenta ${andList(ss.map((x) => x.de))} que ${lower}.`, `Dicen ${andList(ss.map((x) => x.de))} que ${lower}.`], seed, salt);
-    return `Para ${andList(ss.map((x) => x.subj))}, ${lower}.`;
+    if (tt.quote) {
+      const lead = tp ? (tp.kind === 'adj' ? `, ${plural(tp.text)},` : `, ${many ? (allFem ? 'conocidas' : 'conocidos') : ss[0].fem ? 'conocida' : 'conocido'} por su ${tp.text},`) : '';
+      return `${who}${lead} ${many ? 'suelen' : 'suele'} repetir: «${tt.body}»`;
+    }
+    if (tp && tp.kind === 'adj') return `${who} ${many ? 'son' : 'es'} ${plural(tp.text)}: ${lower}.`;
+    if (tp) {
+      const known = many ? (allFem ? 'conocidas' : 'conocidos') : ss[0].fem ? 'conocida' : 'conocido';
+      const VERB = /^(es|está|son|podría|puede|sabe|tiene|nunca|siempre|no|ha|hay|lleva|cree|odia|ama|prefiere|disfruta|vive|lucha|parece|suele|jamás|solo|nació|fue|era|se)\b/i;
+      const pron = many ? (allFem ? 'ellas' : 'ellos') : ss[0].fem ? 'ella' : 'él';
+      return `${who} ${many ? 'son' : 'es'} ${known} por su ${tp.text}: ${VERB.test(tt.body) ? `se dice que ${lower}` : `para ${pron}, ${lower}`}.`;
+    }
+    return pick([`Se cuenta ${andList(ss.map((x) => x.de))} que ${lower}.`, `Dicen ${andList(ss.map((x) => x.de))} que ${lower}.`], seed, salt);
   };
   const chars2 = [lord, ...heroes].filter((c): c is ComputedCard => !!c);
   const paras: string[] = [];
@@ -229,6 +255,8 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
     const lo = loreOf(c);
     if (!lo) continue;
     const tt = traitText(c);
+    // Si su lore ya es una cita ("Karl Franz lo proclama: «…»"), la segunda cita no repite el nombre
+    if (tt?.quote && / lo proclama: /.test(lo)) { paras.push(`${lo} Y suele repetir: «${tt.body}»`); continue; }
     paras.push([lo, tt ? traitSentence([c], tt, c.id) : ''].filter(Boolean).join(' '));
   }
   // Genéricos (y legendarios sin lore): sus rasgos en un solo párrafo, agrupando los que dicen lo mismo
