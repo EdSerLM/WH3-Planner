@@ -323,9 +323,35 @@ export function buildChronicle(cards: ComputedCard[], units: UnitData[], subcult
       comp += ` ${KIND_SENT[k](andList(names), names.length > 1 || /^(los|las) /.test(names[0]))}`;
     }
   }
-  const machines = core === 'art' ? [] : namesOf('art');
-  if (machines.length) comp += ` En la retaguardia, ${andList(machines.slice(0, 3).map(art))} ${machines.length > 1 || /^(los|las) /.test(art(machines[0])) ? 'esperan' : 'espera'} la orden de fuego.`;
+  // Máquinas: las que disparan esperan en la retaguardia; las que no (Sagrario Mortis, carros de culto…) avanzan con la hueste
+  const shoots = (x: (typeof unitCards)[number]) => !!x.u?.missile || x.c.stats.missileDmg.final > 0;
+  const artUnits = core === 'art' ? [] : unitCards.filter((x) => (TROOP_OF[x.u?.group ?? ''] ?? 'inf') === 'art');
+  const guns = [...new Set(artUnits.filter(shoots).map((x) => proseName(x.c.name)))];
+  const engines = [...new Set(artUnits.filter((x) => !shoots(x)).map((x) => proseName(x.c.name)))];
+  const plural = (l: string[]) => l.length > 1 || /^(los|las) /.test(art(l[0]));
+  if (engines.length) comp += ` ${capS(andList(engines.slice(0, 3).map(art)))} ${plural(engines) ? 'avanzan' : 'avanza'} entre sus filas, sembrando la muerte a su paso.`;
+  if (guns.length) comp += ` En la retaguardia, ${andList(guns.slice(0, 3).map(art))} ${plural(guns) ? 'esperan' : 'espera'} la orden de fuego.`;
   out.push(comp);
+
+  // Rasgo dominante de la hueste: si un tipo de guerrero llena buena parte de sus filas, se dice como lo diría un cronista
+  const subN = subculture ?? '';
+  const CLUSTERS: { test: (x: (typeof unitCards)[number]) => boolean; text: string; skip?: RegExp }[] = [
+    { test: (x) => (x.c.stats.resPhysical?.final ?? 0) >= 50 && has(x, 'No Muertos'), text: 'Una hueste de espectros flota entre sus filas, inmune al acero de los mortales.' },
+    { test: (x) => /forsaken|mutant|spawn/i.test(x.u?.catIcon ?? '') || /^(Malditos|Engendros?|Mutant)/.test(x.c.name), text: 'Sus engendros mutados avanzan entre aullidos y carne retorcida, regalo y castigo de los Dioses Oscuros.' },
+    { test: (x) => has(x, 'Demonio'), text: 'Los demonios llenan sus filas: una horda nacida de la disformidad, que no conoce ni el miedo ni la piedad.', skip: /dae_daemons|kho_khorne|nur_nurgle|sla_slaanesh|tze_tzeentch/ },
+    { test: (x) => has(x, 'Monstruo Moulder'), text: 'Las abominaciones del Clan Moulder, carne cosida y retorcida, son su orgullo y su terror.' },
+    { test: (x) => has(x, 'Caballero'), text: 'Una orden de caballeros juramentados cabalga a su servicio, con la lanza baja y el honor por delante.' },
+    { test: (x) => has(x, 'Campesino'), text: 'Una leva de campesinos, mal armados pero numerosos, forma el grueso de la hueste.' },
+    { test: (x) => has(x, 'Matador'), text: 'Matadores juramentados marchan entre sus filas, buscando la muerte gloriosa que borre su vergüenza.' },
+    { test: (x) => has(x, 'Sacrificable'), text: 'Buena parte de sus filas es carne de cañón: tropas prescindibles que su señor no dudará en sacrificar.' },
+    { test: (x) => has(x, 'Puede volar'), text: 'Buena parte de la hueste surca los cielos, cayendo sobre el enemigo desde lo alto.' },
+    { test: (x) => has(x, 'Despliegue de vanguardia') || has(x, 'Acechar'), text: 'Muchos de sus guerreros acechan por delante del ejército, golpeando antes de que el enemigo los vea venir.' },
+  ];
+  for (const cl of CLUSTERS) {
+    if (cl.skip?.test(subN)) continue;
+    const n = count(cl.test);
+    if (n >= 4 && n / total >= 0.25) { out.push(cl.text); break; }
+  }
 
   // Qué clase de ejército es: élite u horda (nivel medio de las unidades) y en qué se especializa (su composición)
   const tiered = unitCards.filter((x) => x.u?.tier);
