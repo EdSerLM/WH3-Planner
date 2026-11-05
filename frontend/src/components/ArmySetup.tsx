@@ -452,6 +452,24 @@ export function RosterDuelStrip({ units, matchups, best }: { units: UnitData[]; 
   );
 }
 
+/** Tarjeta pequeña de una unidad del roster (para listas como "a quién afecta esta habilidad") */
+export function UnitTile({ u, selected, dim, title, badge, onClick }: { u: UnitData; selected?: boolean; dim?: boolean; title?: string; badge?: string; onClick?: () => void }) {
+  return (
+    <button
+      type="button"
+      className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (selected ? ' sel' : '') + (dim ? ' dim' : '')}
+      style={artStyle(u)}
+      title={title ?? u.name}
+      onClick={onClick}
+    >
+      <span className="ut-cost"><Tier t={u.tier} />{u.cost}</span>
+      <span className="ut-icon"><UnitIcon kind={iconOf(u)} cat={u.catIcon} /><NatureBadges kind={iconOf(u)} cat={u.catIcon} attrs={u.attrs} /></span>
+      <span className="ut-name">{u.name}</span>
+      {badge && <span className="ut-duels ut-techs">{badge}</span>}
+    </button>
+  );
+}
+
 /** Tira de señores, héroes y unidades para elegir una (Tecnologías; unidades que reciben bufos de un personaje) */
 const BADGE_VIEW = 'wh3-planner:badge-strip-view';
 type BadgeGroup = '' | 'type' | 'tier';

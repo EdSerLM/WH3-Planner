@@ -203,7 +203,7 @@ export function fillAll(sel: BuildSelection, tree: CharacterTree): { sel: BuildS
  * entre varios padres, los primeros de la lista hasta juntarlos. Lo que no cabe en el rango máximo o está bloqueado
  * por una excluyente se salta; `missing` dice cuántas de las pedidas no quedaron al máximo.
  */
-export function buyNodes(sel: BuildSelection, tree: CharacterTree, keys: string[]): { sel: BuildSelection; missing: number } {
+export function buyNodes(sel: BuildSelection, tree: CharacterTree, keys: string[], full = true): { sel: BuildSelection; missing: number } {
   const by = new Map(tree.rows.flat().map((n) => [n.key, n]));
   let next = sel;
   const lvl = (k: string) => (by.get(k) ? levelOf(next, by.get(k)!) : 0);
@@ -227,9 +227,16 @@ export function buyNodes(sel: BuildSelection, tree: CharacterTree, keys: string[
     const goal = full ? n.levels.length : Math.max(1, levelOf(next, n));
     while (levelOf(next, n) < goal && !whyNotBuy(n, next, tree)) next = increment(next, n, tree);
   };
-  for (const k of keys) if (by.has(k)) need(by.get(k)!, true);
+  for (const k of keys) if (by.has(k)) need(by.get(k)!, full);
   const missing = keys.filter((k) => by.has(k) && lvl(k) < by.get(k)!.levels.length).length;
   return { sel: { ...next, mount: sel.mount ?? null }, missing };
+}
+
+/** Sube un nivel; si todavía no se puede, compra antes lo que pide (padres) y la deja en nivel 1. */
+export function buyUp(sel: BuildSelection, tree: CharacterTree, node: SkillNode): BuildSelection {
+  if (!whyNotBuy(node, sel, tree)) return increment(sel, node, tree);
+  if (levelOf(sel, node) > 0) return sel;
+  return buyNodes(sel, tree, [node.key], false).sel;
 }
 
 export function emptyBuild(tree: CharacterTree): BuildSelection {

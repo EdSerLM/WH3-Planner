@@ -5,6 +5,9 @@ import type { BuildSelection, CharacterTree, ComputedCard, StatKey, UnitData } f
 import { buyNodes } from '../treeLogic';
 import { UnitBadgeStrip } from './ArmySetup';
 import { UnitBuffSummary } from './UnitBuffSummary';
+import { SkillUnits } from './SkillUnits';
+
+const VIEW_KEY = 'wh3-planner:charunits-view';
 
 interface Props {
   /** Nombre del personaje tal como sale en el desglose de las tarjetas ("from") */
@@ -40,6 +43,9 @@ function rowClass(label: string): string {
 /** Debajo del árbol: las unidades del roster que reciben bufos de este señor o héroe con lo que lleva comprado. */
 export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNames, character, kind, tree, selection, onChange }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
+  // Ver por unidad (tarjetas con cuántas habilidades reciben) o por habilidad (a quién afecta cada una)
+  const [view, setView] = useState<'units' | 'skills'>(() => { try { return localStorage.getItem(VIEW_KEY) === 'units' ? 'units' : 'skills'; } catch { return 'skills'; } });
+  useEffect(() => { try { localStorage.setItem(VIEW_KEY, view); } catch { /* sin almacenamiento */ } }, [view]);
   // Por unidad: habilidades del árbol que podrían cambiarle la tarjeta (todas compradas): siempre y solo en rango 7+
   const [potential, setPotential] = useState<Record<string, { now: string[]; r7: string[] }>>({});
   useEffect(() => {
@@ -114,6 +120,16 @@ export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNam
             En gris: todavía no recibe nada. Clic en una unidad para ver cuáles son y todo lo que recibe. Solo cuenta lo que dan las habilidades del árbol
             todo el tiempo; las auras, habilidades de batalla, monturas y excluyentes que no elegiste no.
           </p>
+          <div className="badge-strip-tools small">
+            <span className="seg">
+              <button type="button" className={view === 'skills' ? 'on' : ''} onClick={() => setView('skills')}>Por habilidad</button>
+              <button type="button" className={view === 'units' ? 'on' : ''} onClick={() => setView('units')}>Por unidad</button>
+            </span>
+          </div>
+          {view === 'skills' ? (
+            <SkillUnits units={units} potential={potential} have={(id) => info(id).have} tree={tree} selection={selection} onChange={onChange}
+              selected={selected} onPick={(id) => setSelected(selected === id ? null : id)} />
+          ) : (
           <UnitBadgeStrip
             units={units}
             dim={(id) => !skills[id]}
@@ -135,6 +151,7 @@ export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNam
             selected={selected}
             onPick={(id) => setSelected(selected === id ? null : id)}
           />
+          )}
         </>
       )}
       {sel && (

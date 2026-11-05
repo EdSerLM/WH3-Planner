@@ -171,3 +171,24 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
 .lord-link li { font-size: 12.5px; margin: 3px 0; }
 .lord-link p { margin: 0; }
 .lord-link .tag { display: inline-block; width: auto; margin-right: 4px; }
+
+/* Unidades que reciben bufos: vista por habilidad */
+.skill-units { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.su-row { display: grid; grid-template-columns: 220px minmax(180px, 1fr) 2fr; gap: 10px; align-items: start; padding: 8px 10px; border: 1px solid rgba(212, 180, 106, 0.18); border-radius: 4px; background: rgba(20, 14, 8, 0.45); }
+.su-row.on { border-color: rgba(212, 180, 106, 0.55); }
+.su-skill { display: flex; gap: 8px; align-items: flex-start; }
+.su-name { font-weight: 600; color: var(--gold, #d4b46a); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.su-lvl { display: flex; gap: 6px; align-items: center; margin-top: 4px; }
+.su-lvl button { padding: 0 8px; min-width: 26px; line-height: 20px; }
+.su-lvl .pips { display: inline-flex; gap: 3px; }
+.su-lvl .pips i { width: 8px; height: 8px; border-radius: 50%; border: 1px solid #b39552; display: inline-block; }
+.su-lvl .pips i.on { background: #e7c66a; }
+.su-eff { margin: 0; padding-left: 14px; }
+.su-eff li { margin: 1px 0; }
+.su-who { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+.su-chip { display: inline-flex; gap: 5px; align-items: center; padding: 3px 9px; border-radius: 12px; background: #2f3d22; color: #cfe8a8; font-size: 12.5px; border: 1px solid #4a6a2a; }
+.su-chip.all { background: #3d2f14; color: #f0d48a; border-color: #8a6a2a; }
+.su-tiles { width: 100%; display: flex; flex-wrap: wrap; gap: 4px; margin: 0; }
+.su-tiles .utile { width: 76px; height: 108px; font-size: 10px; }
+.su-tiles .utile .ut-icon { height: 34px; }
+@media (max-width: 900px) { .su-row { grid-template-columns: 1fr; } }
