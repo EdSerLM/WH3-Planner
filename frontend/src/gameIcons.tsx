@@ -88,3 +88,9 @@ export function AttrImg({ name, size = 14, idx }: { name: string; size?: number;
   const e = attrIcon(name);
   return e ? <span className="attr-emoji">{e}</span> : null;
 }
+
+/** Icono del juego por ruta (p. ej. "skills/character_magic"); si falta la imagen, el emoji de respaldo */
+export function GameIcon({ path, emoji, size = 16, title }: { path: string; emoji: string; size?: number; title?: string }) {
+  // Con la base de la web (/WH3-Planner/): la ruta se arma aquí, así que el plugin de vite no la ve
+  return <OfficialImg src={`${import.meta.env.BASE_URL}${path}.png`} size={size} title={title} fallback={<span title={title}>{emoji}</span>} />;
+}

@@ -8,7 +8,7 @@ import { groupIndex, groupInfo } from '../unitGroups';
 import { BuffMark, SpecialTags } from './ArmyPanel';
 import { UnitIcon } from './UnitIcon';
 import { attrIcon } from '../attrIcons';
-import { AbilityImg, AttrImg, GroupIcon, OfficialImg, StatImg, useAttrIndex } from '../gameIcons';
+import { AbilityImg, AttrImg, GameIcon, GroupIcon, OfficialImg, StatImg, useAttrIndex } from '../gameIcons';
 
 // Icono genérico: el del juego (extractor) o, si no viene, según el grupo
 const ICON_BY_GROUP: Record<string, string> = {
@@ -382,10 +382,10 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
                                 {GAIN_MARK[gains.get(u.card)!.verdict]}
                               </span>
                             )}
-                            {/_ror/.test(u.key + u.card) && <span title="Regimiento de Renombre">🏅</span>}
-                            {u.campaignOnly && <span title="Solo en campaña">🗺️</span>}
+                            {/_ror/.test(u.key + u.card) && <span title="Regimiento de Renombre"><GameIcon path="skills/battle_experience" emoji="🏅" size={14} title="Regimiento de Renombre" /></span>}
+                            {u.campaignOnly && <span title="Solo en campaña"><GameIcon path="skills/campaign_movement" emoji="🗺️" size={14} title="Solo en campaña" /></span>}
                             {(u.excl?.length ?? 0) > 0 && <span title={`Solo: ${u.excl!.join(', ')}`}>🔒</span>}
-                            {campaign?.buildings?.[u.card] && <span title={`Solo con edificio: ${campaign.buildings[u.card].join(', ')}`}>🏛️</span>}
+                            {campaign?.buildings?.[u.card] && <span title={`Solo con edificio: ${campaign.buildings[u.card].join(', ')}`}><GameIcon path="skills/character_construction" emoji="🏛️" size={14} /></span>}
                             {campaign?.upgrades[u.card] !== undefined && <span className="ut-rank" title="Se consigue mejorando otra unidad">M{campaign.upgrades[u.card]}</span>}
                           </span>
                           {n > 0 && <span className="ut-count">×{n}</span>}
@@ -399,7 +399,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
             </div>
             <div className="small muted roster-legend">
               <span className="bm-now">▲n</span> recibe bufos de tu señor, héroes o tecnologías · <span className="bm-r7">R+</span> más bufos al subir de rango ·
-              🏅 Renombre · 🗺️ solo campaña · 🔒 exclusiva de algunas facciones · M4 = se consigue mejorando otra unidad desde rango 4
+              <GameIcon path="skills/battle_experience" emoji="🏅" size={13} /> Renombre · <GameIcon path="skills/campaign_movement" emoji="🗺️" size={13} /> solo campaña · 🔒 exclusiva de algunas facciones · M4 = se consigue mejorando otra unidad desde rango 4
             </div>
           </div>
         </div>

@@ -1,7 +1,8 @@
+import type React from 'react';
 import { useState } from 'react';
 import type { AbilityState } from '../types';
 import { AbilityIcons } from './AbilityIcons';
-import { AbilityImg } from '../gameIcons';
+import { AbilityImg, GameIcon } from '../gameIcons';
 
 interface Props {
   abilities: AbilityState[];
@@ -16,7 +17,7 @@ interface Props {
 }
 
 /** Valor base → final (si las habilidades lo cambian) */
-function BaseFinal({ label, base, final, unit = '' }: { label: string; base?: number; final?: number; unit?: string }) {
+function BaseFinal({ label, base, final, unit = '' }: { label: React.ReactNode; base?: number; final?: number; unit?: string }) {
   if (base === undefined || base <= 0) return null;
   const changed = final !== undefined && final !== base;
   return (
@@ -87,17 +88,17 @@ export function AbilitiesPanel({ abilities: allAbilities, inAura, onScale, owner
                 <AbilityImg icon={a.icon} title={a.name} /> <b>{a.name}</b>
                 <span className="muted small">{mineOnly ? '' : ` · ${a.owner}`}{a.type ? ` · ${a.type}` : ''}</span>
                 <div className="small">
-                  <BaseFinal label="🔮 Maná" base={a.mana} final={a.final?.mana} />
-                  <BaseFinal label="⏳ Espera" base={a.cooldown} final={a.final?.cooldown} unit=" s" />
-                  {a.duration > 0 && <BaseFinal label="⌛ Dura" base={a.duration} final={a.final?.duration} unit=" s" />}
-                  <BaseFinal label="📏 Alcance" base={a.range} final={a.final?.range} unit=" m" />
+                  <BaseFinal label={<><GameIcon path="skills/character_magic" emoji="🔮" size={14} /> Maná</>} base={a.mana} final={a.final?.mana} />
+                  <BaseFinal label={<><GameIcon path="skills/character_cooldown" emoji="⏳" size={14} /> Espera</>} base={a.cooldown} final={a.final?.cooldown} unit=" s" />
+                  {a.duration > 0 && <BaseFinal label={<><GameIcon path="skills/campaign_turns" emoji="⌛" size={14} /> Dura</>} base={a.duration} final={a.final?.duration} unit=" s" />}
+                  <BaseFinal label={<><GameIcon path="stats/icon_stat_range" emoji="📏" size={14} /> Alcance</>} base={a.range} final={a.final?.range} unit=" m" />
                   {a.final?.uses ? <span className="spell-val">Usos <b className="ok">+{a.final.uses}</b></span> : null}
                 </div>
                 {(a.stats.length > 0 || a.attributes.length > 0) && <div className="small muted">{[...a.stats, ...a.attributes].join(', ')}</div>}
                 {a.overcast && (
                   <div className="small">
                     <span className={a.overcast.unlocked ? 'ok' : 'muted'}>{a.overcast.unlocked ? '✦ Potenciado' : '🔒 Potenciado sin desbloquear'}: {a.overcast.name}</span>
-                    {a.overcast.mana !== undefined && <> · <BaseFinal label="🔮" base={a.overcast.mana} final={a.overcast.finalMana} /></>}
+                    {a.overcast.mana !== undefined && <> · <BaseFinal label={<GameIcon path="skills/character_magic" emoji="🔮" size={14} />} base={a.overcast.mana} final={a.overcast.finalMana} /></>}
                   </div>
                 )}
               </li>

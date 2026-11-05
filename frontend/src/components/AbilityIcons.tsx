@@ -1,5 +1,5 @@
 import type { AbilityState } from '../types';
-import { StatImg } from '../gameIcons';
+import { GameIcon, StatImg } from '../gameIcons';
 
 // Qué toca cada habilidad, por categoría de stat (clave del juego); stat = icono oficial, icon = emoji de respaldo
 const CATS: { icon: string; stat: string; label: string; re: RegExp }[] = [
@@ -15,10 +15,10 @@ const CATS: { icon: string; stat: string; label: string; re: RegExp }[] = [
   { icon: '🔮', stat: 'magic', label: 'Magia', re: /spell_mastery|miscast/ },
 ];
 const TARGET = {
-  allies: { icon: '👥', label: 'Afecta a aliados' },
-  self: { icon: '👤', label: 'Solo a sí mismo' },
-  enemies: { icon: '🎯', label: 'Afecta a enemigos' },
-  none: { icon: '', label: '' },
+  allies: { icon: '👥', path: 'skills/character_army', label: 'Afecta a aliados' },
+  self: { icon: '👤', path: 'skills/character_general_ability', label: 'Solo a sí mismo' },
+  enemies: { icon: '🎯', path: 'skills/battle_execute', label: 'Afecta a enemigos' },
+  none: { icon: '', path: '', label: '' },
 } as const;
 
 /** Iconos: a quién afecta y qué stats sube (verde) o baja (rojo). Pasa el ratón para ver el detalle. */
@@ -36,15 +36,15 @@ export function AbilityIcons({ a }: { a: AbilityState }) {
   const t = TARGET[a.mode];
   return (
     <span className="ab-icons">
-      {t.icon && <span className={`ab-target ${a.mode}`} title={t.label}>{t.icon}</span>}
+      {t.icon && <span className={`ab-target ${a.mode}`} title={t.label}><GameIcon path={t.path} emoji={t.icon} size={14} title={t.label} /></span>}
       {[...groups.values()].map((g) => (
         <span key={g.label} className={'ab-stat ' + (g.down && !g.up ? 'down' : g.up && !g.down ? 'up' : 'mixed')} title={`${g.label}:\n${g.lines.join('\n')}`}>
           <StatImg stat={g.stat} emoji={g.icon} size={14} />{g.down && !g.up ? '▼' : g.up && !g.down ? '▲' : '◆'}
         </span>
       ))}
-      {a.flaming && <span className="ab-stat up" title="Ataques flamígeros">🔥</span>}
-      {a.magical && <span className="ab-stat up" title="Ataques mágicos">✦</span>}
-      {a.attributes.length > 0 && <span className="ab-stat up" title={`Atributos:\n${a.attributes.join('\n')}`}>🏷️</span>}
+      {a.flaming && <span className="ab-stat up" title="Ataques flamígeros"><GameIcon path="stats/modifier_icon_flaming" emoji="🔥" size={14} title="Ataques flamígeros" /></span>}
+      {a.magical && <span className="ab-stat up" title="Ataques mágicos"><GameIcon path="stats/modifier_icon_magical" emoji="✦" size={14} title="Ataques mágicos" /></span>}
+      {a.attributes.length > 0 && <span className="ab-stat up" title={`Atributos:\n${a.attributes.join('\n')}`}><GameIcon path="skills/battle_general_ability" emoji="🏷️" size={14} /></span>}
     </span>
   );
 }

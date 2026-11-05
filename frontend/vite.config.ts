@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 
 const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
-const ASSET_DIRS = 'units|abilities|skills|attrs|flags|armory|bundles|daplan|mech|stats|unitcat';
+const ASSET_DIRS = 'units|abilities|skills|attrs|flags|armory|bundles|daplan|mech|stats|unitcat|effects';
 
 /** En la web estática las imágenes cuelgan de la base (/WH3-Planner/): "/units/x.png" -> "/WH3-Planner/units/x.png" */
 function baseAssets(base: string): Plugin {

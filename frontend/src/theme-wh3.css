@@ -138,3 +138,8 @@ select:focus, input:focus { outline: none; border-color: var(--gold); box-shadow
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: #0d0a09; }
 ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #8a6c34, #4a3a26); border-radius: 2px; border: 1px solid #000; }
+
+/* Iconos del juego dentro de textos y pestañas */
+.pt-title { display: inline-flex; align-items: center; gap: 6px; }
+.game-icon { vertical-align: -3px; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.8)); }
+.ab-target .game-icon, .ab-stat .game-icon { vertical-align: -2px; }

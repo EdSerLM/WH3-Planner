@@ -6,7 +6,7 @@ import { ArmySetup } from './components/ArmySetup';
 import { ArmoryPanel } from './components/ArmoryPanel';
 import { SpellSlotsPanel } from './components/SpellSlotsPanel';
 import { InitiativesPanel } from './components/InitiativesPanel';
-import { Flag, setGroupIcons } from './gameIcons';
+import { Flag, GameIcon, setGroupIcons } from './gameIcons';
 import { AbilitiesPanel } from './components/AbilitiesPanel';
 import { ActiveAbilities } from './components/ActiveAbilities';
 import { UnitCard } from './components/UnitCard';
@@ -480,7 +480,7 @@ export default function App() {
 
       <nav className="page-tabs">
         <button className={page === 'chars' ? 'active' : ''} onClick={() => setPage('chars')}>
-          👑 Señor, héroes y tecnologías
+          <span className="pt-title"><GameIcon path="unitcat/commander" emoji="👑" size={20} /> Señor, héroes y tecnologías</span>
           <span className="pt-sub">
             {army.lord ? characters.find((c) => c.key === army.lord!.character)?.name ?? 'Señor' : 'sin señor'}
             {army.heroes.length ? ` · ${army.heroes.length} héroe${army.heroes.length === 1 ? '' : 's'}` : ''}
@@ -488,11 +488,11 @@ export default function App() {
           </span>
         </button>
         <button className={page === 'army' ? 'active' : ''} onClick={() => setPage('army')}>
-          ⚔️ Ejército y tarjetas
+          <span className="pt-title"><GameIcon path="skills/campaign_army" emoji="⚔️" size={20} /> Ejército y tarjetas</span>
           <span className="pt-sub">{usedSlots} / 20 · {army.units.reduce((n, u) => n + u.count, 0)} unidades</span>
         </button>
         <button className={page === 'dps' ? 'active' : ''} onClick={() => setPage('dps')}>
-          📊 DPS
+          <span className="pt-title"><GameIcon path="skills/battle_damage" emoji="📊" size={20} /> DPS</span>
           <span className="pt-sub">tus unidades contra cada objetivo</span>
         </button>
       </nav>
@@ -558,7 +558,7 @@ export default function App() {
                 )}
                 {currentTree.spellSlots?.length ? (
                   <button className={leftView === 'spells' ? 'active' : ''} onClick={() => setLeftView('spells')} title="Elige el saber de cada espacio de hechizo">
-                    {currentTree.spellSlots.every((x) => x.rarity === 'name') ? '👑 Nombres de poder' : '🔮 Hechizos (fragmentos)'}
+                    {currentTree.spellSlots.every((x) => x.rarity === 'name') ? <><GameIcon path="skills/character_magic" emoji="👑" size={14} /> Nombres de poder</> : <><GameIcon path="skills/character_magic" emoji="🔮" size={14} /> Hechizos (fragmentos)</>}
                   </button>
                 ) : null}
                 {visibleSets(currentTree.initiativeSets, army.campaign).length ? (
@@ -670,7 +670,7 @@ export default function App() {
         <nav className="tabs">
           <button className={view === 'cards' ? 'active' : ''} onClick={() => setView('cards')}>Tarjetas ({cards.length})</button>
           <button className={view === 'campaign' ? 'active' : ''} onClick={() => setView('campaign')}>Campaña y magia</button>
-          <button className="ghost" onClick={() => setPage('dps')} title="El DPS tiene su propia pestaña arriba">📊 DPS →</button>
+          <button className="ghost" onClick={() => setPage('dps')} title="El DPS tiene su propia pestaña arriba"><GameIcon path="skills/battle_damage" emoji="📊" size={14} /> DPS →</button>
         </nav>
 
         <ErrorBoundary label={view === 'cards' ? 'las tarjetas' : 'la campaña'} resetKey={`${faction}|${view}`}>
