@@ -14,6 +14,8 @@ interface Props {
   ownerName?: string;
   /** Encender / apagar una activable */
   onToggle?: (a: AbilityState) => void;
+  /** Personajes del ejército (señor y héroes) para agrupar en "Todo el ejército" */
+  characters?: { id: string; name: string }[];
 }
 
 /** Valor base → final (si las habilidades lo cambian) */
@@ -28,23 +30,47 @@ function BaseFinal({ label, base, final, unit = '' }: { label: React.ReactNode; 
 }
 
 /** Pasivas del señor y los héroes (siempre activas; las de aura dependen de "En auras" junto al ejército). */
-export function AbilitiesPanel({ abilities: allAbilities, inAura, onScale, ownerId, ownerName, onToggle }: Props) {
+export function AbilitiesPanel({ abilities: allAbilities, inAura, onScale, ownerId, ownerName, onToggle, characters }: Props) {
   const [everyone, setEveryone] = useState(false);
   const mineOnly = !!ownerId && !everyone;
-  const abilities = mineOnly ? allAbilities.filter((a) => a.ownerKey === ownerId) : allAbilities;
+  const scope = ownerId && (
+    <div className="seg small ab-scope" role="group" aria-label="Qué habilidades ver">
+      <button className={mineOnly ? 'on' : ''} onClick={() => setEveryone(false)}>Solo {ownerName ?? 'este personaje'}</button>
+      <button className={!mineOnly ? 'on' : ''} onClick={() => setEveryone(true)}>Todo el ejército</button>
+    </div>
+  );
+  if (mineOnly || !characters?.length) {
+    const abilities = mineOnly ? allAbilities.filter((a) => a.ownerKey === ownerId) : allAbilities;
+    return <div className="abilities">{scope}<CharAbilities abilities={abilities} inAura={inAura} onScale={onScale} onToggle={onToggle} /></div>;
+  }
+  // Todo el ejército: un bloque por personaje (señor primero), cada uno con sus activables, pasivas y hechizos
+  return (
+    <div className="abilities">
+      {scope}
+      {characters.map((c) => {
+        const mine = allAbilities.filter((a) => a.ownerKey === c.id);
+        return (
+          <section key={c.id} className={'ab-char' + (c.id === ownerId ? ' cur' : '')}>
+            <h3 className="ab-char-name">{c.name}</h3>
+            <CharAbilities abilities={mine} inAura={inAura} onScale={onScale} onToggle={onToggle} compact />
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Activables, pasivas y hechizos de un personaje */
+function CharAbilities({ abilities, inAura, onScale, onToggle, compact }: { abilities: AbilityState[]; inAura: boolean; onScale?: Props['onScale']; onToggle?: Props['onToggle']; compact?: boolean }) {
+  const mineOnly = true;
   const passives = abilities.filter((a) => a.hasBattleStats && a.mode !== 'none' && a.passive);
   // Hechizos (con coste de maná): cómo quedan con lo comprado en el árbol
   const spells = abilities.filter((a) => (a.mana ?? 0) > 0 || a.spell);
   // Activables del personaje que afectan a otros (las que solo le afectan a él van en su tarjeta)
   const actives = mineOnly ? abilities.filter((a) => !a.passive && a.hasBattleStats && (a.mode === 'allies' || a.mode === 'enemies') && !((a.mana ?? 0) > 0 || a.spell)) : [];
   return (
-    <div className="abilities">
-      {ownerId && (
-        <div className="seg small ab-scope" role="group" aria-label="Qué habilidades ver">
-          <button className={mineOnly ? 'on' : ''} onClick={() => setEveryone(false)}>Solo {ownerName ?? 'este personaje'}</button>
-          <button className={!mineOnly ? 'on' : ''} onClick={() => setEveryone(true)}>Todo el ejército</button>
-        </div>
-      )}
+    <>
+      {compact && !actives.length && !passives.length && !spells.length && <p className="muted small">Sin activables, pasivas ni hechizos que afecten la batalla.</p>}
       {actives.length > 0 && (
         <>
           <h3>Activables</h3>
@@ -60,8 +86,8 @@ export function AbilitiesPanel({ abilities: allAbilities, inAura, onScale, owner
           </ul>
         </>
       )}
-      <h3>Pasivas</h3>
-      {passives.length === 0 && <p className="muted small">Sin pasivas de combate.</p>}
+      {(!compact || passives.length > 0) && <h3>Pasivas</h3>}
+      {!compact && passives.length === 0 && <p className="muted small">Sin pasivas de combate.</p>}
       <ul>
         {passives.map((a) => (
           <li key={a.owner + a.key} className={a.active ? 'on' : ''} title={a.active ? undefined : 'Aura sin aplicar: activa "En auras" junto al ejército'}>
@@ -81,7 +107,7 @@ export function AbilitiesPanel({ abilities: allAbilities, inAura, onScale, owner
       {spells.length > 0 && (
         <>
           <h3>Hechizos</h3>
-          <p className="muted small">Coste, espera y duración con lo que llevas en el árbol (tachado = valor base del juego). Pasa el ratón para ver qué habilidad cambia cada cosa.</p>
+          {!compact && <p className="muted small">Coste, espera y duración con lo que llevas en el árbol (tachado = valor base del juego). Pasa el ratón para ver qué habilidad cambia cada cosa.</p>}
           <ul className="spells">
             {spells.map((a) => (
               <li key={a.id} title={a.mods?.length ? a.mods.join('\n') : 'Sin cambios del árbol'}>
@@ -106,6 +132,6 @@ export function AbilitiesPanel({ abilities: allAbilities, inAura, onScale, owner
           </ul>
         </>
       )}
-    </div>
+    </>
   );
 }

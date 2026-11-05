@@ -192,3 +192,10 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
 .su-tiles .utile { width: 76px; height: 108px; font-size: 10px; }
 .su-tiles .utile .ut-icon { height: 34px; }
 @media (max-width: 900px) { .su-row { grid-template-columns: 1fr; } }
+
+/* Habilidades: "Todo el ejército" agrupado por personaje */
+.ab-char { border-top: 1px solid rgba(212, 180, 106, 0.25); padding-top: 6px; margin-top: 8px; }
+.ab-char:first-of-type { border-top: 0; }
+.ab-char .ab-char-name { font-size: 15px; color: #f0d48a; border-bottom: 0; margin: 4px 0; }
+.ab-char.cur .ab-char-name::after { content: ' · editando'; font-size: 11px; color: #a89668; text-transform: none; font-family: inherit; }
+.ab-char h3:not(.ab-char-name) { font-size: 12px; margin: 6px 0 2px; }

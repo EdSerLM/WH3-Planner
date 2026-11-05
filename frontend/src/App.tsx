@@ -629,6 +629,7 @@ export default function App() {
                 lordName={army.lord ? result?.builds.find((b) => b.character === army.lord!.character)?.name : undefined} />
               <AbilitiesPanel abilities={result?.abilities ?? []} inAura={army.inAura}
                 ownerId={sideCard?.id} ownerName={sideCard?.name} onToggle={toggleAbility}
+                characters={result?.builds.filter((b, i, l) => l.findIndex((x) => x.character === b.character) === i).map((b) => ({ id: b.character, name: b.name }))}
                 onScale={(id, pct) => setArmy((a) => ({ ...a, abilityScale: { ...(a.abilityScale ?? {}), [id]: pct } }))} />
             </>
           )}
