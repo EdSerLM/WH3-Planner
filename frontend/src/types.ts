@@ -230,6 +230,8 @@ export interface BuildSelection {
   rankEff?: number; // rango efectivo (calculado: sube solo con las compras)
   rankOver?: number; // si el build no cabe en 50
   items?: string[]; // objetos equipados (claves)
+  /** Estandarte que lleva (lo desbloquea un personaje del ejército) */
+  banner?: string | null;
 }
 
 export interface ArmyUnitSelection {
@@ -240,6 +242,8 @@ export interface ArmyUnitSelection {
   rank7?: boolean;
   /** Mejoras de unidad elegidas (claves de unit_purchasable_effects) */
   upgrades?: string[];
+  /** Estandarte que lleva (lo desbloquea un personaje del ejército) */
+  banner?: string | null;
 }
 
 /** Rango efectivo de una unidad seleccionada (0-9) */
@@ -386,8 +390,19 @@ export interface BuildSummary {
   magic: SummaryLine[];
 }
 
+export interface BannerOption {
+  key: string;
+  name: string;
+  description?: string;
+  from: string;
+  skillName?: string;
+  effects: string[];
+}
+
 export interface ComputeResult {
   cards: ComputedCard[];
+  /** Estandartes que puede llevar cada tarjeta (id -> opciones) */
+  bannerOptions?: Record<string, BannerOption[]>;
   abilities: AbilityState[];
   enemyDebuffs: { ability: string; owner: string }[];
   builds: { character: string; name: string; pointsUsed: number; pointsAvailable: number; rank: number; minRank: number; warnings: string[]; mount?: string; summary: BuildSummary }[];

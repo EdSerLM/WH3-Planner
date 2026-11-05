@@ -286,6 +286,18 @@ export interface CharacterSummary {
   female?: boolean; namesGroup?: string;
 }
 
+export interface BannerInfo {
+  key: string;
+  name: string;
+  description?: string;
+  /** Habilidad del árbol que lo desbloquea (si falta, lo tiene como objeto propio) */
+  skill?: string;
+  skillName?: string;
+  effects: ParsedEffect[];
+  /** Lista de unidades que pueden llevarlo (índice en unitLists); sin valor = cualquiera */
+  unitList?: number;
+}
+
 export interface CharacterTree extends CharacterSummary {
   rows: SkillNode[][];
   /** Nombre de cada fila (Combate personal, Magia, Bufos al ejército, Campaña...) */
@@ -300,6 +312,8 @@ export interface CharacterTree extends CharacterSummary {
   stats: CharacterStats | null;
   /** Objetos propios del legendario (de su misión o exclusivos) */
   items?: ItemInfo[];
+  /** Estandartes que desbloquea (con una habilidad o como objeto propio): se le ponen a una unidad o a un personaje */
+  banners?: BannerInfo[];
   /** Conjuntos de esos objetos: bonificación extra con todas las piezas */
   itemSets?: { key: string; name: string; items: string[]; effects: ParsedEffect[] }[];
   /** Dones del Príncipe Demonio (Daniel): piezas intercambiables por ranura */
@@ -428,6 +442,8 @@ export interface BuildSelection {
   heroAction?: string | null;
   rank?: number; // rango del personaje (1-50); por defecto 50
   items?: string[]; // objetos equipados (claves de ancillary)
+  /** Estandarte que lleva este personaje (clave de ancillary; lo da otro personaje del ejército o él mismo) */
+  banner?: string | null;
 }
 
 export interface ArmyUnitSelection {
@@ -439,6 +455,8 @@ export interface ArmyUnitSelection {
   rank7?: boolean;
   /** Mejoras de unidad elegidas (claves de unit_purchasable_effects) */
   upgrades?: string[];
+  /** Estandarte que lleva (clave de ancillary; lo desbloquea un personaje del ejército) */
+  banner?: string | null;
 }
 
 /** Rango efectivo de una unidad seleccionada (0-9) */

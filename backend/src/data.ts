@@ -7,7 +7,7 @@ import {
   ABILITY_TYPES, CASTES, loadOfficialLoc, officialAbilityName, officialSkillDesc, officialSkillName, officialUnitName,
   officialCount, officialCharacterName, translateAbilityStat, translateAttribute, translateEffect,
 } from './i18n.js';
-import type {
+import type { BannerInfo,
   AbilityInfo, CharacterStats, ContactEffect, CharacterSummary, ItemInfo, CharacterTree, ExclusiveGroup, ParsedEffect, RawAbility, RawNode, SkillNode, SkillsFile, StatKey, UnitData, UnitsFile,
 } from './types.js';
 
@@ -45,6 +45,7 @@ interface GameCharacter {
   /** Solo estas facciones de campaña lo consiguen (héroes legendarios por misión o script) */
   factions?: string[]; bg: GameNode[]; stats: CharacterStats | null; mounts?: Record<string, CharacterStats>;
   items?: { k: string; rank?: number; quest?: boolean }[];
+  bn?: { k: string; sk?: string }[];
   /** Dones del Príncipe Demonio (Daniel): piezas por ranura */
   armory?: {
     slots: { k: string; n: string; o: number; m?: boolean }[];
@@ -63,6 +64,7 @@ interface GameSkillsFile {
   skills: Record<string, GameSkill>; abilities: Record<string, RawAbility>; unitLists: string[][]; locks: { skill: string; node: string; level: number }[];
   techTrees?: GameTechTree[]; techs?: Record<string, GameTech>;
   ancillaries?: Record<string, { n: string; d?: string; cat: string; e: GameEffect[] }>;
+  banners?: Record<string, { n: string; d?: string; e: GameEffect[]; ul?: number }>;
   itemSets?: { key: string; n: string; items: string[]; e: GameEffect[] }[];
   graphs?: GameGraph[];
   targetFlags?: Record<string, string>;
@@ -615,6 +617,15 @@ function buildGameTree(c: GameCharacter, faction: string): CharacterTree {
     { key: charId(c, faction), name: factionNames(faction).get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction },
     rows, background, c.stats,
   );
+  if (c.bn?.length) {
+    tree.banners = c.bn.filter((b) => gameFile!.banners?.[b.k]).map((b): BannerInfo => {
+      const x = gameFile!.banners![b.k];
+      return {
+        key: b.k, name: x.n, description: x.d, skill: b.sk, skillName: b.sk ? gameFile!.skills[b.sk]?.n ?? b.sk : undefined,
+        effects: gameEffects(x.e), unitList: x.ul,
+      };
+    });
+  }
   if (c.items?.length) {
     tree.items = c.items
       .filter((i) => gameFile!.ancillaries?.[i.k])

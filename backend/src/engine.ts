@@ -16,6 +16,7 @@ function perRankPct(effect: ParsedEffect): number | undefined {
   return m ? parseFloat(m[1]) : undefined;
 }
 import type {
+  BannerInfo,
   AbilityInfo, BuildSelection, CharacterStats, CharacterTree, ComputeRequest, ComputedCard, Contribution,
   ParsedEffect, SkillNode, StatKey, StatLine, UnitData,
 } from './types.js';
@@ -503,7 +504,20 @@ export interface BuildSummary {
   magic: SummaryLine[];
 }
 
+export interface BannerOption {
+  key: string;
+  name: string;
+  description?: string;
+  /** Personaje que lo desbloquea */
+  from: string;
+  /** Habilidad con la que lo desbloquea */
+  skillName?: string;
+  effects: string[];
+}
+
 export interface ComputeResult {
+  /** Estandartes que puede llevar cada tarjeta (id de la tarjeta -> opciones), de los personajes del ejército */
+  bannerOptions: Record<string, BannerOption[]>;
   cards: ComputedCard[];
   abilities: AbilityState[];
   /** contact: nombre del efecto de contacto si el debuff solo llega al golpear (no afecta a quien es inmune a efectos de contacto) */
@@ -635,6 +649,45 @@ export function compute(req: ComputeRequest): ComputeResult {
 
   const cards: ComputedCard[] = [];
 
+  // --- Estandartes que desbloquean los personajes del ejército (Elspeth, Oxyotl, Throgg, Magistrados…) ---
+  const bannerAvail = new Map<string, { info: BannerInfo; from: string }>();
+  for (const b of builds) for (const info of b.tree.banners ?? []) {
+    if (bannerAvail.has(info.key)) continue;
+    if (info.skill && !(b.activeNodes ?? []).some(({ node, level }) => level > 0 && node.skillKey === info.skill)) continue;
+    bannerAvail.set(info.key, { info, from: b.tree.name });
+  }
+  const bannerOptions: Record<string, BannerOption[]> = {};
+  const bannerFits = (info: BannerInfo, unitKeys: (string | undefined)[]) => info.unitList === undefined || unitKeys.some((k) => !!k && unitInList(info.unitList!, k));
+  const optionsFor = (id: string, unitKeys: (string | undefined)[]) => {
+    const l = [...bannerAvail.values()].filter(({ info }) => bannerFits(info, unitKeys)).map(({ info, from }) => ({
+      key: info.key, name: info.name, description: info.description, from, skillName: info.skillName,
+      effects: info.effects.map((e) => e.text).filter(Boolean),
+    }));
+    if (l.length) bannerOptions[id] = l;
+  };
+  const bannerUsed = new Map<string, string>();
+  /** Suma el estandarte elegido a la tarjeta (cada estandarte solo lo lleva una unidad) */
+  const applyBanner = (key: string | null | undefined, cardName: string, unitKeys: (string | undefined)[], lines: ReturnType<typeof emptyLines>, attributes: { name: string; from?: string }[], notes: string[]) => {
+    if (!key) return { magical: false, flaming: false };
+    const av = bannerAvail.get(key);
+    if (!av) { notes.push('Estandarte sin desbloquear: compra su habilidad o lleva al personaje que lo da'); return { magical: false, flaming: false }; }
+    if (!bannerFits(av.info, unitKeys)) { notes.push(`"${av.info.name}" no lo puede llevar esta unidad`); return { magical: false, flaming: false }; }
+    if (bannerUsed.has(key)) { notes.push(`"${av.info.name}" ya lo lleva ${bannerUsed.get(key)}`); return { magical: false, flaming: false }; }
+    bannerUsed.set(key, cardName);
+    let magical = false, flaming = false;
+    const src = `${av.info.name} (estandarte)`;
+    for (const e of av.info.effects) {
+      if (e.kind === 'attribute' && e.attribute) {
+        attributes.push({ name: e.attribute, from: `${src} · ${av.from}` });
+        if (/flam/i.test(e.attribute)) flaming = true;
+        if (/mágic/i.test(e.attribute)) magical = true;
+      } else if (e.kind === 'battle' && e.stat && e.value !== undefined) {
+        contribute(lines, e.stat, { source: src, from: av.from, value: e.value, how: e.pct ? 'pct' : 'add' }, e.exact);
+      }
+    }
+    return { magical, flaming };
+  };
+
   // --- Tarjetas de personajes ---
   for (const b of builds) {
     const base = b.mountNode?.levels[0].mountStats ?? b.tree.stats;
@@ -662,6 +715,13 @@ export function compute(req: ComputeRequest): ComputeResult {
         charMatch(effect, b, isLord) || armyListMatch(effect, b);
       if (!applies) continue;
       contribute(lines, effect.stat, { source: skill, from: owner, value: effect.value, how: effect.pct ? 'pct' : 'add' }, effect.exact);
+    }
+    {
+      const charUnits = [b.tree.stats?.unit, b.mountNode?.levels[0].mountStats?.unit];
+      optionsFor(b.tree.key, charUnits);
+      const bf = applyBanner(b.selection.banner, b.tree.name, charUnits, lines, attributes, b.warnings);
+      if (bf.magical) magical = true;
+      if (bf.flaming) flaming = true;
     }
     for (const x of allyAbilities) {
       if (x.selfOnly && x.build !== b) continue;
@@ -776,6 +836,12 @@ export function compute(req: ComputeRequest): ComputeResult {
       const unit = c.how === 'pct' ? '%' : '';
       contribute(lines, stat, { ...c, value: Math.round(c.value * n * 100) / 100, conditional: `${c.value}${unit} × rango ${n}` }, exact);
     }
+    {
+      optionsFor(u.card, [u.key]);
+      const bf = applyBanner(sel.banner, u.name, [u.key], lines, attributes, notes);
+      if (bf.magical) magical = true;
+      if (bf.flaming) flaming = true;
+    }
     for (const x of allyAbilities) {
       if (x.selfOnly) continue;
       if (!targetAllowed(x.ability, x.owner, { kind: 'unit', unit: u }, notes)) continue;
@@ -815,6 +881,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     cards,
     abilities: abilityStates,
     enemyDebuffs,
+    bannerOptions,
     builds: builds.map((b) => ({
       character: b.tree.key, name: b.tree.name, pointsUsed: b.pointsUsed, pointsAvailable: pointsAtRank(b.rank), rank: b.rank, minRank: b.minRank, warnings: b.warnings, mount: b.mountNode?.name,
       summary: summarize(b),

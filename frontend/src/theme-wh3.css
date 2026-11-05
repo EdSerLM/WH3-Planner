@@ -199,3 +199,9 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
 .ab-char .ab-char-name { font-size: 15px; color: #f0d48a; border-bottom: 0; margin: 4px 0; }
 .ab-char.cur .ab-char-name::after { content: ' · editando'; font-size: 11px; color: #a89668; text-transform: none; font-family: inherit; }
 .ab-char h3:not(.ab-char-name) { font-size: 12px; margin: 6px 0 2px; }
+
+/* Estandartes */
+.banner-pick { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
+.banner-pick select { max-width: 320px; }
+.banner-pick .banner-eff { flex-basis: 100%; }
+.ut-banner { color: #f0d48a; }

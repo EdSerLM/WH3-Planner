@@ -73,6 +73,8 @@ export const SKILL_TABLES = [
   'technology_nodes_tables', 'technology_required_technology_junctions_tables', 'cultures_subcultures_tables', 'start_pos_factions_tables',
   'ancillary_to_effects_tables', 'character_ancillary_quest_ui_details_tables', 'ancillary_set_ancillary_junctions_tables',
   'ancillary_set_effect_junctions_tables',
+  // Estandartes que desbloquean algunos personajes (Elspeth, Oxyotl, Throgg, Morghur, Magistrados de Catai): van en una unidad
+  'banners_tables', 'banners_permitted_unit_sets_tables',
   // Grafos de iniciativas (p. ej. la Pirámide Negra de las Legiones No Muertas): nodos con efectos, como tecnologías
   'initiatives_tables', 'initiative_set_items_tables', 'initiative_sets_tables', 'faction_initiative_sets_tables',
   'campaign_effect_list_effect_junctions_tables', 'ui_graphs_tables', 'ui_graph_nodes_tables', 'ui_graph_node_links_tables',
@@ -467,16 +469,46 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       n: L(`ancillaries_onscreen_name_${k}`) ?? k, d: L(`ancillaries_colour_text_${k}`) ?? undefined, cat: a.category, e,
     });
   };
+  // Estandartes (ancillaries con provided_banner): efectos del paquete del estandarte, a la unidad que lo lleva
+  const bannerBundle = by('banners_tables', 'banner');
+  const bannerSets = group('banners_permitted_unit_sets_tables', 'banner');
+  const bannerBundleEff = group('effect_bundles_to_effects_junctions_tables', 'effect_bundle_key');
+  const banners: Record<string, Row> = {};
+  const isBanner = (k: string) => !!anc.get(k)?.provided_banner && bannerBundle.has(anc.get(k)!.provided_banner);
+  const bannerDef = (k: string) => {
+    if (banners[k]) return;
+    const b = anc.get(k)!.provided_banner as string;
+    const recs = [...new Set((bannerSets.get(b) ?? []).flatMap((r) => members(r.unit_set)))].sort();
+    banners[k] = strip({
+      n: L(`ancillaries_onscreen_name_${k}`) ?? k, d: L(`ancillaries_colour_text_${k}`) ?? undefined,
+      e: effRows(bannerBundleEff.get(bannerBundle.get(b)!.effect_bundle) ?? [], 'effect_key'),
+      ul: recs.length ? listId(recs) : undefined,
+    });
+  };
+  /** Estandartes que desbloquea un personaje: con sus habilidades (sk) o como objeto propio */
+  const bannersFor = (subtype: string, skills: string[]): Row[] => {
+    const out = new Map<string, Row>();
+    for (const sk of skills) for (const r of skillAnc.get(sk) ?? []) {
+      if (!isBanner(r.granted_ancillary) || out.has(r.granted_ancillary)) continue;
+      const subs = new Set((ancSubs.get(r.granted_ancillary) ?? []).map((x) => x.agent_subtype));
+      if (subs.size && !subs.has(subtype)) continue;
+      out.set(r.granted_ancillary, { k: r.granted_ancillary, sk });
+    }
+    for (const r of [...(questBySub.get(subtype) ?? []), ...(ancBySub.get(subtype) ?? [])]) {
+      if (isBanner(r.ancillary) && !out.has(r.ancillary)) out.set(r.ancillary, { k: r.ancillary });
+    }
+    return [...out.values()];
+  };
   const itemsFor = (subtype: string): Row[] => {
     const out = new Map<string, Row>();
     for (const q of questBySub.get(subtype) ?? []) {
-      if (!anc.has(q.ancillary)) continue;
+      if (!anc.has(q.ancillary) || isBanner(q.ancillary)) continue;
       ancDef(q.ancillary);
       out.set(q.ancillary, strip({ k: q.ancillary, rank: q.rank || null, quest: q.is_quest_battle || null }));
     }
     for (const r of ancBySub.get(subtype) ?? []) {
       const a = anc.get(r.ancillary);
-      if (!a || a.category === 'mount' || out.has(r.ancillary)) continue;
+      if (!a || a.category === 'mount' || out.has(r.ancillary) || isBanner(r.ancillary)) continue;
       ancDef(r.ancillary);
       out.set(r.ancillary, { k: r.ancillary });
     }
@@ -1395,6 +1427,11 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       subcultures: scs, factions: only ?? undefined, home: homeSc(unit, scs), nodes: outNodes, bg, stats: charStats(unit), mounts: Object.keys(mounts).length ? mounts : null,
       items: legendary && itemsFor(s.agent_subtype_key).length ? itemsFor(s.agent_subtype_key) : null,
       armory: armoryFor(s.agent_subtype_key),
+      bn: (() => {
+        const l = bannersFor(s.agent_subtype_key, [...outNodes, ...bg].map((n) => n.s));
+        l.forEach((x) => bannerDef(x.k));
+        return l.length ? l : undefined;
+      })(),
       acts: s.agent_key !== 'general' && actionsOfNodes([...outNodes, ...bg]).length ? actionsOfNodes([...outNodes, ...bg]) : null,
       spellSlots: spellSlotsFor([...outNodes, ...bg].map((n) => n.s)),
       initiatives: (() => {
@@ -1577,7 +1614,7 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
   return {
     unitUpgrades, unitAbilities, attrDesc, heroActions,
     source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', format: 2,
-    subcultures: subs, characters, skills: skillsOut, names: namesOut, abilities, unitLists, locks, techTrees, techs, ancillaries, itemSets, graphs,
+    subcultures: subs, characters, skills: skillsOut, names: namesOut, abilities, unitLists, locks, techTrees, techs, ancillaries, banners, itemSets, graphs,
     // Solo las restricciones que usan las habilidades extraídas
     targetFlags: Object.fromEntries(Object.entries(targetFlags).filter(([k]) => Object.values(abilities).some((a) => a.inv?.includes(k)))),
   };

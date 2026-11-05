@@ -19756,6 +19756,30 @@
           "I32"
         ]
       ]
+    },
+    "banners_tables": {
+      "1": [
+        [
+          "banner",
+          "StringU8"
+        ],
+        [
+          "effect_bundle",
+          "StringU8"
+        ]
+      ]
+    },
+    "banners_permitted_unit_sets_tables": {
+      "0": [
+        [
+          "banner",
+          "StringU8"
+        ],
+        [
+          "unit_set",
+          "StringU8"
+        ]
+      ]
     }
   }
 }

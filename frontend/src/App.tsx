@@ -584,7 +584,7 @@ export default function App() {
               ) : leftView === 'spells' && currentTree.spellSlots?.length ? (
                 <SpellSlotsPanel tree={currentTree} selection={currentSel} onChange={updateSelection} />
               ) : leftView !== 'summary' ? (
-                <SkillTree tree={currentTree} selection={currentSel} onChange={updateSelection} info={currentInfo} />
+                <SkillTree tree={currentTree} selection={currentSel} onChange={updateSelection} info={currentInfo} banners={result?.bannerOptions?.[currentTree.key]} />
               ) : (
                 <BuildSummary
                   summary={currentInfo?.summary}
@@ -648,6 +648,7 @@ export default function App() {
           buffs={rosterBuffs}
           rosterCards={rosterCards}
           cards={cards}
+          bannerOptions={result?.bannerOptions}
           campaign={campaigns.find((c) => c.key === army.campaign)}
           compact={false}
           onChange={(u) => setArmy((a) => ({ ...a, units: u }))}

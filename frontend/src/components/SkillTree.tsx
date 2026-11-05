@@ -4,8 +4,12 @@ import { blockedBy, buyHint, decrement, fillAll, increment, isAvailable, levelOf
 import { MAX_RANK, isFreeLevel } from '../rankRules';
 import { SkillIcon } from './SkillIcon';
 import { ItemsPanel } from './ItemsPanel';
+import { BannerPick } from './BannerPick';
+import type { BannerOption } from '../types';
 
 interface Props {
+  /** Estandartes que puede llevar este personaje (de él o de otros del ejército) */
+  banners?: BannerOption[];
   tree: CharacterTree;
   selection: BuildSelection;
   onChange: (sel: BuildSelection) => void;
@@ -29,7 +33,7 @@ interface Hover {
   rect: DOMRect;
 }
 
-export function SkillTree({ tree, selection: rawSelection, onChange, info }: Props) {
+export function SkillTree({ tree, selection: rawSelection, onChange, info, banners }: Props) {
   // Siempre trabajamos con el rango ya recalculado
   const selection = useMemo(() => normalize(rawSelection, tree), [rawSelection, tree]);
   const [hover, setHover] = useState<Hover | null>(null);
@@ -202,6 +206,7 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info }: Pro
           </div>
         )}
         <ItemsPanel tree={tree} selection={selection} onChange={onChange} />
+        <BannerPick options={banners} value={selection.banner} onChange={(k) => onChange({ ...selection, banner: k })} />
         {info?.warnings.length ? <div className="warn">{info.warnings.join(' · ')}</div> : null}
       </div>
 

@@ -1,11 +1,12 @@
 import { fmtStat, statDiff } from '../statFormat';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
-import { unitRank, type AbilityInfo, type ArmyUnitSelection, type CampaignFaction, type ComputedCard, type StatKey, type UnitData } from '../types';
+import { unitRank, type AbilityInfo, type ArmyUnitSelection, type BannerOption, type CampaignFaction, type ComputedCard, type StatKey, type UnitData } from '../types';
 import type { RosterBuffs } from '../App';
 import { campaignUnits } from '../campaign';
 import { groupIndex, groupInfo } from '../unitGroups';
 import { BuffMark, SpecialTags } from './ArmyPanel';
+import { BannerPick } from './BannerPick';
 import { UnitIcon } from './UnitIcon';
 import { attrIcon } from '../attrIcons';
 import { AbilityImg, AttrImg, GameIcon, GroupIcon, OfficialImg, StatImg, useAttrIndex } from '../gameIcons';
@@ -86,6 +87,8 @@ const GROUP_CLASS: Record<string, string> = {
 };
 
 interface Props {
+  /** Estandartes que puede llevar cada unidad (de los personajes del ejército) */
+  bannerOptions?: Record<string, BannerOption[]>;
   units: UnitData[];
   army: ArmyUnitSelection[];
   usedSlots: number;
@@ -141,7 +144,7 @@ function gainTitle(g: Gain, group: string) {
     (g.parts.length ? '\n' + g.parts.map((p) => `${p.label} +${Math.round(p.pct)}%`).join(', ') : '');
 }
 
-export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, campaign, compact, onChange, onEditChar }: Props) {
+export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, campaign, compact, onChange, onEditChar, bannerOptions }: Props) {
   const [q, setQ] = useState('');
   const [showRoR, setShowRoR] = useState(false);
   const [onlyBuffed, setOnlyBuffed] = useState(false);
@@ -279,6 +282,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
               <span className="ut-marks">
                 {buffs[sel.card]?.now.length ? <span className="bm-now">▲{buffs[sel.card].now.length}</span> : null}
                 {r > 0 && <span className="ut-rank">R{r}</span>}
+                {sel.banner && <span className="ut-rank ut-banner" title={`Estandarte: ${bannerOptions?.[sel.card]?.find((o) => o.key === sel.banner)?.name ?? sel.banner}`}>⚑</span>}
                 {(sel.upgrades?.length ?? 0) > 0 && <span className="ut-rank" title={`Mejoras: ${sel.upgrades!.map((k) => u?.upgrades?.find((o) => o.key === k)?.name ?? k).join(', ')}`}>✦{sel.upgrades!.length}</span>}
               </span>
             </button>
@@ -323,6 +327,8 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
               );
             });
           })()}
+          <BannerPick compact options={bannerOptions?.[selUnit.card]} value={selUnit.banner}
+            onChange={(k) => onChange(army.map((a) => (a.card === selUnit.card ? { ...a, banner: k } : k && a.banner === k ? { ...a, banner: null } : a)))} />
           <button className="ghost danger" onClick={() => { removeAll(selUnit.card); setSelected(null); }}>Quitar todas</button>
           {campaign && byCard.get(selUnit.card) && allowed && !allowed.has(selUnit.card) && (
             <span className="camp-warn">⚠ {campaign.name} no puede tener esta unidad</span>
