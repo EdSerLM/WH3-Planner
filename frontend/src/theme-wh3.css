@@ -205,3 +205,15 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
 .banner-pick select { max-width: 320px; }
 .banner-pick .banner-eff { flex-basis: 100%; }
 .ut-banner { color: #f0d48a; }
+
+/* Hechizos recomendados por los foros: marco dorado punteado y estrella */
+.node.rec { outline: 1px dashed rgba(240, 212, 138, 0.85); outline-offset: 2px; position: relative; }
+.node .rec-star { position: absolute; top: 2px; right: 4px; font-size: 11px; color: #f0d48a; text-shadow: 0 0 3px #000; }
+.tooltip .rec-msg { margin: 4px 0; padding: 4px 6px; border-left: 2px solid #f0d48a; background: rgba(240, 212, 138, 0.08); font-size: 12.5px; }
+
+/* En qué es bueno el personaje (carta del juego) */
+.char-role { display: flex; flex-direction: column; gap: 4px; margin: 0 0 8px; padding: 6px 10px; border-left: 2px solid rgba(212, 180, 106, 0.6); background: rgba(20, 14, 8, 0.4); }
+.role-bullets { display: flex; flex-wrap: wrap; gap: 5px; }
+.role-chip { padding: 1px 8px; border-radius: 10px; font-size: 12px; background: #2f3d22; color: #cfe8a8; border: 1px solid #4a6a2a; cursor: help; }
+.role-chip.bad { background: #3d1c1c; color: #f0aaaa; border-color: #6a2a2a; }
+.role-desc { font-size: 12.5px; font-style: italic; color: #cbb98f; }

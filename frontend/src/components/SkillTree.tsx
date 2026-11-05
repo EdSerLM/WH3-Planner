@@ -4,6 +4,7 @@ import { blockedBy, buyHint, decrement, fillAll, increment, isAvailable, levelOf
 import { MAX_RANK, isFreeLevel } from '../rankRules';
 import { SkillIcon } from './SkillIcon';
 import { ItemsPanel } from './ItemsPanel';
+import { spellPick } from '../spellPicks';
 import { BannerPick } from './BannerPick';
 import type { BannerOption } from '../types';
 
@@ -84,6 +85,16 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info, banne
 
   return (
     <div className="tree" onMouseLeave={() => setHover(null)}>
+      {tree.role && (
+        <div className="char-role">
+          {tree.role.bullets.length > 0 && (
+            <span className="role-bullets">
+              {tree.role.bullets.map((b) => <span key={b.name} className={'role-chip' + (b.good ? '' : ' bad')} title={b.tip}>{b.name}</span>)}
+            </span>
+          )}
+          {tree.role.desc && <span className="role-desc">{tree.role.desc}</span>}
+        </div>
+      )}
       <div className="tree-head">
         <div className="rank-bar">
           <label title="El rango sube solo al comprar habilidades (1 punto por rango, o el rango que pida la habilidad).">
@@ -229,6 +240,7 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info, banne
                   lvl > 0 ? (freeNow ? 'auto' : 'bought') : blocked ? 'blocked' : rankLocked ? 'rank-locked' : avail ? 'avail' : 'locked',
                   lvl === n.levels.length && lvl > 0 ? 'max' : '',
                   tree.exclusiveGroups?.some((g) => g.nodes.includes(n.key)) ? 'excl' : '',
+                  nodePick(n) ? 'rec' : '',
                 ].join(' ');
                 let badge = '';
                 if (next?.autoRank && next.autoRank > rank) badge = `auto R${next.autoRank}`;
@@ -247,6 +259,7 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info, banne
                     onBlur={() => setHover(null)}
                   >
                     <SkillIcon node={n} />
+                    {nodePick(n) && <span className="rec-star" title="Recomendado maximizar en campaña (foros)">★</span>}
                     <span className="node-body">
                       <span className="node-name">{blocked ? '⛓ ' : ''}{n.name}</span>
                       <span className="node-foot">
@@ -271,6 +284,18 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info, banne
       {hover && <Tooltip key={hover.node.key} hover={hover} tree={tree} selection={selection} />}
     </div>
   );
+}
+
+/** Recomendación de los foros para la habilidad (hechizo o su mejora) */
+function nodePick(n: SkillNode): string | undefined {
+  for (const l of n.levels) {
+    for (const k of l.abilities ?? []) { const p = spellPick(k); if (p) return p; }
+    for (const e of l.effects) {
+      const k = e.ability ?? (e as { abilityTarget?: string }).abilityTarget;
+      if (k) { const p = spellPick(k); if (p) return p; }
+    }
+  }
+  return undefined;
 }
 
 function Tooltip({ hover, tree, selection }: { hover: Hover; tree: CharacterTree; selection: BuildSelection }) {
@@ -311,6 +336,7 @@ function Tooltip({ hover, tree, selection }: { hover: Hover; tree: CharacterTree
           {node.description && <div className="tt-desc">{node.description}</div>}
         </div>
       </div>
+      {nodePick(node) && <div className="rec-msg">★ Recomendado maximizar en campaña (foros): {nodePick(node)}</div>}
       {blocked && <div className="blocked-msg">⛓ Bloqueada por otra habilidad: {blocked.by.join(', ')}. Quítala (clic derecho) para elegir esta.</div>}
       {!blocked && reason && level < node.levels.length && <div className="reason">{reason}</div>}
       {!reason && buyHint(node, selection) && <div className="hint">{buyHint(node, selection)}</div>}

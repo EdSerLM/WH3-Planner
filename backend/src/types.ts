@@ -312,6 +312,8 @@ export interface CharacterTree extends CharacterSummary {
   stats: CharacterStats | null;
   /** Objetos propios del legendario (de su misión o exclusivos) */
   items?: ItemInfo[];
+  /** En qué es bueno según el juego: puntos fuertes/débiles de su carta y descripción de su unidad */
+  role?: { bullets: { name: string; tip?: string; good: boolean }[]; desc?: string };
   /** Estandartes que desbloquea (con una habilidad o como objeto propio): se le ponen a una unidad o a un personaje */
   banners?: BannerInfo[];
   /** Conjuntos de esos objetos: bonificación extra con todas las piezas */

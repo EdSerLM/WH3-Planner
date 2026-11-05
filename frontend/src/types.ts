@@ -101,6 +101,8 @@ export interface CharacterTree extends CharacterSummary {
   locks?: Record<string, { skill: string; level: number }[]>;
   abilityInfo: Record<string, AbilityInfo>;
   items?: ItemInfo[];
+  /** En qué es bueno según el juego: puntos fuertes/débiles de su carta y descripción de su unidad */
+  role?: { bullets: { name: string; tip?: string; good: boolean }[]; desc?: string };
   itemSets?: { key: string; name: string; items: string[]; effects: ParsedEffect[] }[];
   /** Dones del Príncipe Demonio (Daniel): piezas intercambiables por ranura */
   armory?: ArmoryInfo;

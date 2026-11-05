@@ -617,6 +617,13 @@ function buildGameTree(c: GameCharacter, faction: string): CharacterTree {
     { key: charId(c, faction), name: factionNames(faction).get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction },
     rows, background, c.stats,
   );
+  // En qué es bueno, según el juego: los puntos fuertes de su carta y la descripción de su unidad
+  {
+    const uk = (c.stats as { unit?: string } | null)?.unit ?? c.unit;
+    const u = uk ? getUnit(uk) : undefined;
+    const bullets = bulletsInfo(u?.bullets);
+    if (bullets.length || u?.desc) tree.role = { bullets, desc: u?.desc };
+  }
   if (c.bn?.length) {
     tree.banners = c.bn.filter((b) => gameFile!.banners?.[b.k]).map((b): BannerInfo => {
       const x = gameFile!.banners![b.k];
