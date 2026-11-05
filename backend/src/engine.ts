@@ -191,9 +191,30 @@ export function wornItems(b: { tree: CharacterTree; selection: BuildSelection; a
  * Lo que las habilidades compradas le cambian a un hechizo o habilidad, por su nombre entre comillas:
  * "Tiempo de espera: -30% para "Plaga de óxido"", "Coste en Vientos de la Magia: -1 para "…"", "Hechizo potenciado: "… mejorada"".
  */
+// Saberes que nombran los textos ("…para los hechizos del Saber de las Sombras") -> parte de la clave del hechizo (_spell_shadow_…)
+const LORE_TOKENS: [RegExp, string][] = [
+  [/Sombras/, 'shadow'], [/Muerte/, 'death'], [/Bestias/, 'beasts'], [/Fuego/, 'fire'], [/Vida/, 'life'], [/Metal/, 'metal'],
+  [/Luz/, 'light'], [/Cielos/, 'heavens'], [/Tzeentch/, 'tzeentch'], [/Nurgle/, 'nurgle'], [/Slaanesh/, 'slaanesh'],
+  [/Vampiros/, 'vampires'], [/Nehekhara/, 'nehekhara'], [/Ruina/, 'ruin'], [/Plaga/, 'plague'], [/Magia Oscura/, 'dark'],
+  [/Alta Magia/, 'high'], [/Hielo/, 'ice'], [/Tempestad/, 'tempest'], [/Yang/, 'yang'], [/Yin/, 'yin'], [/Hashut/, 'hashut'],
+];
+/**
+ * Hechizos a los que afecta un texto sin comillas: "…para todos los hechizos", "…a los hechizos del Saber de X",
+ * "…de los Saberes de X, de Y y de Z". null = el texto no habla de hechizos así.
+ */
+function loreTarget(t: string, a: AbilityInfo): boolean | null {
+  if (!/hechizos/i.test(t) || /enemig/i.test(t)) return null;
+  const isSpell = (a.mana ?? 0) > 0 || !!a.spell;
+  if (!isSpell) return false;
+  const sab = /Saber(?:es)? (?:de |del )(.*)$/i.exec(t)?.[1];
+  if (!sab) return /(todos los|para los|a los) hechizos/i.test(t);
+  const toks = LORE_TOKENS.filter(([re]) => re.test(sab)).map(([, k]) => k);
+  return toks.some((k) => a.key.includes(`_spell_${k}_`));
+}
+
 function abilityMods(a: AbilityInfo, effects: { effect: ParsedEffect; skill: string }[]): Pick<AbilityState, 'final' | 'overcast' | 'mods'> {
   const over = a.overcast ? abilities[a.overcast] : undefined;
-  let mana = 0, overMana = 0, cdPct = 0, durPct = 0, rangePct = 0, uses = 0, unlocked = false;
+  let mana = 0, manaPct = 0, overMana = 0, overManaPct = 0, cdPct = 0, durPct = 0, rangePct = 0, uses = 0, unlocked = false;
   const mods: string[] = [];
   const structured = new Set<string>();
   // Cambios con la habilidad indicada en los datos (aunque el texto hable de un grupo: "habilidades de inspiración")
@@ -223,15 +244,21 @@ function abilityMods(a: AbilityInfo, effects: { effect: ParsedEffect; skill: str
     if (effect.kind === 'ability' && !/potenciad|bendición/i.test(t)) continue;
     // Los textos no siempre usan las mismas mayúsculas que el nombre ("Plaga de óxido" / "Plaga de Óxido")
     const names = [...t.matchAll(/"([^"]+)"/g)].map((m) => m[1].toLowerCase());
-    const forBase = names.includes(a.name.toLowerCase());
-    const forOver = !!over && names.includes(over.name.toLowerCase());
+    // Sin comillas: todos los hechizos o los de un saber (se aplican al hechizo y a su versión potenciada)
+    const lore = names.length ? null : loreTarget(t, a);
+    const forBase = lore ?? names.includes(a.name.toLowerCase());
+    const forOver = !!over && (lore ?? names.includes(over.name.toLowerCase()));
     if (!forBase && !forOver) continue;
     const label = /^([^:]+):/.exec(t)?.[1] ?? '';
     const num = /:\s*([+-]?\d+(?:[.,]\d+)?)/.exec(t);
     const v = num ? parseFloat(num[1].replace(',', '.')) : 0;
+    const pct = /:\s*[+-]?\d+(?:[.,]\d+)?\s*%/.test(t);
     if (/potenciad|bendición/i.test(label)) unlocked = true;
     else if (/^Tiempo de espera/.test(label) && forBase) cdPct += v;
-    else if (/^Coste en Vientos/.test(label)) { if (forBase) mana += v; else overMana += v; }
+    else if (/^Coste en Vientos/.test(label)) {
+      if (forBase) { if (pct) manaPct += v; else mana += v; }
+      if (forOver && (lore !== null || !forBase)) { if (pct) overManaPct += v; else overMana += v; }
+    }
     else if (/^Duración del efecto/.test(label) && forBase) durPct += v;
     else if (/^Alcance al objetivo/.test(label) && forBase) rangePct += v;
     else if (/usos/i.test(label) && forBase) uses += v;
@@ -240,14 +267,14 @@ function abilityMods(a: AbilityInfo, effects: { effect: ParsedEffect; skill: str
   if (!mods.length) return {};
   const r1 = (x: number) => Math.round(x * 10) / 10;
   const final: NonNullable<AbilityState['final']> = {};
-  if (a.mana !== undefined) final.mana = Math.max(0, a.mana + mana);
+  if (a.mana !== undefined) final.mana = Math.max(0, r1(a.mana * (1 + manaPct / 100) + mana));
   if (a.cooldown) final.cooldown = r1(a.cooldown * (1 + cdPct / 100));
   if (a.duration > 0) final.duration = r1(a.duration * (1 + durPct / 100));
   if (a.range) final.range = r1(a.range * (1 + rangePct / 100));
   if (uses) final.uses = uses;
   return {
     final, mods,
-    overcast: over ? { name: over.name, unlocked, mana: over.mana, finalMana: over.mana !== undefined ? Math.max(0, over.mana + overMana) : undefined } : undefined,
+    overcast: over ? { name: over.name, unlocked, mana: over.mana, finalMana: over.mana !== undefined ? Math.max(0, r1(over.mana * (1 + overManaPct / 100) + overMana)) : undefined } : undefined,
   };
 }
 
@@ -548,6 +575,10 @@ export function compute(req: ComputeRequest): ComputeResult {
   // Reemplazos entre personajes del ejército: una habilidad que dice "Reemplaza: X" quita X aunque la tenga otro
   const armyRemoved = new Set<string>();
   for (const b of builds) for (const { effect } of effectsOf(b)) if (effect.disable) armyRemoved.add(effect.disable);
+  // Cambios a hechizos que un personaje da a todo el ejército ("…Saber de Tzeentch (Ejército del Señor)"): también a los demás
+  const armyMagicFx = builds.flatMap((b) => effectsOf(b)
+    .filter(({ effect }) => /hechizos/i.test(effect.text ?? '') && /\((?:Ejército del Señor|ejército propio)\)/.test(effect.text ?? ''))
+    .map((x) => ({ ...x, from: b })));
   for (const b of builds) {
     for (const { ability, skill } of abilitiesOf(b, armyRemoved)) {
       const statLines = ability.stats.filter((s) => ABILITY_STAT_MAP[s.stat]);
@@ -574,7 +605,7 @@ export function compute(req: ComputeRequest): ComputeResult {
         stats: [...ability.stats.map((s) => s.d), ...(ability.enemyStats?.length ? [`${ability.contact ? `Al golpear aplica ${ability.contact} a los enemigos` : 'Enemigos'}: ${ability.enemyStats.map((s) => s.d).join(', ')}`] : [])], attributes: ability.attributes, hasBattleStats, active: isOn,
         effects: ability.stats.map((s) => ({ stat: s.stat, how: s.how, v: s.v })),
         spell: ability.spell || undefined, magical: ability.magicalAttacks || undefined, flaming: ability.flamingAttacks || undefined,
-        ...abilityMods(ability, effectsOf(b)),
+        ...abilityMods(ability, [...effectsOf(b), ...armyMagicFx.filter((x) => x.from !== b)]),
         scale: Math.round(scaleOf(ability.key, b) * 100),
       });
     }
