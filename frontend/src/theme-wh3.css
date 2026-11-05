@@ -163,3 +163,11 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
 .army-magic .am-table td:first-child { white-space: normal; }
 .army-magic .am-table td.ok { color: var(--green, #6fbf73); font-weight: 600; }
 .army-magic .ab-img { vertical-align: -4px; }
+
+/* Efectos "acompañando a un Señor" (héroe → señor) */
+.lord-link { margin-top: 10px; padding: 8px 10px; border: 1px solid var(--gold-dim, #6b5a35); border-radius: 4px; background: rgba(20, 14, 8, 0.6); }
+.lord-link h4 { margin: 0 0 6px; font-family: 'Cinzel', serif; color: var(--gold, #d4b46a); font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; display: flex; gap: 6px; align-items: center; }
+.lord-link ul { margin: 2px 0 6px; padding-left: 0; list-style: none; }
+.lord-link li { font-size: 12.5px; margin: 3px 0; }
+.lord-link p { margin: 0; }
+.lord-link .tag { display: inline-block; width: auto; margin-right: 4px; }

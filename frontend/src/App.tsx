@@ -10,6 +10,7 @@ import { Flag, GameIcon, setGroupIcons } from './gameIcons';
 import { AbilitiesPanel } from './components/AbilitiesPanel';
 import { ActiveAbilities } from './components/ActiveAbilities';
 import { ArmyMagic } from './components/ArmyMagic';
+import { LordLink } from './components/LordLink';
 import { UnitCard } from './components/UnitCard';
 import { DpsPanel } from './components/DpsPanel';
 import { ArmyDescription } from './components/ArmyDescription';
@@ -624,6 +625,8 @@ export default function App() {
                   </p>
                 )}
               </div>
+              <LordLink result={result} kind={sideKind} name={sideCard?.baseName ?? sideCard?.name}
+                lordName={army.lord ? result?.builds.find((b) => b.character === army.lord!.character)?.name : undefined} />
               <AbilitiesPanel abilities={result?.abilities ?? []} inAura={army.inAura}
                 ownerId={sideCard?.id} ownerName={sideCard?.name} onToggle={toggleAbility}
                 onScale={(id, pct) => setArmy((a) => ({ ...a, abilityScale: { ...(a.abilityScale ?? {}), [id]: pct } }))} />
