@@ -9,6 +9,7 @@ import { InitiativesPanel } from './components/InitiativesPanel';
 import { Flag, GameIcon, setGroupIcons } from './gameIcons';
 import { AbilitiesPanel } from './components/AbilitiesPanel';
 import { ActiveAbilities } from './components/ActiveAbilities';
+import { ArmyMagic } from './components/ArmyMagic';
 import { UnitCard } from './components/UnitCard';
 import { DpsPanel } from './components/DpsPanel';
 import { ArmyDescription } from './components/ArmyDescription';
@@ -656,6 +657,7 @@ export default function App() {
         <div className="army-results">
         <aside className="setup-abilities">
           <ErrorBoundary label="las activables" resetKey={faction}>
+          <ArmyMagic abilities={result?.abilities ?? []} effectTexts={[...(result?.campaign ?? []), ...(result?.magic ?? [])].map((x) => x.text)} />
           <ActiveAbilities
             abilities={result?.abilities ?? []}
             active={army.activeAbilities}

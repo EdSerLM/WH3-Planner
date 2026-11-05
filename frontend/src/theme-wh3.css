@@ -150,3 +150,16 @@ select option { background: #17120f; color: var(--text); }
 select option:disabled { color: #6f6455; }
 select option:checked { background: var(--blood); color: var(--gold-hi); }
 select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; font-weight: 700; }
+
+/* Magia del ejército */
+.army-magic { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #3b2e22; }
+.army-magic .am-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 6px 0; }
+.army-magic .am-sum > div { background: rgba(0, 0, 0, 0.35); border: 1px solid #3b2e22; border-radius: 3px; padding: 6px; text-align: center; display: flex; flex-direction: column; gap: 2px; }
+.army-magic .am-sum b { font-family: Cinzel, Georgia, serif; font-size: 20px; color: var(--gold-hi); }
+.army-magic .am-sum span { font-size: 10.5px; color: var(--muted); line-height: 1.2; }
+.army-magic .am-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+.army-magic .am-table th { text-align: left; color: var(--gold); font-weight: 600; border-bottom: 1px solid #3b2e22; padding: 3px 4px; }
+.army-magic .am-table td { padding: 3px 4px; border-bottom: 1px solid rgba(59, 46, 34, 0.5); white-space: nowrap; }
+.army-magic .am-table td:first-child { white-space: normal; }
+.army-magic .am-table td.ok { color: var(--green, #6fbf73); font-weight: 600; }
+.army-magic .ab-img { vertical-align: -4px; }
