@@ -143,3 +143,10 @@ select:focus, input:focus { outline: none; border-color: var(--gold); box-shadow
 .pt-title { display: inline-flex; align-items: center; gap: 6px; }
 .game-icon { vertical-align: -3px; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.8)); }
 .ab-target .game-icon, .ab-stat .game-icon { vertical-align: -2px; }
+
+/* Listas desplegables: el navegador las pinta en blanco si no se les da color (texto gris ilegible) */
+select { color-scheme: dark; }
+select option { background: #17120f; color: var(--text); }
+select option:disabled { color: #6f6455; }
+select option:checked { background: var(--blood); color: var(--gold-hi); }
+select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; font-weight: 700; }
