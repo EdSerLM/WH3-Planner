@@ -286,15 +286,21 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info, banne
   );
 }
 
-/** Recomendación de los foros para la habilidad (hechizo o su mejora) */
+/**
+ * Recomendación de los foros para la habilidad: si da el hechizo (o su versión mejorada) o si mejora solo a ese hechizo.
+ * Las que mejoran a todo un saber ("-10% de espera a los hechizos del Saber del Metal") no se marcan.
+ */
 function nodePick(n: SkillNode): string | undefined {
+  const targets = new Set<string>();
   for (const l of n.levels) {
     for (const k of l.abilities ?? []) { const p = spellPick(k); if (p) return p; }
     for (const e of l.effects) {
-      const k = e.ability ?? (e as { abilityTarget?: string }).abilityTarget;
-      if (k) { const p = spellPick(k); if (p) return p; }
+      if (e.ability) { const p = spellPick(e.ability); if (p) return p; }
+      const t = (e as { abilityTarget?: string }).abilityTarget;
+      if (t) targets.add(t.replace(/_upgraded$/, ''));
     }
   }
+  if (targets.size === 1) return spellPick([...targets][0]);
   return undefined;
 }
 
