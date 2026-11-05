@@ -657,7 +657,7 @@ export default function App() {
         <div className="army-results">
         <aside className="setup-abilities">
           <ErrorBoundary label="las activables" resetKey={faction}>
-          <ArmyMagic abilities={result?.abilities ?? []} effectTexts={[...(result?.campaign ?? []), ...(result?.magic ?? [])].map((x) => x.text)} />
+          <ArmyMagic abilities={result?.abilities ?? []} effects={[...(result?.campaign ?? []), ...(result?.magic ?? [])]} />
           <ActiveAbilities
             abilities={result?.abilities ?? []}
             active={army.activeAbilities}
