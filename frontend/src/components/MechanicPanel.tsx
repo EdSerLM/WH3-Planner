@@ -45,7 +45,7 @@ const HELP: Record<string, string> = {
   COURT: 'Elige el cargo que ocupa este personaje (uno por personaje; en el juego cada cargo lo tiene un solo personaje).',
   FORGE: 'Elige el objeto forjado de cada ranura y su nivel (I-III forjado, IV reforjado). Un objeto por ranura.',
   CLOAK: 'Marca los cráneos de la capa que tienes y su nivel, y los rituales del Trono de Cráneos activos.',
-  GUNNERY: 'Mejoras de la Escuela de Artillería de Nuln: elige el nivel que compraste para cada unidad. La armería de Amatista desbloquea unidades y artillería.',
+  GUNNERY: 'Mejoras de la Escuela de Artillería de Nuln: cada nivel se compra después del anterior y todos se suman (elegir el III marca también I y II). Cada fila es de un tipo de unidad y todas pueden estar activas a la vez. La armería de Amatista desbloquea unidades y artillería.',
   KISLEV: 'Favores de la Corte de Hielo o de la Gran Ortodoxia (según tu facción) y rituales de invierno de la Madre Patria.',
   HELLFORGE: 'Rituales de la Forja Infernal que suben el máximo de cada unidad.',
   GLOTTKIN: 'Rituales Podridos de los Glottkin: elige el nivel de mejora de cada ritual que tengas activo.',
@@ -76,6 +76,9 @@ function rowOf(it: Item): { group: string; level: string } | null {
   const b = ROMAN.exec(it.name);
   return b ? { group: b[1], level: b[2] } : null;
 }
+/** Mecánicas en filas donde los niveles se suman (no se cambia uno por otro) */
+const CUMULATIVE = new Set(['mech:gunnery_school']);
+
 function isRows(s: InitiativeSet) {
   if (s.rows) return true;
   if (s.category === 'DA_PLAN') return false;
@@ -144,6 +147,18 @@ export function MechanicPanel({ sets, selection, onChange, army }: Props) {
 
   const toggle = (s: InitiativeSet, it: Item) => {
     if (!s.selectable) return;
+    // Filas que se acumulan (Escuela de Artillería): cada nivel se compra después del anterior y todos siguen activos
+    if (CUMULATIVE.has(s.key) && isRows(s)) {
+      const g = rowOf(it)?.group;
+      const row = s.items.filter((x) => rowOf(x)?.group === g);
+      const idx = row.findIndex((x) => x.key === it.key);
+      const rowKeys = new Set(row.map((x) => x.key));
+      // Clic en el nivel más alto que tienes: lo quita; en otro: deja la fila hasta ese nivel
+      const top = row.reduce((m, x, i) => (items.includes(x.key) ? i : m), -1);
+      const upTo = items.includes(it.key) && idx === top ? idx - 1 : idx;
+      onChange({ ...selection, items: [...items.filter((k) => !rowKeys.has(k)), ...row.slice(0, upTo + 1).map((x) => x.key)] });
+      return;
+    }
     if (items.includes(it.key)) { onChange({ ...selection, items: items.filter((k) => k !== it.key) }); return; }
     const p = plan(s, it);
     if (p.error) return;
