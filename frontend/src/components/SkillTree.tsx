@@ -259,7 +259,7 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info, banne
                     onBlur={() => setHover(null)}
                   >
                     <SkillIcon node={n} />
-                    {nodePick(n) && <span className="rec-star" title="Recomendado maximizar en campaña (foros)">★</span>}
+                    {nodePick(n) && <span className="rec-star" title={nodePick(n)}>★</span>}
                     <span className="node-body">
                       <span className="node-name">{blocked ? '⛓ ' : ''}{n.name}</span>
                       <span className="node-foot">
@@ -342,7 +342,7 @@ function Tooltip({ hover, tree, selection }: { hover: Hover; tree: CharacterTree
           {node.description && <div className="tt-desc">{node.description}</div>}
         </div>
       </div>
-      {nodePick(node) && <div className="rec-msg">★ Recomendado maximizar en campaña (foros): {nodePick(node)}</div>}
+      {nodePick(node) && <div className="rec-msg">★ {nodePick(node)}</div>}
       {blocked && <div className="blocked-msg">⛓ Bloqueada por otra habilidad: {blocked.by.join(', ')}. Quítala (clic derecho) para elegir esta.</div>}
       {!blocked && reason && level < node.levels.length && <div className="reason">{reason}</div>}
       {!reason && buyHint(node, selection) && <div className="hint">{buyHint(node, selection)}</div>}
