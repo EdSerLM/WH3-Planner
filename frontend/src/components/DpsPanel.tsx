@@ -232,7 +232,15 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
       if (!others.length) return r;
       const rate = [r, ...others].reduce((s, x) => s + (Number.isFinite(x.timeToKill) && x.timeToKill > 0 ? 1 / x.timeToKill : 0), 0);
       const dps = Math.round([r, ...others].reduce((s, x) => s + x.dps, 0) * 10) / 10;
-      return { ...r, dps, timeToKill: rate > 0 ? Math.round((1 / rate) * 10) / 10 : Infinity, focus: { n: others.length + 1, soloDps: r.dps, soloTtk: r.timeToKill } };
+      const timeToKill = rate > 0 ? Math.round((1 / rate) * 10) / 10 : Infinity;
+      // El duelo se vuelve a decidir con el tiempo conjunto (mismo umbral que el backend: 1.2 veces)
+      let duel = r.duel;
+      if (duel) {
+        const b = duel.enemy.timeToKill;
+        const ratio = !Number.isFinite(timeToKill) && !Number.isFinite(b) ? 1 : !Number.isFinite(timeToKill) ? 0 : !Number.isFinite(b) ? 99 : b / timeToKill;
+        duel = { ...duel, ratio: Math.round(ratio * 100) / 100, verdict: ratio >= 1.2 ? 'win' : ratio <= 1 / 1.2 ? 'lose' : 'even' };
+      }
+      return { ...r, dps, timeToKill, duel, focus: { n: others.length + 1, soloDps: r.dps, soloTtk: r.timeToKill } };
     });
   }, [rawRows, focus, focusRows, copies]);
   const recalculating = !!rows.length && rowsFor !== `${attacker}|${dir}|${mode}|${timing}`;
