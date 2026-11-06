@@ -17,6 +17,7 @@ function perRankPct(effect: ParsedEffect): number | undefined {
 }
 import type {
   BannerInfo,
+  ContactEffect,
   AbilityInfo, BuildSelection, CharacterStats, CharacterTree, ComputeRequest, ComputedCard, Contribution,
   ParsedEffect, SkillNode, StatKey, StatLine, UnitData,
 } from './types.js';
@@ -760,6 +761,8 @@ export function compute(req: ComputeRequest): ComputeResult {
     if (!u) continue;
     const lines = emptyLines(unitBase(u));
     const attributes: { name: string; from?: string }[] = u.attrs.map((a) => ({ name: a }));
+    // Efectos de contacto que le dan las mecánicas/tecnologías (armadura destrozada de la Manufactura...)
+    const contactFx: ContactEffect[] = [];
     let magical = !!u.magical;
     let flaming = !!u.flaming;
     const notes: string[] = [];
@@ -807,6 +810,7 @@ export function compute(req: ComputeRequest): ComputeResult {
       if (effect.forNames && !namedMatch(effect.forNames, u.name) && !(u.nameEn && namedMatch(effect.forNames, u.nameEn))) continue;
       if (effect.kind === 'attribute' && effect.attribute) {
         attributes.push({ name: effect.attribute, from: `${skill} (${owner})` });
+        if (effect.contact && !contactFx.some((c) => c.n === effect.contact!.n)) contactFx.push(effect.contact);
         if (/flam/i.test(effect.attribute)) flaming = true;
         if (/mágic/i.test(effect.attribute)) magical = true;
         // "Habilidad: X" que da un bufo (Da Plan, tecnologías...): si es una pasiva sobre sí misma, sus stats cuentan en la tarjeta
@@ -854,6 +858,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     cards.push({
       id: u.card, name: u.name, art: u.art, kind: 'unit', count: sel.count, rank, rank7: rank >= 7, caste: u.casteEs ?? u.caste, cost: u.cost,
       models: u.models, size: u.size, interval: u.interval, splash: u.splash, splashSize: u.splashSize, magicalAttacks: magical, flamingAttacks: flaming,
+      ...(contactFx.length ? { contactFx } : {}),
       missile: u.missile, stats: lines, attributes, notes,
     });
   }

@@ -330,6 +330,7 @@ function gameEffect(e: GameEffect, first: boolean, keyText: string): ParsedEffec
     rankMin: x.rank,
     unitList: x.u,
     attribute: x.attribute ? translateAttribute(x.attribute) : undefined,
+    contact: (x as { contact?: ParsedEffect['contact'] }).contact,
     ability: x.ability,
     bv: (x as { bv?: string }).bv,
     abilityTarget: (x as { on?: string }).on,

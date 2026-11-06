@@ -198,6 +198,8 @@ export type EffectTarget = 'self' | 'army' | 'lord' | 'chars' | 'none';
 export interface ParsedEffect {
   key: string;
   text: string;
+  /** Efecto de contacto que reciben los enemigos al ser golpeados por las unidades de unitList */
+  contact?: ContactEffect;
   /** Penalización (el juego la pinta en rojo) */
   bad?: boolean;
   /** Icono del efecto (public/effects) */
@@ -495,6 +497,8 @@ export interface StatLine {
 }
 
 export interface ComputedCard {
+  /** Efectos de contacto extra de sus golpes (mecánicas), además de los de su arma */
+  contactFx?: ContactEffect[];
   id: string; // card o clave de personaje
   name: string;
   /** Arte de la carta del juego (/units/<art>.png) */

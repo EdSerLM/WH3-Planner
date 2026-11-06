@@ -127,19 +127,24 @@ function dpsRows(att: ComputedCard, targets: string[] | undefined, d: AttackDir,
   const myUnit = att.kind === 'unit' ? getTarget(att.id) : undefined;
   const meImmune = !!myUnit?.attrs?.includes(IMMUNE_CONTACT) || att.attributes?.some((a) => a.name === IMMUNE_CONTACT);
   const mine0 = contactDebuff(myUnit, m, att.name);
+  // Los de las mecánicas (Manufactura: armadura destrozada) llegan con cualquier golpe
+  const extra: Debuff[] = (att.contactFx ?? []).map((c) => ({
+    ability: c.n, owner: att.name, contact: c.n,
+    stats: c.stats.filter((x) => ABILITY_STAT_MAP[x.stat as keyof typeof ABILITY_STAT_MAP]).map((x) => ({ stat: ABILITY_STAT_MAP[x.stat as keyof typeof ABILITY_STAT_MAP], how: x.how, v: x.v })),
+  })).filter((d) => d.stats.length);
   return targetsFromCards(targets ?? []).map((t0) => {
     const u = getTarget(t0.id);
     const immune = !!u?.attrs?.includes(IMMUNE_CONTACT);
     // Lo que le cae al enemigo: tus hechizos/habilidades y el efecto de contacto de tu arma, salvo que sea inmune
-    const onThem = landed([...debuffs, mine0], immune);
+    const onThem = landed([...debuffs, mine0, ...extra], immune);
     const t = applyDebuffs(t0, onThem);
     const mine = attackDps(m, att, t, d);
     // Al revés: el enemigo (stats base, con lo que le cae) contra tu unidad; su efecto de contacto te baja a ti en el duelo
     const theirs = landed([contactDebuff(u, m, u?.name ?? '')], meImmune);
     const back = u ? duel(theirs.length ? attackDps(m, debuffedCard(att, theirs), t, d) : mine, attackDps(m, unitAsAttacker(u, onThem), cardAsTarget(att))) : undefined;
     const contact = {
-      mine: mine0?.contact, theirs: u?.contact?.[m === 'ranged' ? 'missile' : 'melee']?.n,
-      immune: immune && onThem.length < [...debuffs, mine0].filter(Boolean).length ? true : undefined,
+      mine: [mine0?.contact, ...extra.map((x) => x.contact)].filter(Boolean).join(' · ') || undefined, theirs: u?.contact?.[m === 'ranged' ? 'missile' : 'melee']?.n,
+      immune: immune && onThem.length < [...debuffs, mine0, ...extra].filter(Boolean).length ? true : undefined,
       meImmune: meImmune && !!u?.contact?.[m === 'ranged' ? 'missile' : 'melee'] ? true : undefined,
       onThem: onThem.filter((x) => x.contact).map((x) => x.contact!),
     };

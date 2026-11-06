@@ -19780,6 +19780,52 @@
           "StringU8"
         ]
       ]
+    },
+    "effect_bonus_value_unit_set_special_ability_phase_junctions_tables": {
+      "1": [
+        [
+          "bonus_value_id",
+          "StringU8"
+        ],
+        [
+          "effect",
+          "StringU8"
+        ],
+        [
+          "unit_set_special_ability_phase_junction",
+          "StringU8"
+        ]
+      ],
+      "0": [
+        [
+          "bonus_value_id",
+          "StringU8"
+        ],
+        [
+          "effect",
+          "StringU8"
+        ],
+        [
+          "unit_set_special_ability_phase_junction",
+          "StringU8"
+        ]
+      ]
+    },
+    "unit_set_special_ability_phase_junctions_tables": {
+      "0": [
+        [
+          "key",
+          "StringU8"
+        ],
+        [
+          "special_ability_phase",
+          "StringU8"
+        ],
+        [
+          "unit_set",
+          "StringU8"
+        ]
+      ]
     }
   }
 }

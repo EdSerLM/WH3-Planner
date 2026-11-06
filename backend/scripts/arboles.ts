@@ -62,6 +62,8 @@ export const SKILL_TABLES = [
   'unit_sets_tables', 'unit_set_to_unit_junctions_tables', 'agent_subtypes_tables',
   'unit_abilities_tables', 'unit_special_abilities_tables', 'special_ability_to_special_ability_phase_junctions_tables',
   'special_ability_phases_tables', 'special_ability_phase_stat_effects_tables', 'special_ability_phase_attribute_effects_tables',
+  // Efectos de contacto que da un efecto a un conjunto de unidades (Manufactura de la Forja Infernal: armadura destrozada, supresión)
+  'effect_bonus_value_unit_set_special_ability_phase_junctions_tables', 'unit_set_special_ability_phase_junctions_tables',
   // A quién NO afecta cada habilidad (p. ej. la pasiva Guardián solo a señores y héroes)
   'special_ability_to_invalid_target_flags_tables', 'special_ability_invalid_usage_flags_tables',
   'main_units_tables', 'land_units_tables', 'melee_weapons_tables', 'battle_entities_tables', 'unit_armour_types_tables',
@@ -272,6 +274,8 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
   const phJ = group('special_ability_to_special_ability_phase_junctions_tables', 'special_ability');
   const ph = by('special_ability_phases_tables', 'id');
   const phSt = group('special_ability_phase_stat_effects_tables', 'phase'), phAt = group('special_ability_phase_attribute_effects_tables', 'phase');
+  const bUsph = group('effect_bonus_value_unit_set_special_ability_phase_junctions_tables', 'effect');
+  const usph = by('unit_set_special_ability_phase_junctions_tables', 'key');
   const invalidTargets = group('special_ability_to_invalid_target_flags_tables', 'special_ability');
   // Restricciones de objetivo usadas, con el texto del juego (para interpretarlas en el motor)
   const targetFlags: Record<string, string> = {};
@@ -369,6 +373,18 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       else if (r.bonus_value_id === 'disable') out.push({ kind: 'ability', target: 'self', disable: r.unit_ability });
       // Cambio a una habilidad concreta (duración, recarga, coste...): se guarda cuál y qué valor, para aplicarlo aunque el texto no la nombre
       else out.push({ kind: 'magic', target: 'self', on: r.unit_ability, bv: r.bonus_value_id, value });
+    }
+    // Efecto de contacto para un conjunto de unidades: sus golpes aplican una fase al enemigo (p. ej. -30 de armadura 10 s)
+    for (const r of bUsph.get(key) ?? []) {
+      const j = usph.get(r.unit_set_special_ability_phase_junction);
+      const p = j ? ph.get(j.special_ability_phase) : undefined;
+      if (!j || !p) continue;
+      const stats = (phSt.get(p.id) ?? []).map((st) => {
+        const nm = ABILITY_STAT_ES[st.stat] ?? st.stat;
+        return { stat: st.stat, how: st.how, v: st.value, d: st.how === 'mult' ? `×${r2(st.value)} ${nm}` : `${st.value > 0 ? '+' : ''}${r2(st.value)} ${nm}` };
+      });
+      const n = L(`special_ability_phases_onscreen_name_${p.id}`) ?? String(p.id).replace(/^wh\d?_(main|dlc\d+)_unit_contact_/, '').replace(/_/g, ' ');
+      out.push({ kind: 'attribute', target: 'army', attribute: `Al golpear: ${n}`, u: listId(members(j.unit_set)), contact: { n, dur: p.duration ?? 0, stats } });
     }
     // "Activa ataques envenenados/desgarradores/encantados..." no tienen tabla de bonificación: atributo con el nombre del texto
     if (!out.length && /enable_[a-z_]*attacks/.test(key) && tgt !== 'none') {
