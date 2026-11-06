@@ -157,12 +157,20 @@ const MAX_TIMED = 5;
  * Las habilidades activas encendidas duran unos segundos: se calcula la pelea con cada combinación de habilidades
  * puestas/quitadas y se avanza en el tiempo sumando el daño del tramo (en el juego la recarga empieza al terminar el efecto).
  */
-type TimedAbility = { id: string; key: string; name: string; owner: string; icon?: string; mode: string; dur: number; cd: number };
+type TimedAbility = { id: string; key: string; name: string; owner: string; icon?: string; mode: string; dur: number; cd: number; spell?: boolean; trigger?: number[] };
 function timedList(result: ReturnType<typeof compute>): TimedAbility[] {
-  return result.abilities
+  const list: TimedAbility[] = result.abilities
     .filter((a) => a.active && !a.passive && (a.final?.duration ?? a.duration) > 0)
     .slice(0, MAX_TIMED)
-    .map((a) => ({ id: a.id, key: a.key, name: a.name, owner: a.owner, icon: a.icon, mode: a.mode, dur: a.final?.duration ?? a.duration, cd: Math.max(0, a.final?.cooldown ?? a.cooldown ?? 0) }));
+    .map((a) => ({ id: a.id, key: a.key, name: a.name, owner: a.owner, icon: a.icon, mode: a.mode, dur: a.final?.duration ?? a.duration, cd: Math.max(0, a.final?.cooldown ?? a.cooldown ?? 0), spell: (a.mana ?? 0) > 0 || !!a.spell }));
+  // Pasivas de saber (Llama prendida, Sarpullido de la plaga…): se disparan al lanzar un hechizo y duran unos segundos.
+  // Si su lanzador tiene hechizos encendidos, van atadas a esos lanzamientos
+  list.forEach((a) => {
+    if (!/_lore_passive_/.test(a.key)) return;
+    const t = list.map((b, j) => (b.spell && b.owner === a.owner ? j : -1)).filter((j) => j >= 0);
+    if (t.length) a.trigger = t;
+  });
+  return list;
 }
 /** El ejército calculado con cada combinación de habilidades con duración puestas (bit i = habilidad i puesta) */
 function maskResults(army: ComputeRequest, list: TimedAbility[], result: ReturnType<typeof compute>) {
@@ -189,9 +197,16 @@ function timedRows(army: ComputeRequest, attacker: string, targets: string[], d:
     const att = res.cards.find((x) => x.id === attacker);
     if (att) perMask.set(mask, pack(dpsRows(att, targets, d, res.enemyDebuffs, m)));
   }
-  const activeAt = (t: number, i: number, how: Timing) => {
+  const activeAt = (t: number, i: number, how: Timing): boolean => {
     if (how === 'always') return true;
-    const { dur, cd } = list[i];
+    const { dur, cd, trigger } = list[i];
+    // Pasiva de saber: activa los "dur" segundos después de cada lanzamiento de sus hechizos
+    if (trigger) return trigger.some((j) => {
+      const s = list[j];
+      const cycle = s.dur + s.cd;
+      const last = how === 'once' || cycle <= 0 ? 0 : Math.floor(t / cycle) * cycle;
+      return t - last < dur;
+    });
     if (how === 'once') return t < dur;
     const cycle = dur + cd;
     return cycle <= 0 ? true : t % cycle < dur;
