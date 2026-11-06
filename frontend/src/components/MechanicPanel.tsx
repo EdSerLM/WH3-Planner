@@ -48,6 +48,7 @@ const HELP: Record<string, string> = {
   GUNNERY: 'Mejoras de la Escuela de Artillería de Nuln: cada nivel se compra después del anterior y todos se suman (elegir el III marca también I y II). Cada fila es de un tipo de unidad y todas pueden estar activas a la vez. La armería de Amatista desbloquea unidades y artillería.',
   KISLEV: 'Favores de la Corte de Hielo o de la Gran Ortodoxia (según tu facción) y rituales de invierno de la Madre Patria.',
   HELLFORGE: 'Rituales de la Forja Infernal que suben el máximo de cada unidad.',
+  HELLFORGE_MANU: 'Manufactura de la Forja Infernal: mejoras para toda una categoría de unidades (hasta 3 activas por categoría). Se pagan con armamento cada turno: cuantas más unidades de la categoría tengas, más cuesta mantenerlas. Marca las que tengas activas.',
   GLOTTKIN: 'Rituales Podridos de los Glottkin: elige el nivel de mejora de cada ritual que tengas activo.',
   COOKING: 'Platos que cocina Grom (uno a la vez) e ingredientes usados; los efectos de los ingredientes son de facción.',
   PLAGUE: 'Síntomas de la plaga que infecta a tu ejército (hasta 3). La versión bendita es más fuerte.',
@@ -64,7 +65,7 @@ const HELP: Record<string, string> = {
   PATH_TO_GLORY_BOON: 'Marca los regalos que tienes en tu campaña; cada uno muestra la condición para conseguirlo.',
 };
 const EMOJI: Record<string, string> = {
-  DA_PLAN: '📜', FORGE: '⚒️', CLOAK: '💀', GUNNERY: '🔫', KISLEV: '❄️', HELLFORGE: '🔥', GLOTTKIN: '🌿', COOKING: '🍲', PLAGUE: '🧪',
+  DA_PLAN: '📜', FORGE: '⚒️', CLOAK: '💀', GUNNERY: '🔫', KISLEV: '❄️', HELLFORGE: '🔥', HELLFORGE_MANU: '⚒️', GLOTTKIN: '🌿', COOKING: '🍲', PLAGUE: '🧪',
   DANCE: '💃', PATRONAGE: '🦅', COURT: '🌳', LAIR: '🦇', BREW: '⚗️', MARKS: '💜', ULRIC: '🐺', CHIEF: '🪓', WORKSHOP: '⚙️', FORGE_BUFF: '🔥', ICE_COURT: '❄️', VOWS: '⚜️', SHANTY: '🏴‍☠️',
 };
 

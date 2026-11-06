@@ -150,7 +150,8 @@ const SELF_SCOPE = /^character_to_character_own/;
 // "character_to_force_own_factionwide" (todos los ejércitos de la facción) también cuenta: incluye el ejército del personaje
 // (p. ej. Estandartes de Middenheim de Boris: +4 ataque a las unidades del Culto de Ulric)
 // force_to_force_own: plagas de Nurgle (el ejército infectado se bonifica a sí mismo)
-const ARMY_SCOPE = /^(general_to_force_own|character_to_force_own|agent_to_parent_army_own|faction_to_force_own|force_to_force_own)/;
+// faction_to_force_not_garrsion_own (sic): Manufactura de la Forja Infernal (ejércitos en campaña, no guarniciones)
+const ARMY_SCOPE = /^(general_to_force_own|character_to_force_own|agent_to_parent_army_own|faction_to_force_own|force_to_force_own|faction_to_force_not_garr\w*_own)/;
 const LORD_SCOPE = /^(agent_to_parent_army_general_own|character_to_army_general_own|force_to_general_own)/;
 // Tecnologías: "a todos los personajes de la facción" (señores y héroes; a veces solo unos)
 const CHARS_SCOPE = /^faction_to_character_own/;
@@ -1025,6 +1026,18 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       who: (sub, t, scs) => isLord(t) && scs.includes('wh3_dlc23_sc_chd_chaos_dwarfs'),
       sets: [{ k: 'mech:hellforge', cat: 'HELLFORGE', n: 'Forja Infernal: límites de unidades', max: 0, items, secs: Object.values(HF_ES) }],
     });
+    // Manufactura: mejoras de categorías enteras de unidades (iniciativas de facción, hasta 3 activas por categoría;
+    // se pagan con armamento por turno según cuántas unidades de la categoría tengas)
+    const MANU: [string, string][] = [
+      ['melee_infantry', 'Infantería cuerpo a cuerpo'], ['missile_infantry', 'Infantería a distancia'], ['bull_centaurs', 'Centauros Toro'],
+      ['flying_beasts', 'Bestias y monstruos'], ['kdaai', "K'daai"], ['warmachines', 'Máquinas de guerra'],
+    ];
+    const manuSets = MANU.map(([k, n]) => {
+      const set = `wh3_dlc23_faction_initiative_set_chd_category_${k}`;
+      const max = iniSetBy.get(set)?.active_initiative_limit ?? 3;
+      return { k: `mech:hellforge_manu_${k}`, cat: 'HELLFORGE_MANU', n: `Manufactura de la Forja Infernal · ${n}`, max, items: iniItemsOf(set) };
+    }).filter((x) => x.items.length);
+    if (manuSets.length) mech.push({ who: (sub, t, scs) => isLord(t) && scs.includes('wh3_dlc23_sc_chd_chaos_dwarfs'), sets: manuSets });
   }
   // Rituales de los Glottkin (Nurgle)
   {
