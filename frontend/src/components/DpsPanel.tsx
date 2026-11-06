@@ -110,6 +110,10 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
   const [focus, setFocus] = useState<string[]>(() => { try { const v = JSON.parse(localStorage.getItem(STORE_FOCUS) ?? '[]'); return Array.isArray(v) ? v : []; } catch { return []; } });
   useEffect(() => { try { localStorage.setItem(STORE_FOCUS, JSON.stringify(focus)); } catch { /* sin almacenamiento */ } }, [focus]);
   const [focusRows, setFocusRows] = useState<Record<string, DpsRow[]>>({});
+  // Copias de la misma unidad que le pegan al mismo objetivo (p. ej. 4 Kossars disparando juntos)
+  const [copies, setCopies] = useState(1);
+  useEffect(() => { setCopies(1); }, [attacker]);
+  const inArmy = army.units?.find((u) => u.card === attacker)?.count ?? 1;
   const [info, setInfo] = useState<{ disclaimer: string; debuffs: string[] } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [factions, setFactions] = useState<Faction[]>([]);
@@ -219,15 +223,18 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
    */
   const rows = useMemo(() => {
     const extra = focus.filter((id) => focusRows[id]);
-    if (!extra.length) return rawRows;
+    if (!extra.length && copies <= 1) return rawRows;
     return rawRows.map((r) => {
-      const others = extra.map((id) => focusRows[id].find((x) => x.target === r.target)).filter((x): x is DpsRow => !!x);
+      const others = [
+        ...Array.from({ length: copies - 1 }, () => r),
+        ...extra.map((id) => focusRows[id].find((x) => x.target === r.target)).filter((x): x is DpsRow => !!x),
+      ];
       if (!others.length) return r;
       const rate = [r, ...others].reduce((s, x) => s + (Number.isFinite(x.timeToKill) && x.timeToKill > 0 ? 1 / x.timeToKill : 0), 0);
       const dps = Math.round([r, ...others].reduce((s, x) => s + x.dps, 0) * 10) / 10;
       return { ...r, dps, timeToKill: rate > 0 ? Math.round((1 / rate) * 10) / 10 : Infinity, focus: { n: others.length + 1, soloDps: r.dps, soloTtk: r.timeToKill } };
     });
-  }, [rawRows, focus, focusRows]);
+  }, [rawRows, focus, focusRows, copies]);
   const recalculating = !!rows.length && rowsFor !== `${attacker}|${dir}|${mode}|${timing}`;
 
   // Duelos de todas las tarjetas del ejército contra los mismos objetivos, para marcar en la franja las que mejor salen
@@ -394,21 +401,27 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
       {attCard && (
         <div className="dps-focus small">
           <b title="Varias unidades pegándole al mismo objetivo: suma su DPS y baja el tiempo para matar">Fuego concentrado:</b>{' '}
+          <span className="focus-copies" title="Cuántas unidades de este mismo tipo le pegan al objetivo">
+            <button className="ghost" disabled={copies <= 1} onClick={() => setCopies(copies - 1)}>−</button>
+            <b>{copies}×</b>
+            <button className="ghost" disabled={copies >= 20} onClick={() => setCopies(copies + 1)}>+</button>
+          </span>
           {attCard.name}
+          {inArmy > 1 && copies !== inArmy && <button className="ghost" onClick={() => setCopies(inArmy)} title="Las que llevas en el ejército">Todas las del ejército ({inArmy})</button>}
           {focus.map((id, i) => {
             const c = cards.find((x) => x.id === id);
             return c ? (
-              <span key={i} className="focus-chip">+ {c.name}{c.id === attacker ? ' (otra copia)' : ''}
+              <span key={i} className="focus-chip">+ {c.name}
                 <button className="ghost" title="Quitar" onClick={() => setFocus(focus.filter((_, j) => j !== i))}>×</button>
               </span>
             ) : null;
           })}
           <select value="" onChange={(e) => { if (e.target.value) setFocus([...focus, e.target.value]); }} title="Otra unidad de tu ejército que también le pega al objetivo">
-            <option value="">+ añadir unidad…</option>
-            {cards.map((c) => <option key={c.id} value={c.id}>{c.id === attacker ? `${c.name} (otra copia)` : c.name}</option>)}
+            <option value="">+ otra unidad…</option>
+            {cards.filter((c) => c.id !== attacker).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          {focus.length > 0 && <button className="ghost" onClick={() => setFocus([])}>Quitar todas</button>}
-          {focus.length > 0 && <span className="muted"> · DPS y tiempo para matar ya son de las {focus.length + 1} unidades juntas (en el tiempo, entre paréntesis: solo {attCard.name})</span>}
+          {focus.length > 0 && <button className="ghost" onClick={() => setFocus([])}>Quitar otras</button>}
+          {focus.length + copies > 1 && <span className="muted"> · DPS y tiempo para matar ya son de las {focus.length + copies} unidades juntas (entre paréntesis: una sola {attCard.name})</span>}
         </div>
       )}
       <PickStrip cards={cards} units={units} selected={attacker} onPick={setAttacker} matchups={matchups} best={best} />

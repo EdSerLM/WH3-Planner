@@ -222,3 +222,5 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
 .dps-focus { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 8px; }
 .focus-chip { display: inline-flex; gap: 4px; align-items: center; padding: 1px 4px 1px 8px; border-radius: 10px; background: #3d2f14; color: #f0d48a; border: 1px solid #8a6a2a; }
 .focus-chip button { padding: 0 4px; line-height: 16px; }
+.focus-copies { display: inline-flex; gap: 4px; align-items: center; }
+.focus-copies button { padding: 0 7px; line-height: 20px; }
