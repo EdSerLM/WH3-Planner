@@ -413,6 +413,8 @@ export interface ComputeResult {
 }
 
 export interface DpsRow {
+  /** Fuego concentrado: unidades juntas y lo que haría la elegida sola */
+  focus?: { n: number; soloDps: number; soloTtk: number };
   target: string;
   targetName: string;
   hitChance: number;

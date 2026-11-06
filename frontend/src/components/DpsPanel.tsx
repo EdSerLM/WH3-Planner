@@ -43,6 +43,8 @@ const STORE = 'wh3-planner:dps-targets';
 const STORE_VIEW = 'wh3-planner:dps-view';
 // Unidad atacante y dirección elegidas: el panel se desmonta al cambiar de pestaña
 const STORE_PICK = 'wh3-planner:dps-pick';
+/** Fuego concentrado: otras unidades del ejército que pegan al mismo objetivo (se puede repetir una para varias copias) */
+const STORE_FOCUS = 'wh3-planner:dps-focus';
 type AttackDir = 'front' | 'flank' | 'rear';
 type AttackMode = 'melee' | 'ranged';
 
@@ -104,7 +106,10 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
   const [pick] = useState(() => loadJson(STORE_PICK, { attacker: '', dir: 'front' as AttackDir }));
   const [attacker, setAttacker] = useState<string>(pick.attacker);
   const [targets, setTargets] = useState<string[]>(() => loadTargets() ?? DEFAULT_TARGETS);
-  const [rows, setRows] = useState<DpsRow[]>([]);
+  const [rawRows, setRows] = useState<DpsRow[]>([]);
+  const [focus, setFocus] = useState<string[]>(() => { try { const v = JSON.parse(localStorage.getItem(STORE_FOCUS) ?? '[]'); return Array.isArray(v) ? v : []; } catch { return []; } });
+  useEffect(() => { try { localStorage.setItem(STORE_FOCUS, JSON.stringify(focus)); } catch { /* sin almacenamiento */ } }, [focus]);
+  const [focusRows, setFocusRows] = useState<Record<string, DpsRow[]>>({});
   const [info, setInfo] = useState<{ disclaimer: string; debuffs: string[] } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [factions, setFactions] = useState<Faction[]>([]);
@@ -197,6 +202,32 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
     }, 200);
     return () => { stale = true; clearTimeout(t); };
   }, [army, attacker, targets, dir, mode, timing]);
+  // Fuego concentrado: el DPS de cada unidad extra contra los mismos objetivos
+  const focusIds = useMemo(() => [...new Set(focus.filter((id) => cards.some((c) => c.id === id)))], [focus, cards]);
+  useEffect(() => {
+    if (!focusIds.length || !targets.length) { setFocusRows({}); return; }
+    let stale = false;
+    const t = setTimeout(() => {
+      Promise.all(focusIds.map((id) => api.dps(army, id, targets, dir, mode, timing).then((r) => [id, r.rows] as const).catch(() => [id, []] as const)))
+        .then((l) => { if (!stale) setFocusRows(Object.fromEntries(l)); });
+    }, 250);
+    return () => { stale = true; clearTimeout(t); };
+  }, [army, focusIds, targets, dir, mode, timing]);
+  /**
+   * Filas con el fuego concentrado sumado: cada unidad le quita vida a su propio ritmo (vida ÷ su tiempo para matar),
+   * así que juntas: tiempo = 1 ÷ (suma de 1 ÷ tiempo de cada una). El DPS se suma.
+   */
+  const rows = useMemo(() => {
+    const extra = focus.filter((id) => focusRows[id]);
+    if (!extra.length) return rawRows;
+    return rawRows.map((r) => {
+      const others = extra.map((id) => focusRows[id].find((x) => x.target === r.target)).filter((x): x is DpsRow => !!x);
+      if (!others.length) return r;
+      const rate = [r, ...others].reduce((s, x) => s + (Number.isFinite(x.timeToKill) && x.timeToKill > 0 ? 1 / x.timeToKill : 0), 0);
+      const dps = Math.round([r, ...others].reduce((s, x) => s + x.dps, 0) * 10) / 10;
+      return { ...r, dps, timeToKill: rate > 0 ? Math.round((1 / rate) * 10) / 10 : Infinity, focus: { n: others.length + 1, soloDps: r.dps, soloTtk: r.timeToKill } };
+    });
+  }, [rawRows, focus, focusRows]);
   const recalculating = !!rows.length && rowsFor !== `${attacker}|${dir}|${mode}|${timing}`;
 
   // Duelos de todas las tarjetas del ejército contra los mismos objetivos, para marcar en la franja las que mejor salen
@@ -358,6 +389,26 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
             {shown.length} objetivo{shown.length === 1 ? '' : 's'}{shown.length !== rows.length ? ` (de ${rows.length})` : ''}
             {recalculating && <b className="dps-recalc"> · recalculando…</b>}
           </span>
+        </div>
+      )}
+      {attCard && (
+        <div className="dps-focus small">
+          <b title="Varias unidades pegándole al mismo objetivo: suma su DPS y baja el tiempo para matar">Fuego concentrado:</b>{' '}
+          {attCard.name}
+          {focus.map((id, i) => {
+            const c = cards.find((x) => x.id === id);
+            return c ? (
+              <span key={i} className="focus-chip">+ {c.name}{c.id === attacker ? ' (otra copia)' : ''}
+                <button className="ghost" title="Quitar" onClick={() => setFocus(focus.filter((_, j) => j !== i))}>×</button>
+              </span>
+            ) : null;
+          })}
+          <select value="" onChange={(e) => { if (e.target.value) setFocus([...focus, e.target.value]); }} title="Otra unidad de tu ejército que también le pega al objetivo">
+            <option value="">+ añadir unidad…</option>
+            {cards.map((c) => <option key={c.id} value={c.id}>{c.id === attacker ? `${c.name} (otra copia)` : c.name}</option>)}
+          </select>
+          {focus.length > 0 && <button className="ghost" onClick={() => setFocus([])}>Quitar todas</button>}
+          {focus.length > 0 && <span className="muted"> · DPS y tiempo para matar ya son de las {focus.length + 1} unidades juntas (en el tiempo, entre paréntesis: solo {attCard.name})</span>}
         </div>
       )}
       <PickStrip cards={cards} units={units} selected={attacker} onPick={setAttacker} matchups={matchups} best={best} />
@@ -582,7 +633,7 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
                         <b>{r.dps}</b>
                         <span className="dps-bar"><span style={{ width: `${(r.dps / maxDps) * 100}%` }} /></span>
                       </td>
-                      <td className={'num ttk ' + ttkCls} title={r.timing ? timingTip(r) : undefined}>{Number.isFinite(r.timeToKill) ? `${r.timeToKill} s` : '—'}{r.timing && timing !== 'always' && r.timing.all.always.mine !== r.timeToKill ? <span className="ttk-alt" title="Si las habilidades duraran toda la pelea">{fmtT(r.timing.all.always.mine)}</span> : null}{rechargeCol && r.timing ? <RechargeBar r={r} timing={timing} /> : null}</td>
+                      <td className={'num ttk ' + ttkCls} title={r.timing ? timingTip(r) : undefined}>{Number.isFinite(r.timeToKill) ? `${r.timeToKill} s` : '—'}{r.focus ? <span className="ttk-alt" title="Solo la unidad elegida, sin el fuego concentrado">({fmtT(r.focus.soloTtk)})</span> : null}{r.timing && timing !== 'always' && r.timing.all.always.mine !== r.timeToKill ? <span className="ttk-alt" title="Si las habilidades duraran toda la pelea">{fmtT(r.timing.all.always.mine)}</span> : null}{rechargeCol && r.timing ? <RechargeBar r={r} timing={timing} /> : null}</td>
                       <td className="num">{r.duel ? (Number.isFinite(r.duel.enemy.timeToKill) ? `${r.duel.enemy.timeToKill} s` : '—') : ''}</td>
                       <td className="num"><DuelBadge r={r} /></td>
                       <td className="num">{r.efficiency ?? '—'}</td>
