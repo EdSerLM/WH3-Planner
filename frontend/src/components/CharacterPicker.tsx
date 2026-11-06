@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CharacterSummary } from '../types';
+import { GameIcon } from '../gameIcons';
 
 interface Props {
   characters: CharacterSummary[];
@@ -12,12 +13,33 @@ interface Props {
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
+/** Símbolo del saber: el icono de su pasiva de saber; con más de un saber, el de saber combinado */
+function LoreBadge({ c }: { c?: CharacterSummary }) {
+  if (!c?.lore) return null;
+  const { icons, names } = c.lore;
+  return (
+    <span className={'cp-lore' + (icons.length > 1 ? ' multi' : '')} title={icons.length > 1 ? `Varios saberes: ${names.join(', ')}` : `Saber: ${names[0]}`}>
+      {icons.length > 1
+        ? <GameIcon path="skills/character_magic" emoji="✦" size={16} />
+        : <img src={`${import.meta.env.BASE_URL}abilities/${icons[0]}.png`} alt="" loading="lazy" />}
+    </span>
+  );
+}
+
+/** "Heraldo de Tzeentch (Metal)" -> base y variante (saber, marca...) */
+const splitVariant = (n: string) => {
+  // "Glorioso Señor de la Transformación (Metal) · Chs": lo que va tras "·" solo distingue copias repetidas
+  const m = /^(.*?)\s*\(([^)]+)\)(?:\s*·.*)?$/.exec(n);
+  return m ? { base: m[1], variant: m[2] } : { base: n, variant: '' };
+};
+
 /** Retrato de la carta del personaje; si no hay arte, la inicial */
 function Portrait({ c, big }: { c?: CharacterSummary; big?: boolean }) {
   const [broken, setBroken] = useState(false);
   return (
     <span className={'cp-art' + (big ? ' big' : '')}>
       {c?.art && !broken ? <img src={`/units/${c.art}.png`} alt="" loading="lazy" onError={() => setBroken(true)} /> : <b>{c?.name.charAt(0) ?? '?'}</b>}
+      <LoreBadge c={c} />
     </span>
   );
 }
@@ -39,7 +61,40 @@ export function CharacterPicker({ characters, type, value, onChange, campaign }:
   const current = characters.find((c) => c.key === value);
   const shown = list.filter((c) => !q || norm(c.name).includes(norm(q)));
   const legendary = shown.filter((c) => c.legendary);
-  const generic = shown.filter((c) => !c.legendary);
+  // Genéricos con variantes (saber o marca entre paréntesis): una sola carta y el saber se elige con botones, como en el juego
+  const variantsOf = useMemo(() => {
+    const m = new Map<string, CharacterSummary[]>();
+    for (const c of list) {
+      const { base, variant } = splitVariant(c.name);
+      if (!variant) continue;
+      const l = m.get(base) ?? [];
+      // Una por variante: entre copias repetidas, la elegida o la de nombre más corto
+      const same = l.findIndex((x) => splitVariant(x.name).variant === variant);
+      if (same < 0) l.push(c);
+      else if (c.key === value || (l[same].key !== value && c.name.length < l[same].name.length)) l[same] = c;
+      m.set(base, l);
+    }
+    for (const [k, l] of m) if (l.length < 2) m.delete(k);
+    return m;
+  }, [list, value]);
+  const collapse = (arr: CharacterSummary[]) => {
+    const out: CharacterSummary[] = [];
+    const done = new Set<string>();
+    for (const c of arr) {
+      const { base } = splitVariant(c.name);
+      const vs = variantsOf.get(base);
+      if (!vs) { out.push(c); continue; }
+      if (done.has(base)) continue;
+      done.add(base);
+      // La carta del grupo: la variante elegida si es de este grupo, si no la primera
+      out.push(vs.find((x) => x.key === value) ?? vs[0]);
+    }
+    return out;
+  };
+  const generic = collapse(shown.filter((c) => !c.legendary));
+  const legendaryTiles = collapse(legendary);
+  const groupOf = (c?: CharacterSummary) => (c ? variantsOf.get(splitVariant(c.name).base) : undefined);
+  const curGroup = groupOf(current);
 
   // Cerrar al hacer clic fuera o con Escape
   useEffect(() => {
@@ -57,9 +112,10 @@ export function CharacterPicker({ characters, type, value, onChange, campaign }:
   const tiles = (arr: CharacterSummary[]) => (
     <div className="cp-grid">
       {arr.map((c) => (
-        <button key={c.key} className={'cp-tile' + (c.key === value ? ' on' : '') + (c.legendary ? ' leg' : '')} onClick={() => pick(c.key)} title={c.name}>
+        <button key={c.key} className={'cp-tile' + (c.key === value || (groupOf(c) && groupOf(c) === curGroup) ? ' on' : '') + (c.legendary ? ' leg' : '')} onClick={() => pick(c.key)} title={c.name}>
           <Portrait c={c} />
-          <span className="cp-name">{c.name}</span>
+          <span className="cp-name">{groupOf(c) ? splitVariant(c.name).base : c.name}</span>
+          {groupOf(c) && <span className="cp-variants muted">{groupOf(c)!.length} {groupOf(c)!.some((x) => x.lore) ? 'saberes' : 'variantes'}</span>}
         </button>
       ))}
     </div>
@@ -75,6 +131,18 @@ export function CharacterPicker({ characters, type, value, onChange, campaign }:
         </span>
         <span className="cp-caret">{open ? '▴' : '▾'}</span>
       </button>
+      {curGroup && (
+        <div className="cp-radio" role="radiogroup" aria-label="Saber">
+          <span className="muted small">{curGroup.some((x) => x.lore) ? 'Saber:' : 'Variante:'}</span>
+          {curGroup.map((v) => (
+            <label key={v.key} className={'cp-radio-opt' + (v.key === value ? ' on' : '')} title={v.lore?.names.join(', ')}>
+              <input type="radio" name={`variant-${type}`} checked={v.key === value} onChange={() => onChange(v.key)} />
+              <LoreBadge c={v} />
+              {splitVariant(v.name).variant}
+            </label>
+          ))}
+        </div>
+      )}
       {open && (
         <div className="cp-panel">
           <div className="cp-top">
@@ -85,7 +153,7 @@ export function CharacterPicker({ characters, type, value, onChange, campaign }:
           {legendary.length > 0 && (
             <>
               <h4 className="cp-sec">⭐ {type === 'lord' ? 'Señores legendarios' : 'Héroes legendarios'}</h4>
-              {tiles(legendary)}
+              {tiles(legendaryTiles)}
             </>
           )}
           {generic.length > 0 && (

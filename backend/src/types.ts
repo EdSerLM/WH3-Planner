@@ -286,6 +286,8 @@ export interface CharacterSummary {
   art?: string;
   /** Mujer según el juego (has_female_name) y su grupo de nombres */
   female?: boolean; namesGroup?: string;
+  /** Saberes de magia: icono y nombre de cada pasiva de saber (más de uno = saber combinado) */
+  lore?: { icons: string[]; names: string[] };
 }
 
 export interface BannerInfo {

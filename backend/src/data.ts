@@ -745,6 +745,21 @@ function factionNames(f: string): Map<string, string> {
   return out;
 }
 
+// Saberes de magia de un personaje: las pasivas de saber que dan sus habilidades (o sus espacios de hechizo, como Kairos)
+const loreCache = new Map<string, CharacterSummary['lore']>();
+function loreOf(c: GameCharacter): CharacterSummary['lore'] {
+  if (loreCache.has(c.key)) return loreCache.get(c.key);
+  const keys = new Set<string>();
+  for (const n of [...c.nodes, ...(c.bg ?? [])]) for (const l of gameFile!.skills[n.s]?.lv ?? []) for (const e of l.e ?? []) {
+    const a = (e.s as { ability?: string }).ability;
+    if (a && /_lore_passive_/.test(a)) keys.add(a);
+  }
+  const passives = [...keys].sort().map((k) => gameFile!.abilities[k]).filter(Boolean);
+  const lore = passives.length ? { icons: passives.map((a) => a.img ?? a.key), names: passives.map((a) => a.name) } : undefined;
+  loreCache.set(c.key, lore);
+  return lore;
+}
+
 export function listCharacters(faction?: string): CharacterSummary[] {
   addCampaignLeaders();
   if (!gameFile) return summaries.filter((s) => s.faction === (faction || DEFAULT_FACTION));
@@ -752,7 +767,10 @@ export function listCharacters(faction?: string): CharacterSummary[] {
   const names = factionNames(f);
   return gameFile.characters
     .filter((c) => c.subcultures.includes(f))
-    .map((c) => ({ key: charId(c, f), name: names.get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction: f, art: artOfUnit(c.unit), ...(c.factions ? { factions: c.factions } : {}), ...(c.fem ? { female: true } : {}), ...(c.ng ? { namesGroup: c.ng } : {}) }))
+    .map((c) => {
+      const lore = loreOf(c);
+      return { key: charId(c, f), name: names.get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction: f, art: artOfUnit(c.unit), ...(c.factions ? { factions: c.factions } : {}), ...(c.fem ? { female: true } : {}), ...(c.ng ? { namesGroup: c.ng } : {}), ...(lore ? { lore } : {}) };
+    })
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
 }
 
