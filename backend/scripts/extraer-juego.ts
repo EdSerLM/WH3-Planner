@@ -400,6 +400,8 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     const u: any = {
       key: mu.unit, card: card.get(mu.unit) ?? mu.unit, name: sp.get(`land_units_onscreen_name_${L.key}`) ?? mu.unit,
       caste: CASTE_ES[mu.caste] ?? mu.caste, casteKey: mu.caste, cost: mu.multiplayer_cost, models: mu.num_men,
+      // Campaña: coste de reclutamiento y mantenimiento por turno
+      rc: mu.recruitment_cost ?? undefined, upkeep: mu.upkeep_cost ?? undefined,
       tier: mu.tier ?? 0, mounts: L.num_mounts ?? 0, uiGroup: uiParent.get(mu.ui_unit_group_land ?? '')?.parent_group ?? undefined,
       catIcon: iconName(uiParent.get(mu.ui_unit_group_land ?? '')?.icon),
       size: biggest(ent.size, ment?.size, L.articulated_record ? be.get(artic.get(L.articulated_record)?.articulated_entity ?? '')?.size : undefined),

@@ -123,7 +123,7 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
   // grouped (booleano) es de versiones anteriores: equivale a agrupar por tipo
   // noRor: sin Regimientos de Renombre; verdict: solo los duelos con ese resultado;
   // single: mostrar los objetivos de un solo modelo (ocultos por defecto: el duelo no los calcula bien); mode: melee o distancia
-  const [view, setView] = useState<{ sort: SortState; grouped: boolean; groupBy?: GroupBy; noRor?: boolean; single?: boolean; verdict?: Verdict | ''; mode?: AttackMode; timing?: AbilityTiming; recharge?: boolean }>(() =>
+  const [view, setView] = useState<{ sort: SortState; grouped: boolean; groupBy?: GroupBy; noRor?: boolean; noRorMine?: boolean; single?: boolean; verdict?: Verdict | ''; mode?: AttackMode; timing?: AbilityTiming; recharge?: boolean }>(() =>
     loadJson(STORE_VIEW, { sort: { key: 'ttk', dir: 1 } as SortState, grouped: false }),
   );
   const groupBy: GroupBy = view.groupBy ?? (view.grouped ? 'type' : '');
@@ -286,8 +286,8 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
   const rest = useMemo(() => {
     const allowed = campaignUnits(campaign);
     const inArmy = new Set(army.units.map((u) => u.card));
-    return units.filter((u) => !inArmy.has(u.card) && (!allowed || allowed.has(u.card)) && (!view.noRor || !isRor(u.key + u.card)));
-  }, [units, campaign, army.units, view.noRor]);
+    return units.filter((u) => !inArmy.has(u.card) && (!allowed || allowed.has(u.card)) && (!view.noRorMine || !isRor(u.key + u.card)));
+  }, [units, campaign, army.units, view.noRorMine]);
   const [restDuels, setRestDuels] = useState<Record<string, Record<string, Verdict>>>({});
   useEffect(() => {
     if (!targets.length || !rest.length || !cards.length) {
@@ -531,8 +531,12 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
             <option value="lose">❌ Pierdes ({count('lose')})</option>
           </select>
         </label>
-        <label title="Oculta los Regimientos de Renombre de la tabla y de la lista para agregar objetivos">
-          <input type="checkbox" checked={!!view.noRor} onChange={(e) => setView((v) => ({ ...v, noRor: e.target.checked }))} /> Sin Regimientos de Renombre
+        <span className="muted">Sin Regimientos de Renombre:</span>
+        <label title="Oculta tus Regimientos de Renombre del resto del roster (atacantes)">
+          <input type="checkbox" checked={!!view.noRorMine} onChange={(e) => setView((v) => ({ ...v, noRorMine: e.target.checked }))} /> tuyos
+        </label>
+        <label title="Oculta los Regimientos de Renombre del rival de la tabla y de la lista para agregar objetivos">
+          <input type="checkbox" checked={!!view.noRor} onChange={(e) => setView((v) => ({ ...v, noRor: e.target.checked }))} /> del rival
         </label>
         <label title="Unidades de un solo modelo (gigantes, dragones, carros únicos, señores y héroes): el duelo las calcula mal, por eso están ocultas por defecto">
           <input type="checkbox" checked={!!view.single} onChange={(e) => setView((v) => ({ ...v, single: e.target.checked }))} /> Mostrar unidades de un solo modelo{!view.single && hiddenSingles > 0 ? ` (${hiddenSingles} oculta${hiddenSingles === 1 ? '' : 's'})` : ''}

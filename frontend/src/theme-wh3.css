@@ -236,3 +236,20 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
 .cp-radio-opt { display: inline-flex; gap: 5px; align-items: center; padding: 2px 9px 2px 5px; border: 1px solid rgba(212, 180, 106, 0.35); border-radius: 12px; cursor: pointer; font-size: 12.5px; }
 .cp-radio-opt.on { border-color: #e7c66a; background: rgba(231, 198, 106, 0.12); color: #f0d48a; }
 .cp-radio-opt input { margin: 0; accent-color: #b3262c; }
+
+/* Mis ejércitos */
+.armies-panel { margin: 0 0 10px; padding: 6px 10px; border: 1px solid rgba(212, 180, 106, 0.35); border-radius: 4px; background: rgba(20, 14, 8, 0.5); }
+.armies-panel summary { cursor: pointer; font-family: 'Cinzel', serif; color: #f0d48a; display: flex; gap: 6px; align-items: center; }
+.armies-panel .gold { color: #f0d48a; }
+.ap-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.ap-tools input { min-width: 200px; }
+.ap-diff { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; }
+.ap-table { width: 100%; border-collapse: collapse; }
+.ap-table th, .ap-table td { padding: 4px 6px; border-bottom: 1px solid rgba(212, 180, 106, 0.15); text-align: left; }
+.ap-table .num { text-align: right; }
+.ap-table tr.on td { background: rgba(231, 198, 106, 0.08); }
+.ap-table tfoot td { border-top: 1px solid rgba(212, 180, 106, 0.5); }
+.ap-name { width: 100%; min-width: 120px; background: transparent; border: 1px solid transparent; color: inherit; }
+.ap-name:focus { border-color: #b39552; }
+.ap-act { white-space: nowrap; }
+@media (max-width: 700px) { .ap-diff { margin-left: 0; } .ap-table th:nth-child(4), .ap-table td:nth-child(4) { display: none; } }

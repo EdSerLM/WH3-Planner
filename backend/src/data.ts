@@ -769,7 +769,8 @@ export function listCharacters(faction?: string): CharacterSummary[] {
     .filter((c) => c.subcultures.includes(f))
     .map((c) => {
       const lore = loreOf(c);
-      return { key: charId(c, f), name: names.get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction: f, art: artOfUnit(c.unit), ...(c.factions ? { factions: c.factions } : {}), ...(c.fem ? { female: true } : {}), ...(c.ng ? { namesGroup: c.ng } : {}), ...(lore ? { lore } : {}) };
+      const cu = getUnit(c.unit);
+      return { key: charId(c, f), name: names.get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction: f, art: artOfUnit(c.unit), ...(cu?.upkeep !== undefined ? { upkeep: cu.upkeep, rc: cu.rc } : {}), ...(c.factions ? { factions: c.factions } : {}), ...(c.fem ? { female: true } : {}), ...(c.ng ? { namesGroup: c.ng } : {}), ...(lore ? { lore } : {}) };
     })
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
 }

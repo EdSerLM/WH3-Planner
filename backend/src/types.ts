@@ -135,6 +135,9 @@ export interface UnitData {
   group: string;
   tier: number;
   cost: number;
+  /** Campaña: coste de reclutamiento y mantenimiento por turno */
+  rc?: number;
+  upkeep?: number;
   campaignOnly: boolean;
   models: number;
   mounts: number;
@@ -286,6 +289,8 @@ export interface CharacterSummary {
   art?: string;
   /** Mujer según el juego (has_female_name) y su grupo de nombres */
   female?: boolean; namesGroup?: string;
+  /** Campaña: mantenimiento por turno y coste de reclutamiento (a pie, sin montura) */
+  upkeep?: number; rc?: number;
   /** Saberes de magia: icono y nombre de cada pasiva de saber (más de uno = saber combinado) */
   lore?: { icons: string[]; names: string[] };
 }

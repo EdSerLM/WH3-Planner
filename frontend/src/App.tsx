@@ -10,6 +10,7 @@ import { Flag, GameIcon, setGroupIcons } from './gameIcons';
 import { AbilitiesPanel } from './components/AbilitiesPanel';
 import { ActiveAbilities } from './components/ActiveAbilities';
 import { ArmyMagic } from './components/ArmyMagic';
+import { ArmiesPanel } from './components/ArmiesPanel';
 import { LordLink } from './components/LordLink';
 import { UnitCard } from './components/UnitCard';
 import { DpsPanel } from './components/DpsPanel';
@@ -640,6 +641,10 @@ export default function App() {
 
       {page === 'army' && (
       <section className="bottom setup-page">
+        <ErrorBoundary label="tus ejércitos" resetKey={faction}>
+          <ArmiesPanel faction={faction} army={army} characters={characters} units={units}
+            onLoad={(a) => setArmy({ ...(a as ArmyState), faction })} />
+        </ErrorBoundary>
         <ErrorBoundary label="el roster" resetKey={faction}>
         <ArmySetup
           units={units}
