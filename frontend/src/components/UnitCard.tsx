@@ -29,8 +29,90 @@ function contribText(c: Contribution) {
   return `${v} ${c.source}${c.conditional ? ` [${c.conditional}]` : ''} — ${c.from}`;
 }
 
+// Vista como en el juego: barras con los stats principales; lo demás en el tooltip o en "avanzadas"
+const ADV_KEY = 'wh3-planner:card-advanced';
+type Row = { key: StatKey; label: string; base: number; final: number; max: number; tip: string[]; contribs: Contribution[]; pct?: boolean };
+
+function gameRows(card: ComputedCard, labels: Record<StatKey, string>): Row[] {
+  const st = card.stats;
+  const r = (k: StatKey, max: number, tip: string[] = [], label?: string): Row => ({ key: k, label: label ?? labels[k] ?? k, base: st[k].base, final: st[k].final, max, tip, contribs: st[k].contributions });
+  // 'hp' es la vida por modelo; la barra del juego muestra la de toda la unidad
+  const n = Math.max(1, card.models);
+  const rows: Row[] = [
+    { ...r('hp', 0, [`${card.models} modelo${card.models === 1 ? '' : 's'} × ${fmtStat(st.hp.final, 'hp')} de vida`], 'Vida'), base: st.hp.base * n, final: st.hp.final * n },
+    r('armour', 150, [st.shield.final ? `Escudo: ${st.shield.final}% de bloqueo de proyectiles de frente` : 'Sin escudo']),
+    r('ld', 100),
+    r('speed', 100),
+    r('ma', 100, [], 'Ataque c. a c.'),
+    r('md', 100, [], 'Defensa c. a c.'),
+  ];
+  // Fuerza del arma = daño base + perforante (como en el juego); el desglose va en el tooltip
+  const ws: Row = {
+    key: 'dmg', label: 'Fuerza del arma', base: st.dmg.base + st.ap.base, final: st.dmg.final + st.ap.final, max: 150,
+    contribs: [...st.dmg.contributions, ...st.ap.contributions],
+    tip: [
+      `Daño base: ${fmtStat(st.dmg.final, 'dmg')} · Perforante: ${fmtStat(st.ap.final, 'ap')}`,
+      st.bvl.final ? `Bonificación contra grandes: +${fmtStat(st.bvl.final, 'bvl')}` : '',
+      st.bvi.final ? `Bonificación contra infantería: +${fmtStat(st.bvi.final, 'bvi')}` : '',
+      `Intervalo de ataque: ${card.interval} s${card.splash && card.splash > 1 ? ` · golpea hasta ${card.splash} modelos` : ''}`,
+    ].filter(Boolean),
+  };
+  rows.push(ws, r('charge', 100));
+  if (st.missileDmg.base || st.missileDmg.final) {
+    const m = card.missile;
+    rows.push(
+      { ...r('missileDmg', 150, [
+        m ? `Daño base: ${m.dmg} · Perforante: ${m.ap} (por proyectil, sin bufos)` : '',
+        m?.shots && m.shots > 1 ? `${m.shots} proyectiles por disparo` : '',
+        m?.bvl ? `Contra grandes: +${m.bvl}` : '', m?.bvi ? `Contra infantería: +${m.bvi}` : '',
+        `Recarga: ${fmtStat(st.reload.final, 'reload')} s`,
+      ].filter(Boolean)), label: 'Fuerza de proyectiles' },
+      r('range', 500),
+      r('ammo', 100),
+    );
+  }
+  return rows;
+}
+
+function GameStats({ card, labels }: { card: ComputedCard; labels: Record<StatKey, string> }) {
+  const rows = gameRows(card, labels);
+  const res = (['resWard', 'resPhysical', 'resMissile', 'resMagic', 'resFlame'] as StatKey[]).filter((k) => card.stats[k].final !== 0);
+  return (
+    <div className="gstats">
+      {rows.map((r) => {
+        const diff = Math.round((r.final - r.base) * 10) / 10;
+        const tip = [...r.tip, ...(r.contribs.length ? ['', 'Bufos:', ...r.contribs.map(contribText)] : [])].join('\n');
+        const w = (v: number) => `${Math.max(0, Math.min(100, (v / r.max) * 100))}%`;
+        return (
+          <div key={r.label} className={'gs-row' + (r.key === 'hp' ? ' hp' : '')} title={tip}>
+            <span className="gs-label"><StatImg stat={r.key} emoji="" size={14} /> {r.label}</span>
+            {r.max > 0 ? (
+              <span className="gs-bar">
+                <i className="base" style={{ width: w(Math.min(r.base, r.final)) }} />
+                {diff !== 0 && <i className={diff > 0 ? 'up' : 'down'} style={{ left: w(Math.min(r.base, r.final)), width: w(Math.abs(diff)) }} />}
+              </span>
+            ) : <span className="gs-bar hpbar"><i className="base" style={{ width: '100%' }} /></span>}
+            <span className={'gs-val' + (diff > 0 ? ' up' : diff < 0 ? ' down' : '')}>{fmtStat(r.final, r.key)}{diff ? <small>{diff > 0 ? ' ▲' : ' ▼'}</small> : null}</span>
+          </div>
+        );
+      })}
+      {res.length > 0 && (
+        <div className="gs-res">
+          {res.map((k) => (
+            <span key={k} className={'gs-resi' + (card.stats[k].final !== card.stats[k].base ? ' up' : '')} title={`${labels[k] ?? k}: ${card.stats[k].final}%${card.stats[k].contributions.length ? '\n' + card.stats[k].contributions.map(contribText).join('\n') : ''}`}>
+              <StatImg stat={k} emoji="" size={14} /> {card.stats[k].final}%
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function UnitCard({ card, labels, onSelect, selected, selfAbilities = [], onToggleAbility }: Props) {
   const [open, setOpen] = useState<StatKey | null>(null);
+  const [adv, setAdv] = useState<boolean>(() => { try { return localStorage.getItem(ADV_KEY) === '1'; } catch { return false; } });
+  const toggleAdv = () => { const v = !adv; setAdv(v); try { localStorage.setItem(ADV_KEY, v ? '1' : '0'); } catch { /* sin almacenamiento */ } };
   const stats = [...MAIN, ...EXTRA.filter((s) => card.stats[s].base !== 0 || card.stats[s].final !== 0)];
   const buffed = stats.filter((s) => card.stats[s].contributions.length).length;
 
@@ -53,6 +135,11 @@ export function UnitCard({ card, labels, onSelect, selected, selfAbilities = [],
         </div>
         <span className="badge">{buffed} bufos</span>
       </div>
+      {!adv && <GameStats card={card} labels={labels} />}
+      <button className="ghost small adv-toggle" onClick={toggleAdv} title="Muestra u oculta la tabla con todos los stats, base → final y de dónde viene cada bufo">
+        {adv ? '▴ Ocultar estadísticas avanzadas' : '▾ Estadísticas avanzadas'}
+      </button>
+      {adv && (<>
       <table className="stats">
         <tbody>
           {stats.map((s) => {
@@ -97,8 +184,9 @@ export function UnitCard({ card, labels, onSelect, selected, selfAbilities = [],
           )}
         </tbody>
       </table>
+      </>)}
       <div className="small">
-        <span className="muted">Intervalo de ataque: {card.interval}s{card.splash && card.splash > 1 ? ` · splash ${card.splash}` : ''}</span>
+        {adv && <span className="muted">Intervalo de ataque: {card.interval}s{card.splash && card.splash > 1 ? ` · splash ${card.splash}` : ''}</span>}
         {card.flamingAttacks && <span className="chip fire">Flamígero</span>}
         {card.magicalAttacks && <span className="chip magic">Mágico</span>}
       </div>

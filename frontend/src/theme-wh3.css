@@ -253,3 +253,22 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
 .ap-name:focus { border-color: #b39552; }
 .ap-act { white-space: nowrap; }
 @media (max-width: 700px) { .ap-diff { margin-left: 0; } .ap-table th:nth-child(4), .ap-table td:nth-child(4) { display: none; } }
+
+/* Tarjeta de unidad estilo juego: barras de stats */
+.gstats { display: flex; flex-direction: column; gap: 3px; margin: 6px 0; }
+.gs-row { display: grid; grid-template-columns: 12.2em 1fr 3.4em; gap: 6px; align-items: center; font-size: 12px; cursor: help; }
+.gs-label { color: #d8c79c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-flex; gap: 4px; align-items: center; }
+.gs-bar { position: relative; height: 8px; background: #1a130b; border: 1px solid #4a3b22; border-radius: 1px; overflow: hidden; }
+.gs-bar i { position: absolute; top: 0; bottom: 0; left: 0; }
+.gs-bar i.base { background: linear-gradient(#c9a65a, #8d6f30); }
+.gs-bar i.up { background: linear-gradient(#8fd06a, #4c8a2c); }
+.gs-bar i.down { background: linear-gradient(#e07070, #9a2a2a); }
+.gs-bar.hpbar i.base { background: linear-gradient(#7fc04f, #3f7a22); }
+.gs-val { text-align: right; font-weight: 700; color: #f2e6c4; font-variant-numeric: tabular-nums; }
+.gs-val.up { color: #9fe07a; }
+.gs-val.down { color: #ff8a8a; }
+.gs-val small { font-size: 9px; }
+.gs-res { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.gs-resi { display: inline-flex; gap: 3px; align-items: center; padding: 1px 6px; border: 1px solid #4a3b22; border-radius: 9px; font-size: 12px; background: #17110a; cursor: help; }
+.gs-resi.up { border-color: #4c8a2c; color: #9fe07a; }
+.adv-toggle { margin: 2px 0 4px; padding: 1px 6px; font-size: 11.5px; }
