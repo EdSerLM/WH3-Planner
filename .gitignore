@@ -4,3 +4,4 @@ backend/data/builds.json
 *.log
 .vite/
 tsconfig.tsbuildinfo
+__pycache__/
