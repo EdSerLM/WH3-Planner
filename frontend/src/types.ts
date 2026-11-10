@@ -499,6 +499,12 @@ export interface Meta {
 }
 
 /** Facción de campaña jugable (datos del juego) */
+/** Pantalla de inicio de campaña: raza, sus facciones de campaña y los señores que las lideran */
+export interface CampaignStartRace {
+  key: string; name: string; flag?: string;
+  factions: { key: string; name: string; flag: string; leaders: { id: string; name: string; art?: string }[] }[];
+}
+
 export interface CampaignFaction {
   key: string;
   name: string;

@@ -23,6 +23,7 @@ import { UnitBuffSummary } from './components/UnitBuffSummary';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { emptyBuild } from './treeLogic';
 import { campaignForLord, campaignUnits } from './campaign';
+import { CampaignStart } from './components/CampaignStart';
 import { CharUnits } from './components/CharUnits';
 import type { AbilityState, ArmyState, BuildSelection, CampaignFaction, CharacterSummary, CharacterTree, ComputedCard, ComputeResult, Meta, SavedBuild, UnitData } from './types';
 
@@ -121,6 +122,7 @@ export default function App() {
   const [trees, setTrees] = useState<Record<string, CharacterTree>>({});
   const [faction, setFaction] = useState<string>(loadFaction);
   const [campaigns, setCampaigns] = useState<CampaignFaction[]>([]);
+  const [picking, setPicking] = useState(false);
   const [factions, setFactions] = useState<{ key: string; name: string; flag?: string }[]>([]);
   const [army, setArmy] = useState<ArmyState>(() => loadLocal(loadFaction()));
   const [result, setResult] = useState<ComputeResult | null>(null);
@@ -282,6 +284,20 @@ export default function App() {
     setArmy((a) => ({ ...a, lord: emptyBuild(t), ...(camp ? { campaign: camp } : {}) }));
     setTab('lord');
   };
+  /** Pantalla de campaña: cambia de raza si hace falta, fija la facción de campaña y pone a su señor legendario */
+  const pickCampaign = async (race: string, camp: string | undefined, leader?: string) => {
+    setPicking(false);
+    const base = race === faction ? army : loadLocal(race);
+    let next: ArmyState = { ...base, faction: race, campaign: camp };
+    // El señor elegido reemplaza al que había, salvo que ya sea él (los genéricos se reemplazan también: en el juego empiezas con el legendario)
+    if (leader && base.lord?.character !== leader) {
+      const t = await ensureTree(leader);
+      next = { ...next, lord: emptyBuild(t) };
+    }
+    if (race !== faction) changeFaction(race, next);
+    else setArmy(next);
+    setTab('lord');
+  };
   const setHero = async (i: number, key: string) => {
     const t = await ensureTree(key);
     setArmy((a) => {
@@ -421,27 +437,14 @@ export default function App() {
     <div className="app">
       <header>
         <h1>WH3 Planner</h1>
-        <label className="faction-pick">
-          <Flag flag={factions.find((f) => f.key === faction)?.flag} size={28} />
-          Facción:{' '}
-          <select value={faction} onChange={(e) => changeFaction(e.target.value)}>
-            {(factions.length ? factions : [{ key: DEFAULT_FACTION, name: 'Guerreros del Caos' }]).map((f) => (
-              <option key={f.key} value={f.key}>{f.name}</option>
-            ))}
-          </select>
-        </label>
-        {campaigns.length > 0 && (
-          <label className="faction-pick" title="Facción de campaña (datos del juego): limita el roster a lo que puede reclutar o conseguir con mejoras. Se elige sola con el señor legendario.">
-            <Flag flag={campaigns.find((c) => c.key === army.campaign)?.flag} size={28} />
-            Campaña:{' '}
-            <select value={army.campaign ?? ''} onChange={(e) => setArmy((a) => ({ ...a, campaign: e.target.value || undefined }))}>
-              <option value="">Sin filtro (todo el roster)</option>
-              {campaigns.map((f) => (
-                <option key={f.key} value={f.key}>{f.name}</option>
-              ))}
-            </select>
-          </label>
-        )}
+        <button className="faction-pick cs-open" onClick={() => setPicking(true)} title="Elegir raza y campaña (como en el juego)">
+          <Flag flag={campaigns.find((c) => c.key === army.campaign)?.flag ?? factions.find((f) => f.key === faction)?.flag} size={34} />
+          <span className="cs-cur">
+            <b>{campaigns.find((c) => c.key === army.campaign)?.name ?? 'Batalla libre'}</b>
+            <span className="muted small">{factions.find((f) => f.key === faction)?.name ?? ''} · cambiar ▾</span>
+          </span>
+        </button>
+        {picking && <CampaignStart faction={faction} campaign={army.campaign} onPick={pickCampaign} onClose={() => setPicking(false)} />}
         <div className="saves">
           <input placeholder="Nombre del ejército" value={buildName} onChange={(e) => setBuildName(e.target.value)} />
           <button onClick={save}>{currentId ? 'Guardar cambios' : 'Guardar'}</button>

@@ -1113,6 +1113,22 @@ export function listRoster(faction?: string): UnitData[] {
  * las unidades que puede reclutar, las que consigue con mejoras de unidad (Mejoras de Banda del Caos) y las que solo
  * consigue con un edificio porque la reserva de su subcultura se la da a otra facción (unidad -> edificios).
  */
+/**
+ * Pantalla de inicio de campaña: cada raza jugable con sus facciones de campaña y los señores que las lideran
+ * (nombre y arte de su carta), como la elección de campaña del juego.
+ */
+export function campaignStart(): { key: string; name: string; flag?: string; factions: { key: string; name: string; flag: string; leaders: { id: string; name: string; art?: string }[] }[] }[] {
+  return listCharacterFactions().map((sc) => {
+    const names = gameFile ? factionNames(sc.key) : new Map<string, string>();
+    const factions = (allUnitsFile?.campaign ?? []).filter((c) => c.subculture === sc.key).map((c) => ({
+      key: c.key, name: c.name, flag: c.key,
+      leaders: (gameFile?.characters ?? []).filter((ch) => c.leaders.includes(ch.subtype) && ch.subcultures.includes(sc.key))
+        .map((ch) => ({ id: charId(ch, sc.key), name: names.get(ch.key) ?? ch.name, art: artOfUnit(ch.unit) })),
+    }));
+    return { ...sc, factions };
+  });
+}
+
 export function listCampaign(subculture: string): { key: string; name: string; flag?: string; leaders: string[]; units: string[]; upgrades: Record<string, number>; buildings: Record<string, string[]> }[] {
   return (allUnitsFile?.campaign ?? [])
     .filter((c) => c.subculture === subculture)

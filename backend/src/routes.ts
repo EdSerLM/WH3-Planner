@@ -3,7 +3,7 @@
  * (frontend en modo estático: el mismo código corre en el navegador, sin servidor).
  */
 import { ABILITY_STAT_MAP } from './engine.js';
-import { abilities, DEFAULT_FACTION, getCharacter, getGraph, getTechTree, listGraphs, techSummary, listTechTrees, getUnit, listCampaign, listCharacterFactions, listCharacters, listRoster, listSubcultures, listTargets, sources, targetInfo, getTarget, bulletsInfo, groupIcons, unitAbilityInfo, namesOf } from './data.js';
+import { abilities, DEFAULT_FACTION, getCharacter, getGraph, getTechTree, listGraphs, techSummary, listTechTrees, getUnit, listCampaign, campaignStart, listCharacterFactions, listCharacters, listRoster, listSubcultures, listTargets, sources, targetInfo, getTarget, bulletsInfo, groupIcons, unitAbilityInfo, namesOf } from './data.js';
 import { compute } from './engine.js';
 import { type AttackDir, type AttackMode, applyDebuffs, attackDps, cardAsTarget, DPS_DISCLAIMER, DPS_RANGED_DISCLAIMER, duel, targetsFromCards, unitAsAttacker } from './dps.js';
 import { deleteBuild, getBuild, listBuilds, upsertBuild } from './builds.js';
@@ -276,6 +276,7 @@ export function handle(method: string, path: string, q: Q, body: Body): unknown 
     if (a === 'health') return { ok: true, sources };
     if (a === 'meta') return { sources, statLabels: STAT_LABELS_ES, dpsDisclaimer: DPS_DISCLAIMER, groupIcons };
     if (a === 'character-factions') return { default: DEFAULT_FACTION, factions: listCharacterFactions() };
+    if (a === 'campaign-start') return campaignStart();
     if (a === 'names' && b) return namesOf(b);
     if (a === 'characters' && !b) return listCharacters(q.faction || undefined);
     if (a === 'characters' && b) return character(b);
