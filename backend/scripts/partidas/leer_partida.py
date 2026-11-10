@@ -52,7 +52,7 @@ def main(src, dst):
         skills = [list(it.kids) for it in ch(sk, 'CAMPAIGN_SKILLS_BLOCK')[0].kids]
         items = [a.kids[1] for a in ch(ch(c, 'ANCILLARY_MANAGER')[0], 'ANCILLARY')]
         tr = ch(c, 'TRAITS'); tr = ch(tr[0], 'TRAIT') if tr else []
-        traits = [scal(it)[0] for it in tr[0].kids] if tr else []
+        traits = [scal(it) for it in tr[0].kids] if tr else []
         agent = next((s for s in strs if s in AGENTS), None)
         return {'agent': agent, 'subtype': strs[strs.index(agent) + 1] if agent else None, 'innate': sks[0],
                 'rank': sks[4] if len(sks) > 4 else None, 'skills': skills, 'items': items, 'traits': traits}
