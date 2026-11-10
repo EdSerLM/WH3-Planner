@@ -643,7 +643,7 @@ export default function App() {
       <section className="bottom setup-page">
         <ErrorBoundary label="tus ejércitos" resetKey={faction}>
           <ArmiesPanel faction={faction} army={army} characters={characters} units={units}
-            onLoad={(a) => setArmy({ ...(a as ArmyState), faction })} />
+            onLoad={(a) => setArmy({ ...(a as ArmyState), faction })} factions={factions} onFaction={(f) => changeFaction(f)} />
         </ErrorBoundary>
         <ErrorBoundary label="el roster" resetKey={faction}>
         <ArmySetup

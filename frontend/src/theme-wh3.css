@@ -243,6 +243,11 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
 .armies-panel .gold { color: #f0d48a; }
 .ap-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
 .ap-tools input { min-width: 200px; }
+.ap-games { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin: 8px 0; padding: 6px 8px; border: 1px solid var(--line, #5a4a30); border-radius: 4px; }
+.ap-game { display: inline-flex; gap: 6px; align-items: center; }
+.ap-note { cursor: help; }
+.ap-table td:first-child { white-space: nowrap; }
+.ap-games a { color: var(--gold, #d8b25a); }
 .ap-diff { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; }
 .ap-table { width: 100%; border-collapse: collapse; }
 .ap-table th, .ap-table td { padding: 4px 6px; border-bottom: 1px solid rgba(212, 180, 106, 0.15); text-align: left; }
