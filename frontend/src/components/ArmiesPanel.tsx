@@ -103,6 +103,14 @@ export function ArmiesPanel({ faction, army, characters, units, onLoad, factions
   };
   const tryPw = async () => { if (sealed && !(await unlock(pw, sealed, remember))) setPwErr(true); };
   useEffect(() => { setSaved(load(faction)); setActive(null); setReserve(null); }, [faction]);
+  // Quita lo traído con versiones anteriores de las partidas (otros nombres de archivo): se vuelve a traer limpio
+  useEffect(() => {
+    if (!games.length) return;
+    setSaved((prev) => {
+      const keep = prev.filter((x) => !x.id.startsWith('save:') || games.some((g) => x.id.startsWith(`save:${g.file}:`)));
+      return keep.length === prev.length ? prev : keep;
+    });
+  }, [games, faction]);
   const mine = games.filter((g) => g.faction === faction);
   const others = games.filter((g) => g.faction !== faction);
   const facName = (f: string) => factions?.find((x) => x.key === f)?.name ?? f;
