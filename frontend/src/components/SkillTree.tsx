@@ -15,6 +15,7 @@ interface Props {
   selection: BuildSelection;
   onChange: (sel: BuildSelection) => void;
   info?: ComputeResult['builds'][number];
+  campaign?: string;
 }
 
 const KIND_LABEL: Record<string, string> = {
@@ -34,7 +35,7 @@ interface Hover {
   rect: DOMRect;
 }
 
-export function SkillTree({ tree, selection: rawSelection, onChange, info, banners }: Props) {
+export function SkillTree({ tree, selection: rawSelection, onChange, info, banners, campaign }: Props) {
   // Siempre trabajamos con el rango ya recalculado
   const selection = useMemo(() => normalize(rawSelection, tree), [rawSelection, tree]);
   const [hover, setHover] = useState<Hover | null>(null);
@@ -216,7 +217,7 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info, banne
             ))}
           </div>
         )}
-        <ItemsPanel tree={tree} selection={selection} onChange={onChange} />
+        <ItemsPanel tree={tree} selection={selection} onChange={onChange} campaign={campaign} />
         <BannerPick options={banners} value={selection.banner} onChange={(k) => onChange({ ...selection, banner: k })} />
         {info?.warnings.length ? <div className="warn">{info.warnings.join(' · ')}</div> : null}
       </div>

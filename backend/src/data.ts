@@ -63,7 +63,12 @@ interface GameSkillsFile {
   source: string; format: number; subcultures: { key: string; name: string }[]; characters: GameCharacter[];
   skills: Record<string, GameSkill>; abilities: Record<string, RawAbility>; unitLists: string[][]; locks: { skill: string; node: string; level: number }[];
   techTrees?: GameTechTree[]; techs?: Record<string, GameTech>;
-  ancillaries?: Record<string, { n: string; d?: string; cat: string; e: GameEffect[] }>;
+  ancillaries?: Record<string, { n: string; d?: string; cat: string; e: GameEffect[]; u?: number; sub?: string }>;
+  /** Objetos de campaña que no son de un personaje (botín, seguidores, únicos del mundo) y estandartes de botín */
+  loot?: { k: string; fs?: string; ag?: string[] }[];
+  lootBanners?: { k: string; fs?: string; ag?: string[] }[];
+  /** Qué subculturas (sc) o facciones sueltas (f) pueden tener los objetos de cada faction_set; fx = facciones excluidas */
+  factionSets?: Record<string, { sc: string[]; f?: string[]; fx?: string[] }>;
   banners?: Record<string, { n: string; d?: string; e: GameEffect[]; ul?: number }>;
   itemSets?: { key: string; n: string; items: string[]; e: GameEffect[] }[];
   graphs?: GameGraph[];
@@ -597,6 +602,65 @@ function itemOwners(): Map<string, number> {
   return ownersCache;
 }
 
+/** Rareza del botín por uniqueness_score */
+function rarityOf(u?: number): ItemInfo['rarity'] {
+  if (!u) return undefined;
+  return u >= 200 ? 'unique' : u >= 100 ? 'rare' : u >= 60 ? 'uncommon' : 'common';
+}
+const genericCache = new Map<string, ItemInfo>();
+/**
+ * Objetos de campaña que puede llevar el personaje en esa subcultura: botín al azar, seguidores, únicos del mundo y
+ * los que reparten las mecánicas. Los de una facción concreta (p. ej. los de Glottkin) llevan onlyFactions.
+ */
+function genericItems(c: GameCharacter, faction: string, skip: Set<string>): ItemInfo[] {
+  const out: ItemInfo[] = [];
+  for (const l of gameFile?.loot ?? []) {
+    if (skip.has(l.k) || (l.ag && !l.ag.includes(c.subtype))) continue;
+    let only: string[] | undefined;
+    if (l.fs) {
+      const fs = gameFile!.factionSets?.[l.fs];
+      if (fs && !fs.sc.includes(faction)) {
+        if (!fs.f?.length) continue;
+        only = fs.f;
+      }
+    }
+    let it = genericCache.get(l.k);
+    if (!it) {
+      const a = gameFile!.ancillaries?.[l.k];
+      if (!a) continue;
+      it = {
+        key: l.k, name: a.n, description: a.d, category: a.sub === 'follower' || l.k.includes('_anc_follower_') ? 'follower' : a.cat,
+        effects: gameEffects(a.e), generic: true, rarity: rarityOf(a.u),
+      };
+      genericCache.set(l.k, it);
+    }
+    out.push(only ? { ...it, onlyFactions: only } : it);
+  }
+  return out;
+}
+
+const lootBannerCache = new Map<string, BannerInfo[]>();
+/** Estandartes mágicos que puede tener la facción (botín, únicos de facción): los lleva una unidad */
+export function lootBanners(faction: string, campaign?: string): BannerInfo[] {
+  const ck = `${faction}|${campaign ?? ''}`;
+  const hit = lootBannerCache.get(ck);
+  if (hit) return hit;
+  const out: BannerInfo[] = [];
+  for (const l of gameFile?.lootBanners ?? []) {
+    if (l.fs) {
+      const fs = gameFile!.factionSets?.[l.fs];
+      if (fs && !fs.sc.includes(faction) && !(campaign && fs.f?.includes(campaign))) continue;
+      if (fs && campaign && fs.fx?.includes(campaign)) continue;
+    }
+    const x = gameFile!.banners?.[l.k];
+    if (!x) continue;
+    out.push({ key: l.k, name: x.n, description: x.d, effects: gameEffects(x.e), unitList: x.ul, loot: true });
+  }
+  out.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  lootBannerCache.set(ck, out);
+  return out;
+}
+
 /** Id del personaje en una facción: la clave sola si es su facción propia, o "clave@facción". */
 function charId(c: GameCharacter, faction: string): string {
   return faction === c.home ? c.key : `${c.key}@${faction}`;
@@ -648,6 +712,17 @@ function buildGameTree(c: GameCharacter, faction: string): CharacterTree {
     tree.itemSets = (gameFile!.itemSets ?? [])
       .filter((st) => st.items.every((k) => mine.has(k)))
       .map((st) => ({ key: st.key, name: st.n, items: st.items, effects: gameEffects(st.e) }));
+  }
+  {
+    const mine = new Set((tree.items ?? []).map((i) => i.key));
+    const gen = genericItems(c, faction, mine);
+    if (gen.length) {
+      tree.items = [...(tree.items ?? []), ...gen];
+      const all = new Set(tree.items.map((i) => i.key));
+      tree.itemSets = (gameFile!.itemSets ?? [])
+        .filter((st) => st.items.every((k) => all.has(k)))
+        .map((st) => ({ key: st.key, name: st.n, items: st.items, effects: gameEffects(st.e) }));
+    }
   }
   if (c.spellSlots?.length) {
     // Hechizos de Kairos: en cada espacio (común/poco común/raro) eliges el saber; se aplican como objetos equipados

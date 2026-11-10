@@ -19826,6 +19826,34 @@
           "StringU8"
         ]
       ]
+    },
+    "faction_set_items_tables": {
+      "1": [
+        [
+          "culture",
+          "OptionalStringU8"
+        ],
+        [
+          "faction",
+          "OptionalStringU8"
+        ],
+        [
+          "remove",
+          "Boolean"
+        ],
+        [
+          "set",
+          "StringU8"
+        ],
+        [
+          "subculture",
+          "OptionalStringU8"
+        ],
+        [
+          "id",
+          "I64"
+        ]
+      ]
     }
   }
 }

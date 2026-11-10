@@ -69,7 +69,7 @@ export const SKILL_TABLES = [
   'main_units_tables', 'land_units_tables', 'melee_weapons_tables', 'battle_entities_tables', 'unit_armour_types_tables',
   'unit_shield_types_tables', 'units_custom_battle_permissions_tables', 'factions_tables', 'frontend_faction_leaders_tables', 'faction_agent_permitted_subtypes_tables', 'unit_attributes_to_groups_junctions_tables',
   'land_units_to_unit_abilites_junctions_tables', 'mounts_tables', 'character_skill_nodes_skill_locks_tables',
-  'character_skill_level_to_ancillaries_junctions_tables', 'ancillaries_tables', 'ancillaries_included_agent_subtypes_tables',
+  'character_skill_level_to_ancillaries_junctions_tables', 'ancillaries_tables', 'ancillaries_included_agent_subtypes_tables', 'faction_set_items_tables',
   'effect_bonus_value_agent_action_record_junctions_tables',
   'technologies_tables', 'technology_effects_junction_tables', 'technology_node_links_tables', 'technology_node_sets_tables',
   'technology_nodes_tables', 'technology_required_technology_junctions_tables', 'cultures_subcultures_tables', 'start_pos_factions_tables',
@@ -484,6 +484,7 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     }
     ancillaries[k] = strip({
       n: L(`ancillaries_onscreen_name_${k}`) ?? k, d: L(`ancillaries_colour_text_${k}`) ?? undefined, cat: a.category, e,
+      u: a.uniqueness_score || undefined, sub: a.subcategory || undefined,
     });
   };
   // Estandartes (ancillaries con provided_banner): efectos del paquete del estandarte, a la unidad que lo lleva
@@ -1637,13 +1638,46 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
 
   const subs = [...new Set(characters.flatMap((c) => c.subcultures as string[]))].sort()
     .map((k) => ({ key: k, name: L(`cultures_subcultures_name_${k}`) ?? k }));
+
+  // ---------------- Objetos de campaña que no son de un personaje ----------------
+  // Botín al azar (wh3_campaign_magic_items.lua), seguidores (wh3_campaign_followers.lua) y únicos del mundo
+  // (wh3_campaign_rare_items.lua, fusión). faction_set dice qué facciones los pueden tener.
+  const fsRows = group('faction_set_items_tables', 'set');
+  const factionSets: Record<string, Row> = {};
+  const setDef = (k: string | null) => {
+    if (!k || k === 'all' || factionSets[k] || !fsRows.has(k)) return;
+    const rows = [...fsRows.get(k)!].sort((a, b) => a.id - b.id);
+    const sc: string[] = [], f: string[] = [], fx: string[] = [];
+    for (const { key } of subs) {
+      let inn = false;
+      for (const r of rows) {
+        if (r.faction) continue;
+        if ((!r.culture && !r.subculture) || r.subculture === key || (r.culture && r.culture === scCulture.get(key))) inn = !r.remove;
+      }
+      if (inn) sc.push(key);
+    }
+    for (const r of rows) if (r.faction) (r.remove ? fx : f).push(r.faction);
+    factionSets[k] = strip({ sc, f: f.length ? f : undefined, fx: fx.length ? fx : undefined });
+  };
+  const loot: Row[] = [];
+  const lootBanners: Row[] = [];
+  for (const a of T['ancillaries_tables']) {
+    if (a.category === 'mount') continue;
+    // Todos los demás (también los limitados a ciertos subtipos, con su lista "ag"); en el árbol no se repiten
+    // los que ya son del personaje
+    setDef(a.faction_set);
+    const ag = (ancSubs.get(a.key) ?? []).map((x) => x.agent_subtype as string);
+    const row = strip({ k: a.key, fs: a.faction_set && a.faction_set !== 'all' && fsRows.has(a.faction_set) ? a.faction_set : undefined, ag: ag.length ? ag : undefined });
+    if (isBanner(a.key)) { bannerDef(a.key); lootBanners.push(row); continue; }
+    ancDef(a.key); loot.push(row);
+  }
   // Solo las acciones que tiene algún personaje
   const usedActs = new Set(characters.flatMap((c) => (c.acts ?? []) as string[]));
   for (const k of Object.keys(heroActions)) if (!usedActs.has(k)) delete heroActions[k];
   return {
     unitUpgrades, unitAbilities, attrDesc, heroActions,
     source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', format: 2,
-    subcultures: subs, characters, skills: skillsOut, names: namesOut, abilities, unitLists, locks, techTrees, techs, ancillaries, banners, itemSets, graphs,
+    subcultures: subs, characters, skills: skillsOut, names: namesOut, abilities, unitLists, locks, techTrees, techs, ancillaries, banners, itemSets, graphs, loot, lootBanners, factionSets,
     // Solo las restricciones que usan las habilidades extraídas
     targetFlags: Object.fromEntries(Object.entries(targetFlags).filter(([k]) => Object.values(abilities).some((a) => a.inv?.includes(k)))),
   };

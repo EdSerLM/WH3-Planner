@@ -15,8 +15,30 @@ interface ArmyLike {
 interface Saved { id: string; name: string; army: ArmyLike; notes?: string[]; damaged?: number }
 /** Partida guardada del juego convertida (frontend/public/partidas, ver backend/scripts/partidas) */
 interface SaveEntry { file: string; name: string; faction: string; campaign: string; turn: number; difficulty?: string; armies: number }
-interface SaveFile { name: string; turn: number; armies: { name: string; army: ArmyLike; notes?: string[]; damaged?: number }[] }
+interface SaveFile {
+  name: string; turn: number;
+  armies: { name: string; army: ArmyLike; notes?: string[]; damaged?: number }[];
+  /** Objetos de la facción que no lleva nadie */
+  reserve?: { k: string; n: string; cat: string; count: number; inPlanner: boolean }[];
+}
 const SAVES_URL = `${import.meta.env.BASE_URL}partidas/`;
+const PW_KEY = 'wh3-planner:partidas-pw';
+
+/** Archivos cifrados (backend/scripts/partidas/a_planner.cjs): PBKDF2-SHA256 + AES-256-GCM */
+interface Sealed { iv: string; ct: string }
+interface SealedIndex extends Sealed { v: number; iter: number; salt: string }
+const b64 = (t: string) => Uint8Array.from(atob(t), (c) => c.charCodeAt(0));
+async function deriveKey(pw: string, idx: SealedIndex): Promise<CryptoKey> {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: b64(idx.salt), iterations: idx.iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+}
+async function openSealed<T>(key: CryptoKey, o: Sealed): Promise<T> {
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(o.iv) }, key, b64(o.ct));
+  return JSON.parse(new TextDecoder().decode(pt)) as T;
+}
+const CAT_RES: Record<string, string> = {
+  weapon: 'Arma', armour: 'Armadura', talisman: 'Talismán', enchanted_item: 'Hechizado', arcane_item: 'Arcano', general: 'Seguidor', banner: 'Estandarte',
+};
 
 interface Props {
   faction: string;
@@ -49,10 +71,38 @@ export function ArmiesPanel({ faction, army, characters, units, onLoad, factions
   const [diff, setDiff] = useState<string>(() => { try { return localStorage.getItem('wh3-planner:armies-diff') ?? 'normal'; } catch { return 'normal'; } });
   const [games, setGames] = useState<SaveEntry[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
+  const [sealed, setSealed] = useState<SealedIndex | null>(null);
+  const [key, setKey] = useState<CryptoKey | null>(null);
+  const [pw, setPw] = useState('');
+  const [remember, setRemember] = useState(true);
+  const [pwErr, setPwErr] = useState(false);
+  const [reserve, setReserve] = useState<SaveFile['reserve'] | null>(null);
+  const unlock = async (pass: string, idx: SealedIndex, keep: boolean) => {
+    try {
+      const k = await deriveKey(pass, idx);
+      const list = await openSealed<SaveEntry[]>(k, idx);
+      setKey(k); setGames(list); setPwErr(false); setPw('');
+      try { if (keep) localStorage.setItem(PW_KEY, pass); else sessionStorage.setItem(PW_KEY, pass); } catch { /* sin almacenamiento */ }
+      return true;
+    } catch { return false; }
+  };
   useEffect(() => {
-    fetch(`${SAVES_URL}index.json`).then((r) => (r.ok ? r.json() : [])).then((v) => setGames(Array.isArray(v) ? v : [])).catch(() => setGames([]));
+    fetch(`${SAVES_URL}index.json`).then((r) => (r.ok ? r.json() : null)).then(async (v) => {
+      if (!v || !v.ct) return;
+      setSealed(v);
+      let saved: string | null = null;
+      try { saved = localStorage.getItem(PW_KEY) ?? sessionStorage.getItem(PW_KEY); } catch { /* sin almacenamiento */ }
+      if (saved && !(await unlock(saved, v, !!localStorage.getItem(PW_KEY)))) {
+        try { localStorage.removeItem(PW_KEY); sessionStorage.removeItem(PW_KEY); } catch { /* */ }
+      }
+    }).catch(() => undefined);
   }, []);
-  useEffect(() => { setSaved(load(faction)); setActive(null); }, [faction]);
+  const lock = () => {
+    setKey(null); setGames([]); setReserve(null);
+    try { localStorage.removeItem(PW_KEY); sessionStorage.removeItem(PW_KEY); } catch { /* */ }
+  };
+  const tryPw = async () => { if (sealed && !(await unlock(pw, sealed, remember))) setPwErr(true); };
+  useEffect(() => { setSaved(load(faction)); setActive(null); setReserve(null); }, [faction]);
   const mine = games.filter((g) => g.faction === faction);
   const others = games.filter((g) => g.faction !== faction);
   const facName = (f: string) => factions?.find((x) => x.key === f)?.name ?? f;
@@ -61,7 +111,9 @@ export function ArmiesPanel({ faction, army, characters, units, onLoad, factions
     setBusy(g.file);
     try {
       const r = await fetch(`${SAVES_URL}${g.file}`);
-      const data = (await r.json()) as SaveFile;
+      if (!key) throw new Error('bloqueado');
+      const data = await openSealed<SaveFile>(key, (await r.json()) as Sealed);
+      setReserve(data.reserve ?? []);
       const prefix = `save:${g.file}:`;
       const add: Saved[] = data.armies.map((a, i) => ({ id: `${prefix}${i}`, name: a.name, army: a.army, notes: a.notes, damaged: a.damaged }));
       setSaved((prev) => [...prev.filter((x) => !x.id.startsWith(prefix)), ...add]);
@@ -114,6 +166,15 @@ export function ArmiesPanel({ faction, army, characters, units, onLoad, factions
         <GameIcon path="skills/campaign_army" emoji="⚑" size={16} /> Mis ejércitos ({saved.length})
         {rows.length > 0 && <span className="muted small"> · mantenimiento total <b className="gold">{fmt(total)}</b> por turno</span>}
       </summary>
+      {sealed && !key && (
+        <div className="ap-games small">
+          <b>🔒 Tus partidas guardadas (protegidas):</b>
+          <input type="password" value={pw} placeholder="Contraseña" onChange={(e) => { setPw(e.target.value); setPwErr(false); }} onKeyDown={(e) => { if (e.key === 'Enter') tryPw(); }} />
+          <label><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Recordar en este navegador</label>
+          <button onClick={tryPw} disabled={!pw}>Abrir</button>
+          {pwErr && <span className="danger">Contraseña incorrecta</span>}
+        </div>
+      )}
       {games.length > 0 && (
         <div className="ap-games small">
           <b>Desde tus partidas guardadas:</b>
@@ -127,6 +188,7 @@ export function ArmiesPanel({ faction, army, characters, units, onLoad, factions
             );
           })}
           {mine.length === 0 && <span className="muted"> ninguna de esta facción.</span>}
+          <button className="ghost" onClick={lock} title="Olvidar la contraseña en este navegador">🔒 Bloquear</button>
           {others.length > 0 && onFaction && (
             <span className="muted"> Otras:{' '}
               {others.map((g, i) => (
@@ -135,6 +197,18 @@ export function ArmiesPanel({ faction, army, characters, units, onLoad, factions
             </span>
           )}
         </div>
+      )}
+      {reserve && reserve.length > 0 && (
+        <details className="ap-reserve small">
+          <summary>Objetos en reserva de la partida ({reserve.reduce((t, r) => t + r.count, 0)}): nadie los lleva puestos</summary>
+          <div className="ap-res-list">
+            {reserve.map((r) => (
+              <span key={r.k} className={'ap-res' + (r.inPlanner ? '' : ' muted')} title={r.inPlanner ? 'Puedes equiparlo en el árbol del personaje (Objetos comunes) o, si es estandarte, en la unidad' : 'Este objeto no está en el planner'}>
+                {CAT_RES[r.cat] ?? r.cat}: {r.n}{r.count > 1 ? ` ×${r.count}` : ''}
+              </span>
+            ))}
+          </div>
+        </details>
       )}
       <div className="ap-tools small">
         <input value={name} placeholder={`Nombre (p. ej. ${lordName(army)})`} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') save(); }} />
@@ -188,8 +262,8 @@ export function ArmiesPanel({ faction, army, characters, units, onLoad, factions
         Líneas de suministro: cada ejército a partir del segundo sube {pct}% el mantenimiento de <b>todos</b> tus ejércitos
         {rows.length > 1 ? ` (ahora +${supply}%)` : ''}. No cuenta tecnologías, edificios, rasgos ni habilidades que bajan el mantenimiento,
         las monturas de los personajes ni las guarniciones.
-        {games.length > 0 && <> De las partidas se traen el señor, los héroes (rango, habilidades, montura y objetos únicos) y las unidades con su rango;
-        no se traen los objetos y seguidores comunes, las tecnologías ni las bajas.</>}
+        {games.length > 0 && <> De las partidas se traen el señor, los héroes (rango, habilidades, montura, objetos y seguidores), las unidades
+        con su rango y los estandartes que llevan; no se traen los rasgos, las tecnologías ni las bajas.</>}
       </p>
     </details>
   );

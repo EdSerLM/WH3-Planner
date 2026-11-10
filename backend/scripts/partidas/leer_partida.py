@@ -41,6 +41,11 @@ def main(src, dst):
         if player in [k for k in x.kids if isinstance(k, str)][:3]: fa = x; break
     if fa is None: raise SystemExit(f'No encontré la facción {player}')
     fms = {}
+    anc_ids = {}  # id de objeto -> clave (los estandartes de las unidades apuntan al objeto por su id)
+    for fm in ch(path(world, 'FAMILY_TREE'), 'FAMILY_MEMBER'):
+        for c in ch(fm, 'CHARACTER_DETAILS'):
+            for am in ch(c, 'ANCILLARY_MANAGER'):
+                for a in ch(am, 'ANCILLARY'): anc_ids[a.kids[0]] = a.kids[1]
     for fm in ch(path(world, 'FAMILY_TREE'), 'FAMILY_MEMBER'):
         sc = scal(fm); cdl = ch(fm, 'CHARACTER_DETAILS')
         if cdl and sc and sc[0] not in fms: fms[sc[0]] = cdl[0]
@@ -69,10 +74,17 @@ def main(src, dst):
         units = []
         for it in path(mf, 'UNIT_CONTAINER', 'UNITS_ARRAY').kids:
             u = it.kids[0]; sc = scal(u)
-            units.append({'key': ch(u, 'UNIT_RECORD_KEY')[0].kids[0], 'hp': sc[1], 'max': sc[2], 'xp': sc[4], 'rank': sc[5]})
+            ban = anc_ids.get(sc[11]) if len(sc) > 11 and isinstance(sc[11], int) and not isinstance(sc[11], bool) and sc[11] else None
+            units.append({'key': ch(u, 'UNIT_RECORD_KEY')[0].kids[0], 'hp': sc[1], 'max': sc[2], 'xp': sc[4], 'rank': sc[5], 'banner': ban})
         heroes = [{**h, **details(h['fm'])} for h in chars.values() if h['embedded'] == aid and h['type'] != 'general']
         armies.append({'army': aid, 'general': {**gen, **details(gen['fm'])}, 'heroes': heroes, 'units': units})
-    json.dump({'meta': {'player': player, 'turn': turn, 'difficulty': difficulty, 'save': os.path.basename(src)}, 'armies': armies},
+    # Objetos en reserva: los del inventario de la facción que no lleva nadie (sin monturas)
+    reserve = []
+    for pool in ch(fa, 'ANCILLARY_POOL'):
+        for it in ch(pool, 'ANCILLARIES')[0].kids:
+            a = ch(it, 'ANCILLARY')[0]
+            if '_anc_mount_' not in a.kids[1]: reserve.append(a.kids[1])
+    json.dump({'meta': {'player': player, 'turn': turn, 'difficulty': difficulty, 'save': os.path.basename(src)}, 'armies': armies, 'reserve': reserve},
               open(dst, 'w', encoding='utf-8'), indent=1, ensure_ascii=False)
     for o in armies:
         g = o['general']

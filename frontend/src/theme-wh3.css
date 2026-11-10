@@ -254,7 +254,7 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
 .ap-table .num { text-align: right; }
 .ap-table tr.on td { background: rgba(231, 198, 106, 0.08); }
 .ap-table tfoot td { border-top: 1px solid rgba(212, 180, 106, 0.5); }
-.ap-name { width: 100%; min-width: 120px; background: transparent; border: 1px solid transparent; color: inherit; }
+.ap-name { width: calc(100% - 22px); min-width: 120px; background: transparent; border: 1px solid transparent; color: inherit; }
 .ap-name:focus { border-color: #b39552; }
 .ap-act { white-space: nowrap; }
 @media (max-width: 700px) { .ap-diff { margin-left: 0; } .ap-table th:nth-child(4), .ap-table td:nth-child(4) { display: none; } }
@@ -277,3 +277,10 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
 .gs-resi { display: inline-flex; gap: 3px; align-items: center; padding: 1px 6px; border: 1px solid #4a3b22; border-radius: 9px; font-size: 12px; background: #17110a; cursor: help; }
 .gs-resi.up { border-color: #4c8a2c; color: #9fe07a; }
 .adv-toggle { margin: 2px 0 4px; padding: 1px 6px; font-size: 11.5px; }
+.items-search { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+.items-search input { flex: 1 1 240px; }
+.items-gen { margin-top: 8px; }
+.ap-reserve { margin: 6px 0; }
+.ap-res-list { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 6px 4px; }
+.ap-res { white-space: nowrap; }
+.ap-games input[type=password] { width: 140px; }

@@ -1,4 +1,4 @@
-import { abilities, abilityByDisplayName, artOfUnit, isNamedMount, getCharacter, getUnit, targetFlagText, techEffects, unitInList, unitUpgradeEffects } from './data.js';
+import { abilities, abilityByDisplayName, artOfUnit, isNamedMount, getCharacter, getUnit, lootBanners, targetFlagText, techEffects, unitInList, unitUpgradeEffects } from './data.js';
 import { translateAttribute } from './i18n.js';
 import { MAX_RANK, autoRank, effectiveLevel, isFreeLevel, pointsAtRank, pointsFor } from './rankRules.js';
 import { unitRank } from './types.js';
@@ -657,6 +657,9 @@ export function compute(req: ComputeRequest): ComputeResult {
     if (info.skill && !(b.activeNodes ?? []).some(({ node, level }) => level > 0 && node.skillKey === info.skill)) continue;
     bannerAvail.set(info.key, { info, from: b.tree.name });
   }
+  // Estandartes mágicos de botín de la facción del ejército (en el juego se reparten desde el inventario de la facción)
+  const armyFaction = builds[0]?.tree.faction;
+  if (armyFaction) for (const info of lootBanners(armyFaction, req.campaign)) if (!bannerAvail.has(info.key)) bannerAvail.set(info.key, { info, from: 'Botín' });
   const bannerOptions: Record<string, BannerOption[]> = {};
   const bannerFits = (info: BannerInfo, unitKeys: (string | undefined)[]) => info.unitList === undefined || unitKeys.some((k) => !!k && unitInList(info.unitList!, k));
   const optionsFor = (id: string, unitKeys: (string | undefined)[]) => {
@@ -673,7 +676,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     const av = bannerAvail.get(key);
     if (!av) { notes.push('Estandarte sin desbloquear: compra su habilidad o lleva al personaje que lo da'); return { magical: false, flaming: false }; }
     if (!bannerFits(av.info, unitKeys)) { notes.push(`"${av.info.name}" no lo puede llevar esta unidad`); return { magical: false, flaming: false }; }
-    if (bannerUsed.has(key)) { notes.push(`"${av.info.name}" ya lo lleva ${bannerUsed.get(key)}`); return { magical: false, flaming: false }; }
+    if (bannerUsed.has(key) && !av.info.loot) { notes.push(`"${av.info.name}" ya lo lleva ${bannerUsed.get(key)}`); return { magical: false, flaming: false }; }
     bannerUsed.set(key, cardName);
     let magical = false, flaming = false;
     const src = `${av.info.name} (estandarte)`;

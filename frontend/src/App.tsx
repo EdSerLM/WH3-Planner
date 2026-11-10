@@ -585,7 +585,7 @@ export default function App() {
               ) : leftView === 'spells' && currentTree.spellSlots?.length ? (
                 <SpellSlotsPanel tree={currentTree} selection={currentSel} onChange={updateSelection} />
               ) : leftView !== 'summary' ? (
-                <SkillTree tree={currentTree} selection={currentSel} onChange={updateSelection} info={currentInfo} banners={result?.bannerOptions?.[currentTree.key]} />
+                <SkillTree tree={currentTree} selection={currentSel} onChange={updateSelection} info={currentInfo} banners={result?.bannerOptions?.[currentTree.key]} campaign={army.campaign} />
               ) : (
                 <BuildSummary
                   summary={currentInfo?.summary}

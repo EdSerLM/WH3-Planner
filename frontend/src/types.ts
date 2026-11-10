@@ -184,6 +184,11 @@ export interface ItemInfo {
   ability?: string;
   /** Cuántos personajes distintos pueden llevarlo (1 = solo este) */
   owners?: number;
+  /** Objeto de campaña común (botín, seguidor, único del mundo), no propio del personaje */
+  generic?: boolean;
+  rarity?: 'common' | 'uncommon' | 'rare' | 'unique';
+  /** Solo lo tienen estas facciones de campaña (p. ej. la Hueste de los Trillizos) */
+  onlyFactions?: string[];
 }
 
 export interface UnitData {

@@ -305,6 +305,8 @@ export interface BannerInfo {
   effects: ParsedEffect[];
   /** Lista de unidades que pueden llevarlo (índice en unitLists); sin valor = cualquiera */
   unitList?: number;
+  /** Estandarte mágico de botín: puede haber varias copias */
+  loot?: boolean;
 }
 
 export interface CharacterTree extends CharacterSummary {
@@ -413,6 +415,11 @@ export interface ItemInfo {
   effects: ParsedEffect[];
   /** Cuántos personajes distintos pueden llevarlo (1 = solo este) */
   owners?: number;
+  /** Objeto de campaña común (botín, seguidor, único del mundo), no propio del personaje */
+  generic?: boolean;
+  rarity?: 'common' | 'uncommon' | 'rare' | 'unique';
+  /** Solo lo tienen estas facciones de campaña (p. ej. la Hueste de los Trillizos) */
+  onlyFactions?: string[];
 }
 
 export interface AbilityInfo {
