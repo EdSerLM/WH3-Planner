@@ -78,13 +78,18 @@ def main(src, dst):
             units.append({'key': ch(u, 'UNIT_RECORD_KEY')[0].kids[0], 'hp': sc[1], 'max': sc[2], 'xp': sc[4], 'rank': sc[5], 'banner': ban})
         heroes = [{**h, **details(h['fm'])} for h in chars.values() if h['embedded'] == aid and h['type'] != 'general']
         armies.append({'army': aid, 'general': {**gen, **details(gen['fm'])}, 'heroes': heroes, 'units': units})
+    # Tecnologías investigadas
+    techs = []
+    for tm in ch(fa, 'FACTION_TECHNOLOGY_MANAGER'):
+        for rt in ch(tm, 'RESEARCHED_TECHS'):
+            techs += [it.kids[0] for it in rt.kids if it.kids and isinstance(it.kids[0], str)]
     # Objetos en reserva: los del inventario de la facción que no lleva nadie (sin monturas)
     reserve = []
     for pool in ch(fa, 'ANCILLARY_POOL'):
         for it in ch(pool, 'ANCILLARIES')[0].kids:
             a = ch(it, 'ANCILLARY')[0]
             if '_anc_mount_' not in a.kids[1]: reserve.append(a.kids[1])
-    json.dump({'meta': {'player': player, 'turn': turn, 'difficulty': difficulty, 'save': os.path.basename(src)}, 'armies': armies, 'reserve': reserve},
+    json.dump({'meta': {'player': player, 'turn': turn, 'difficulty': difficulty, 'save': os.path.basename(src)}, 'armies': armies, 'reserve': reserve, 'techs': techs},
               open(dst, 'w', encoding='utf-8'), indent=1, ensure_ascii=False)
     for o in armies:
         g = o['general']

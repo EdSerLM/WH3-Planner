@@ -30,7 +30,7 @@ fs.mkdirSync(outDir, { recursive: true });
 for (const f of fs.readdirSync(outDir)) if (f.endsWith('.json')) fs.rmSync(path.join(outDir, f));
 const index = [];
 for (const f of fs.readdirSync(inDir).filter((x) => x.endsWith('.json'))) {
-  const { meta, armies, reserve } = JSON.parse(fs.readFileSync(path.join(inDir, f), 'utf8'));
+  const { meta, armies, reserve, techs } = JSON.parse(fs.readFileSync(path.join(inDir, f), 'utf8'));
   const camp = camps.get(meta.player);
   const warn = [];
   let notes;
@@ -69,6 +69,12 @@ for (const f of fs.readdirSync(inDir).filter((x) => x.endsWith('.json'))) {
     if (mount) sel.mount = mount;
     if (innate) sel.innate = innate;
     if (banner) sel.banner = banner;
+    // Rasgos de mecánicas que el planner trata como piezas (Corte de Hielo «icecourt:», Votos de Bretonia «vow:»...)
+    const mechKeys = (c.initiatives ?? []).flatMap((st) => st.items.map((it) => it.k)).filter((k) => /^[a-z]+:/.test(k));
+    for (const [tk, , lv] of ch.traits ?? []) {
+      const hit = mechKeys.find((k) => { const t = k.slice(k.indexOf(':') + 1); return t === lv || t.startsWith(tk); });
+      if (hit && !sel.items.includes(hit)) sel.items.push(hit);
+    }
     return { sel, name: c.name };
   };
   const out = [];
@@ -95,7 +101,7 @@ for (const f of fs.readdirSync(inDir).filter((x) => x.endsWith('.json'))) {
       groups.set(k, grp);
     }
     const units = [...groups.values()];
-    const army = { lord: lord?.sel ?? null, heroes, units, activeAbilities: [], inAura: true, faction: sub, campaign: meta.player };
+    const army = { lord: lord?.sel ?? null, heroes, units, activeAbilities: [], inAura: true, faction: sub, campaign: meta.player, ...(techs?.length ? { techs } : {}) };
     const dmg = a.units.filter((u) => u.hp < u.max).length;
     out.push({ name: `${lord?.name ?? a.general.subtype} · rango ${a.general.rank}`, army, damaged: dmg, notes });
   }
