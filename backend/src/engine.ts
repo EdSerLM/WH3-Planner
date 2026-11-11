@@ -528,6 +528,10 @@ export interface ComputeResult {
   magic: { owner: string; skill: string; text: string }[];
 }
 
+/** Habilidad del Cambiante que lo transforma y efectos que solo valen transformado */
+const FORMLESS_HORROR = ['wh3_dlc24_lord_abilities_formless_horror', 'wh3_dlc24_lord_abilities_formless_horror_changeling'];
+const TRANSFORMED = /_changeling_transformed$/;
+
 export function compute(req: ComputeRequest): ComputeResult {
   const builds: ResolvedBuild[] = [];
   const lordBuild = req.lord ? resolveBuild(req.lord) : null;
@@ -538,6 +542,8 @@ export function compute(req: ComputeRequest): ComputeResult {
   }
   const active = new Set(req.activeAbilities ?? []);
   const inAura = req.inAura !== false;
+  // El Cambiante: sus habilidades "(mientras está transformado)" solo cuentan con "Horror informe" encendida
+  const isTransformed = (b: ResolvedBuild) => FORMLESS_HORROR.some((k) => active.has(`${k}@${b.tree.key}`) || active.has(k));
 
   // Efectos de todos los personajes
   const effects: { effect: ParsedEffect; skill: string; owner: string; build: ResolvedBuild | null }[] =
@@ -598,7 +604,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     for (const { ability, skill } of abilitiesOf(b, armyRemoved)) {
       const statLines = ability.stats.filter((s) => ABILITY_STAT_MAP[s.stat]);
       const hasBattleStats = statLines.length > 0 || ability.magicalAttacks || ability.flamingAttacks || ability.attributes.length > 0 || !!ability.enemyStats?.length;
-      let isOn = false;
+      let isOn = FORMLESS_HORROR.includes(ability.key) && isActive(ability.key, b);
       if (ability.mode === 'enemies') {
         isOn = isActive(ability.key, b);
         if (isOn) enemyDebuffs.push({ ability: ability.name, owner: b.tree.name, stats: statLines.map((s) => ({ stat: ABILITY_STAT_MAP[s.stat], how: s.how, v: s.v })) });
@@ -701,6 +707,7 @@ export function compute(req: ComputeRequest): ComputeResult {
     let magical = !!base.is_magical;
     let flaming = !!base.is_flaming;
     const isLord = b === lordBuild;
+    const pendingTf = new Set<string>();
     for (const { effect, skill, owner, build } of effects) {
       if ((effect.target === 'army' || effect.target === 'chars') && effect.forNames && !namedMatch(effect.forNames, b.tree.name)) continue;
       if (effect.kind === 'attribute' && effect.attribute) {
@@ -718,7 +725,9 @@ export function compute(req: ComputeRequest): ComputeResult {
         (effect.target === 'army' && !effect.units && effect.unitList === undefined && !effect.rank7) ||
         charMatch(effect, b, isLord) || armyListMatch(effect, b);
       if (!applies) continue;
-      contribute(lines, effect.stat, { source: skill, from: owner, value: effect.value, how: effect.pct ? 'pct' : 'add' }, effect.exact);
+      const tf = TRANSFORMED.test(effect.key);
+      if (tf && !(build && isTransformed(build))) { pendingTf.add(skill); continue; }
+      contribute(lines, effect.stat, { source: skill, from: owner, value: effect.value, how: effect.pct ? 'pct' : 'add', conditional: tf ? 'transformado' : undefined }, effect.exact);
     }
     {
       const charUnits = [b.tree.stats?.unit, b.mountNode?.levels[0].mountStats?.unit];
@@ -734,6 +743,7 @@ export function compute(req: ComputeRequest): ComputeResult {
       if (x.ability.magicalAttacks) magical = true;
       if (x.ability.flamingAttacks) flaming = true;
     }
+    if (pendingTf.size) b.warnings.push(`Solo transformado (enciende «Horror informe» en Habilidades para contarlas): ${[...pendingTf].join(', ')}.`);
     finalize(lines);
     cards.push({
       id: b.tree.key, name: b.tree.name + (b.mountNode ? ` (${b.mountNode.name})` : ''), kind: isLord ? 'lord' : 'hero', count: 1,

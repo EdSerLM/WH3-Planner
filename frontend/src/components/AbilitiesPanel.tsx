@@ -60,6 +60,9 @@ export function AbilitiesPanel({ abilities: allAbilities, inAura, onScale, owner
   );
 }
 
+/** «Horror informe» del Cambiante: lo transforma; sus habilidades «mientras está transformado» dependen de ella */
+const TRANSFORM = /formless_horror/;
+
 /** Activables, pasivas y hechizos de un personaje */
 function CharAbilities({ abilities, inAura, onScale, onToggle, compact }: { abilities: AbilityState[]; inAura: boolean; onScale?: Props['onScale']; onToggle?: Props['onToggle']; compact?: boolean }) {
   const mineOnly = true;
@@ -68,7 +71,7 @@ function CharAbilities({ abilities, inAura, onScale, onToggle, compact }: { abil
   const spells = abilities.filter((a) => (a.mana ?? 0) > 0 || a.spell);
   // Activables del personaje que afectan a otros (las que solo le afectan a él van en su tarjeta)
   // Sin efectos de stats: las de daño directo (p. ej. "Reloj de la Muerte" de Elspeth) solo se listan, no se suman
-  const actives = mineOnly ? abilities.filter((a) => !a.passive && !((a.mana ?? 0) > 0 || a.spell) && (a.hasBattleStats ? (a.mode === 'allies' || a.mode === 'enemies') : (a.mode === 'enemies' || /daño/i.test(a.type ?? '')))) : [];
+  const actives = mineOnly ? abilities.filter((a) => TRANSFORM.test(a.key) || (!a.passive && !((a.mana ?? 0) > 0 || a.spell) && (a.hasBattleStats ? (a.mode === 'allies' || a.mode === 'enemies') : (a.mode === 'enemies' || /daño/i.test(a.type ?? ''))))) : [];
   return (
     <>
       {compact && !actives.length && !passives.length && !spells.length && <p className="muted small">Sin activables, pasivas ni hechizos que afecten la batalla.</p>}
@@ -78,10 +81,10 @@ function CharAbilities({ abilities, inAura, onScale, onToggle, compact }: { abil
           <ul>
             {actives.map((a) => (
               <li key={a.id} className={a.active ? 'on' : ''}>
-                {onToggle && a.hasBattleStats && <input type="checkbox" checked={!!a.active} onChange={() => onToggle(a)} title="Encender para sumar su efecto" />}{' '}
+                {onToggle && (a.hasBattleStats || TRANSFORM.test(a.key)) && <input type="checkbox" checked={!!a.active} onChange={() => onToggle(a)} title="Encender para sumar su efecto" />}{' '}
                 <AbilityImg icon={a.icon} title={a.name} /> <b>{a.name}</b> <AbilityIcons a={a} />
                 <span className="muted small"> · {a.type ? `${a.type} · ` : ''}{a.mode === 'enemies' ? 'a enemigos' : 'a aliados'}{a.duration > 0 ? ` · ${a.duration} s` : ''}{a.cooldown ? ` · recarga ${a.final?.cooldown ?? a.cooldown} s` : ''}</span>
-                <div className="small muted">{a.hasBattleStats ? [...a.stats, ...a.attributes].join(', ') : 'Hace daño: no cambia stats, así que no se suma a las tarjetas'}</div>
+                <div className="small muted">{TRANSFORM.test(a.key) ? 'Transformado: enciéndela para que cuenten sus habilidades «(mientras está transformado)»' : a.hasBattleStats ? [...a.stats, ...a.attributes].join(', ') : 'Hace daño: no cambia stats, así que no se suma a las tarjetas'}</div>
               </li>
             ))}
           </ul>
