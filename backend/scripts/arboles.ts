@@ -720,6 +720,19 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     for (const sub of subs) charInitBySub.set(sub, [...(charInitBySub.get(sub) ?? []), row]);
   }
 
+  // Ascenso a Príncipe Demonio (Senda a la Gloria): el Señor del Caos o Gran Hechicero marcado se vuelve el Príncipe Demonio de su dios.
+  // El príncipe sale en las facciones que reclutan a esos señores (también las de demonios de un solo dios)
+  const ascendFrom = new Map<string, Set<string>>();
+  for (const b of T['background_character_initiative_sets_tables']) {
+    const subs = (groupMembers.get(b.campaign_group) ?? []).flatMap((m) => (memberSubs.get(m.id) ?? []).map((x) => x.agent_subtype as string));
+    for (const it of iniSetItems.get(b.initiative_set) ?? []) {
+      const g = /ascend_lord_to_daemon_prince_(khorne|nurgle|slaanesh|tzeentch)$/.exec(it.item)?.[1];
+      if (!g) continue;
+      const to = `wh3_dlc20_chs_daemon_prince_${g}`;
+      for (const sub of subs) (ascendFrom.get(to) ?? ascendFrom.set(to, new Set()).get(to)!).add(sub);
+    }
+  }
+
   // Facciones que lleva cada señor legendario en la pantalla de campaña: si su unidad no sale en batalla personalizada
   // (p. ej. Malus Darkblade) es la única forma de saber su facción
   const leaderSc = new Map<string, string[]>();
@@ -1394,6 +1407,7 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     const perm = campScIE.get(s.agent_subtype_key)?.length ? campScIE : campSc;
     let scs = [...new Set([...(perm.get(s.agent_subtype_key) ?? []), ...(leaderSc.get(s.agent_subtype_key) ?? [])])].sort();
     if (CHAOS_DEVOTED.test(s.agent_subtype_key) && !scs.includes('wh_main_sc_chs_chaos')) scs = [...scs, 'wh_main_sc_chs_chaos'].sort();
+    for (const src of ascendFrom.get(s.agent_subtype_key) ?? []) scs = [...new Set([...scs, ...((campScIE.get(src)?.length ? campScIE : campSc).get(src) ?? [])])].sort();
     // Retadores del Caos: solo los llevan las facciones de IA que retan a Norsca
     if (/^wh_dlc08_chs_challenger_/.test(s.agent_subtype_key)) scs = [];
     if (!scs.length) scs = unitSc.get(unit)?.length ? unitSc.get(unit)! : setPieceSc.get(unit) ?? [];
