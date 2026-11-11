@@ -966,3 +966,11 @@ details.ci-block > summary.ci-title, .ip-history > summary { cursor: pointer; }
 .ip-history { margin-top: 8px; }
 .ip-history > summary { color: var(--gold); font-size: 13px; }
 @media (max-width: 700px) { .char-info { flex-basis: 100%; } }
+/* Tarjetas pequeñas, como en la barra de unidades de la batalla */
+.ci-unit .utile { width: 58px; height: 82px; font-size: 9px; padding: 2px; }
+.ci-unit .utile .ut-cost { font-size: 9px; padding: 0 2px; }
+.ci-unit .utile .ut-icon { height: 26px; }
+.ci-unit .utile .ut-icon .unit-icon { width: 22px; height: 22px; }
+.ci-unit .utile .ut-name { display: none; }
+.ci-units { gap: 6px; }
+.ci-unit .small { font-size: 11px; }
