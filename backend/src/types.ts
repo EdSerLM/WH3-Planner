@@ -195,7 +195,8 @@ export interface UnitsFile {
 export type StatKey =
   | 'ma' | 'md' | 'armour' | 'charge' | 'ld' | 'dmg' | 'ap' | 'hp' | 'speed'
   | 'bvl' | 'bvi' | 'resPhysical' | 'resMissile' | 'resMagic' | 'resFlame' | 'resWard'
-  | 'missileDmg' | 'ammo' | 'reload' | 'range' | 'barrier' | 'shield';
+  | 'missileDmg' | 'ammo' | 'reload' | 'range' | 'barrier' | 'shield'
+  | 'barrierRate' | 'barrierDelay' | 'barrierHeal';
 
 export type EffectKind = 'battle' | 'campaign' | 'magic' | 'ability' | 'mount' | 'attribute' | 'other';
 export type EffectTarget = 'self' | 'army' | 'lord' | 'chars' | 'none';

@@ -18,7 +18,9 @@ interface Props {
 
 // Stats que se muestran siempre; el resto solo si tienen valor o cambian
 const MAIN: StatKey[] = ['ma', 'md', 'armour', 'charge', 'ld', 'dmg', 'ap', 'hp', 'speed'];
-const EXTRA: StatKey[] = ['bvl', 'bvi', 'resPhysical', 'resMissile', 'resMagic', 'resFlame', 'resWard', 'missileDmg', 'ammo', 'reload', 'range', 'barrier', 'shield'];
+const EXTRA: StatKey[] = ['bvl', 'bvi', 'resPhysical', 'resMissile', 'resMagic', 'resFlame', 'resWard', 'missileDmg', 'ammo', 'reload', 'range', 'barrier', 'barrierRate', 'barrierDelay', 'barrierHeal', 'shield'];
+/** Menos es mejor: se colorea al revés */
+const LOWER_BETTER = new Set<StatKey>(['barrierDelay']);
 const PCT_DISPLAY = new Set<StatKey>(['resPhysical', 'resMissile', 'resMagic', 'resFlame', 'resWard', 'shield']);
 
 const KIND_ES = { unit: '', lord: 'Señor', hero: 'Héroe' } as const;
@@ -96,6 +98,7 @@ function GameStats({ card, labels }: { card: ComputedCard; labels: Record<StatKe
           </div>
         );
       })}
+      <BarrierLine card={card} />
       {res.length > 0 && (
         <div className="gs-res">
           {res.map((k) => (
@@ -105,6 +108,31 @@ function GameStats({ card, labels }: { card: ComputedCard; labels: Record<StatKe
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Barrera: puntos, cuánto recupera por segundo y tras cuántos segundos sin recibir daño, con el desglose de bufos */
+function BarrierLine({ card }: { card: ComputedCard }) {
+  const st = card.stats;
+  if (!(st.barrier.final > 0)) return null;
+  const rate = st.barrierRate.final, delay = st.barrierDelay.final, heal = st.barrierHeal.final;
+  const healPts = (st.barrier.final * heal) / 100;
+  const full = rate > 0 ? st.barrier.final / rate : 0;
+  const contribs = [...st.barrierRate.contributions, ...st.barrierDelay.contributions, ...st.barrierHeal.contributions];
+  const tip = [
+    `Barrera: ${fmtStat(st.barrier.final, 'barrier')} puntos`,
+    `Se recupera a ${fmtStat(rate, 'barrierRate')} puntos/s (base ${st.barrierRate.base}) cuando lleva ${fmtStat(delay, 'barrierDelay')} s sin recibir daño (base ${st.barrierDelay.base} s)`,
+    full ? `De 0 a llena: ${fmtStat(full, 'barrierDelay')} s de recuperación (+ la espera)` : '',
+    heal ? `Habilidades: +${fmtStat(heal, 'barrierHeal')}% por segundo (${fmtStat(healPts, 'barrierHeal')} puntos/s) mientras están activas` : '',
+    ...(contribs.length ? ['', 'Bufos:', ...contribs.map(contribText)] : []),
+  ].filter((x) => x !== '').join('\n');
+  const up = st.barrierRate.final > st.barrierRate.base || st.barrierDelay.final < st.barrierDelay.base || heal > 0;
+  return (
+    <div className={'gs-barrier' + (up ? ' up' : '')} title={tip}>
+      <StatImg stat="barrier" emoji="🛡️" size={14} /> Barrera <b>{fmtStat(st.barrier.final, 'barrier')}</b>
+      <span> · recupera <b>{fmtStat(rate, 'barrierRate')}</b>/s tras <b>{fmtStat(delay, 'barrierDelay')}</b> s sin daño</span>
+      {heal > 0 && <span> · +{fmtStat(healPts, 'barrierHeal')}/s por habilidades</span>}
     </div>
   );
 }
@@ -144,7 +172,7 @@ export function UnitCard({ card, labels, onSelect, selected, selfAbilities = [],
         <tbody>
           {stats.map((s) => {
             const l = card.stats[s];
-            const diff = statDiff(l.final, l.base, s);
+            const diff = statDiff(l.final, l.base, s) * (LOWER_BETTER.has(s) ? -1 : 1);
             const has = l.contributions.length > 0;
             return (
               <FragmentRow key={s}>
@@ -155,7 +183,7 @@ export function UnitCard({ card, labels, onSelect, selected, selfAbilities = [],
                   <td className={'num ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '')}>
                     <b>{fmtStat(l.final, s)}{PCT_DISPLAY.has(s) ? '%' : ''}</b>
                   </td>
-                  <td className={'num small ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '')}>{diff ? `${diff > 0 ? '+' : ''}${fmtStat(diff, s)}` : ''}</td>
+                  <td className={'num small ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '')}>{diff ? `${l.final - l.base > 0 ? '+' : ''}${fmtStat(l.final - l.base, s)}` : ''}</td>
                 </tr>
                 {open === s && (
                   <tr className="contribs">

@@ -2,7 +2,7 @@
  * Las stats se muestran en números enteros, como en el juego (redondeo al más cercano). Solo es la vista: el motor y el
  * DPS siguen usando los valores exactos. La recarga es un tiempo en segundos y se deja con un decimal.
  */
-const KEEP_DECIMAL = new Set(['reload']);
+const KEEP_DECIMAL = new Set(['reload', 'barrierRate', 'barrierDelay', 'barrierHeal']);
 
 export function fmtStat(v: number, stat?: string): string {
   if (stat && KEEP_DECIMAL.has(stat)) return Number.isInteger(v) ? String(v) : v.toFixed(1);

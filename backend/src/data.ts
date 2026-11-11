@@ -1071,7 +1071,7 @@ function asRosterUnit(u: AllUnitsFile['units'][number]): UnitData & { subculture
     caste: u.casteKey ?? u.caste,
     category: u.casteKey ?? '',
     group: GROUP_BY_UI[u.uiGroup ?? ''] ?? GROUP_BY_CASTE[u.casteKey ?? ''] ?? 'Infantry',
-    tier: u.tier ?? 0, campaignOnly: !!u.campOnly, mounts: u.mounts ?? 0, entity: '', barrier: 0,
+    tier: u.tier ?? 0, campaignOnly: !!u.campOnly, mounts: u.mounts ?? 0, entity: '', barrier: u.barrier ?? 0,
     attrs: u.attrs.map(translateAttribute),
     contact: contactOfUnit(u.contact),
   };

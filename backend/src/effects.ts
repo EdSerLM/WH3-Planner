@@ -144,6 +144,9 @@ export const STAT_LABELS_ES: Record<StatKey, string> = {
   range: 'Alcance',
   barrier: 'Barrera',
   shield: 'Bloqueo de proyectiles',
+  barrierRate: 'Recuperación de barrera (por s)',
+  barrierDelay: 'Espera para recuperar barrera (s)',
+  barrierHeal: 'Barrera por habilidades (% por s)',
 };
 
 export type { EffectKind };

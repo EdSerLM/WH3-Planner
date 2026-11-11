@@ -407,7 +407,7 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
       tier: mu.tier ?? 0, mounts: L.num_mounts ?? 0, uiGroup: uiParent.get(mu.ui_unit_group_land ?? '')?.parent_group ?? undefined,
       catIcon: iconName(uiParent.get(mu.ui_unit_group_land ?? '')?.icon),
       size: biggest(ent.size, ment?.size, L.articulated_record ? be.get(artic.get(L.articulated_record)?.articulated_entity ?? '')?.size : undefined),
-      hpPerModel: (ent.hit_points ?? 0) + (L.bonus_hit_points ?? 0),
+      hpPerModel: (ent.hit_points ?? 0) + (L.bonus_hit_points ?? 0), barrier: mu.barrier_health || undefined,
       speed: Math.round(((ment ? ment.run_speed : ent.run_speed) ?? 0) * 10), leadership: L.morale,
       ma: L.melee_attack, md: L.melee_defence, charge: L.charge_bonus,
       armour: arm.get(L.armour ?? '')?.armour_value ?? 0, shield: shd.get(L.shield ?? '')?.missile_block_chance ?? 0,

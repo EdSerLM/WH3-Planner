@@ -25,6 +25,7 @@ import type {
 export const ALL_STATS: StatKey[] = [
   'ma', 'md', 'armour', 'charge', 'ld', 'dmg', 'ap', 'hp', 'speed', 'bvl', 'bvi',
   'resPhysical', 'resMissile', 'resMagic', 'resFlame', 'resWard', 'missileDmg', 'ammo', 'reload', 'range', 'barrier', 'shield',
+  'barrierRate', 'barrierDelay', 'barrierHeal',
 ];
 
 const RES_STATS = new Set<StatKey>(['resPhysical', 'resMissile', 'resMagic', 'resFlame', 'resWard']);
@@ -47,6 +48,8 @@ export const ABILITY_STAT_MAP: Record<string, StatKey> = {
   scalar_missile_damage_base: 'missileDmg',
   stat_bonus_vs_large: 'bvl',
   scalar_missile_range: 'range',
+  // Pseudostat del extractor: barrier_heal_amount de la fase (% de la barrera máxima por segundo)
+  barrier_heal: 'barrierHeal',
 };
 
 // ---------- Builds ----------
@@ -428,6 +431,8 @@ function contribute(lines: Record<StatKey, StatLine>, stat: StatKey, c: Contribu
   lines[stat].contributions.push(c);
 }
 
+const BARRIER_RATE = 20, BARRIER_DELAY = 30;
+
 function finalize(lines: Record<StatKey, StatLine>) {
   for (const s of ALL_STATS) {
     const l = lines[s];
@@ -438,10 +443,16 @@ function finalize(lines: Record<StatKey, StatLine>) {
       else mult *= c.value;
     }
     let v: number;
+    // Recuperación de barrera: reglas del juego (_kv_rules: barrier_replenishment_rate 20 por segundo, barrier_replenishment_delay 30 s).
+    // Solo cuenta si la tarjeta tiene barrera (también la que dan objetos o habilidades)
+    if (s === 'barrierRate' || s === 'barrierDelay' || s === 'barrierHeal') {
+      if (!(lines.barrier.final > 0)) { l.base = 0; l.final = 0; l.contributions = []; continue; }
+      l.base = s === 'barrierRate' ? BARRIER_RATE : s === 'barrierDelay' ? BARRIER_DELAY : 0;
+    }
     if (s === 'reload') v = (l.base + add) * (1 - pct / 100) * (mult === 1 ? 1 : 1 / mult);
     else v = (l.base + add) * (1 + pct / 100) * mult;
     if (RES_STATS.has(s)) v = Math.min(90, v);
-    if (s === 'ma' || s === 'md' || s === 'armour' || s === 'charge' || s === 'ld') v = Math.max(0, v);
+    if (s === 'ma' || s === 'md' || s === 'armour' || s === 'charge' || s === 'ld' || s === 'barrierDelay' || s === 'barrierRate') v = Math.max(0, v);
     l.final = Math.round(v * 100) / 100;
   }
 }
@@ -968,6 +979,7 @@ const LABEL_ES: Partial<Record<StatKey, string>> = {
   bvi: 'Bonificación contra infantería', resPhysical: 'Resistencia física', resMissile: 'Resistencia a proyectiles', resMagic: 'Resistencia a hechizos',
   resFlame: 'Resistencia al fuego', resWard: 'Salvación especial', missileDmg: 'Fuerza de proyectiles', ammo: 'Munición',
   reload: 'Recarga más rápida', range: 'Alcance', barrier: 'Barrera', shield: 'Bloqueo de proyectiles',
+  barrierRate: 'Recuperación de barrera por segundo', barrierDelay: 'Demora de recuperación de barrera (s)', barrierHeal: 'Recuperación de barrera por habilidades (% por segundo)',
 };
 
 function summarize(b: ResolvedBuild): BuildSummary {

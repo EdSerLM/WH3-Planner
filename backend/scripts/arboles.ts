@@ -134,6 +134,7 @@ const UNITSET_STATS: Record<string, [string, boolean]> = {
   unit_damage_resistance_flame_mod: ['resFlame', false],
   mod_land_movement_battle: ['speed', true], reload: ['reload', true], ammo_mod: ['ammo', true], range_mod: ['range', true],
   battle_barrier_health: ['barrier', false], battle_barrier_health_mod: ['barrier', true],
+  battle_barrier_replenish_rate_mod: ['barrierRate', true], battle_barrier_replenish_delay_mod: ['barrierDelay', true],
   damage_vs_infantry: ['bvi', false], damage_vs_large_entities: ['bvl', false], missile_block_chance_mod: ['shield', false],
   general_bodyguard_size_mod: ['hp', true],
 };
@@ -228,7 +229,7 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     const w = mw.get(Lu.primary_melee_weapon ?? '') ?? {};
     return {
       run_speed: (mount ? ment.run_speed : ent.run_speed) ?? 0, mass: ent.mass, size: mount ? ment.size : ent.size,
-      hit_points: ent.hit_points ?? 0, bonus_hit_points: Lu.bonus_hit_points ?? 0,
+      hit_points: ent.hit_points ?? 0, bonus_hit_points: Lu.bonus_hit_points ?? 0, barrier: m.barrier_health || undefined,
       armour: arm.get(Lu.armour ?? '')?.armour_value ?? 0, missile_block_chance: shd.get(Lu.shield ?? '')?.missile_block_chance ?? 0,
       morale: Lu.morale ?? 0, damage_mod_flame: Lu.damage_mod_flame ?? 0, damage_mod_magic: Lu.damage_mod_magic ?? 0,
       damage_mod_physical: Lu.damage_mod_physical ?? 0, damage_mod_missile: Lu.damage_mod_missile ?? 0, damage_mod_all: Lu.damage_mod_all ?? 0,
@@ -292,6 +293,11 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
         const d = st.how === 'mult' ? `×${r2(st.value)} ${nm}` : `${st.value > 0 ? '+' : ''}${r2(st.value)} ${nm}`;
         return { stat: st.stat, how: st.how, v: st.value, d };
       });
+      // Recupera barrera: barrier_heal_amount es la fracción de la barrera máxima cada hp_change_frequency segundos
+      if (p.barrier_heal_amount > 0) {
+        const v = r2((p.barrier_heal_amount * 100) / (p.hp_change_frequency || 1));
+        stats.push({ stat: 'barrier_heal', how: 'add', v, d: `+${v}% de la barrera por segundo` });
+      }
       // Imbuir: los ataques aplican un efecto de contacto a los enemigos que golpean (p. ej. "¡Veneno!" de Bendecido con roña)
       const ic = p.imbue_contact ? ph.get(p.imbue_contact) : undefined;
       const imb = ic ? {

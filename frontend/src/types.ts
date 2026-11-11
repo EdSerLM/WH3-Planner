@@ -3,7 +3,8 @@
 export type StatKey =
   | 'ma' | 'md' | 'armour' | 'charge' | 'ld' | 'dmg' | 'ap' | 'hp' | 'speed'
   | 'bvl' | 'bvi' | 'resPhysical' | 'resMissile' | 'resMagic' | 'resFlame' | 'resWard'
-  | 'missileDmg' | 'ammo' | 'reload' | 'range' | 'barrier' | 'shield';
+  | 'missileDmg' | 'ammo' | 'reload' | 'range' | 'barrier' | 'shield'
+  | 'barrierRate' | 'barrierDelay' | 'barrierHeal';
 
 export interface ParsedEffect {
   key: string;
