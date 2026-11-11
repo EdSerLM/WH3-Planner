@@ -859,6 +859,12 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building, ga
         </>
       )}
       {unit?.desc && <p className="ip-desc">{unit.desc}</p>}
+      {unit?.history && (
+        <details className="ip-history">
+          <summary>Historia</summary>
+          <p className="ci-text">{unit.history}</p>
+        </details>
+      )}
     </aside>
   );
 }

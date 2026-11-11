@@ -688,6 +688,7 @@ function buildGameTree(c: GameCharacter, faction: string): CharacterTree {
     const u = uk ? getUnit(uk) : undefined;
     const bullets = bulletsInfo(u?.bullets);
     if (bullets.length || u?.desc) tree.role = { bullets, desc: u?.desc };
+    if (u?.history) tree.history = u.history;
   }
   if (c.bn?.length) {
     tree.banners = c.bn.filter((b) => gameFile!.banners?.[b.k]).map((b): BannerInfo => {
@@ -1010,7 +1011,7 @@ export function getUnit(card: string): UnitData | undefined {
 
 // ---------- Unidades de TODAS las facciones (se generan con npm run extraer) ----------
 /** Facción de campaña jugable: quién la lidera, qué recluta y qué consigue con mejoras (unidad -> rango requerido) */
-interface CampaignRow { key: string; name: string; subculture: string; leaders: string[]; units: string[]; upgrades?: Record<string, number>; buildings?: Record<string, string[]> }
+interface CampaignRow { key: string; name: string; subculture: string; leaders: string[]; units: string[]; upgrades?: Record<string, number>; buildings?: Record<string, string[]>; howToPlay?: string }
 interface AllUnitsFile {
   source: string; subcultures: { key: string; name: string; flag?: string }[];
   units: (Omit<UnitData, 'contact'> & { subcultures: string[]; casteKey?: string; uiGroup?: string; campOnly?: boolean; contact?: { melee?: string; missile?: string } })[];
@@ -1129,7 +1130,7 @@ export function campaignStart(): { key: string; name: string; flag?: string; fac
   });
 }
 
-export function listCampaign(subculture: string): { key: string; name: string; flag?: string; leaders: string[]; units: string[]; upgrades: Record<string, number>; buildings: Record<string, string[]> }[] {
+export function listCampaign(subculture: string): { key: string; name: string; flag?: string; leaders: string[]; units: string[]; upgrades: Record<string, number>; buildings: Record<string, string[]>; howToPlay?: string }[] {
   return (allUnitsFile?.campaign ?? [])
     .filter((c) => c.subculture === subculture)
     .map((c) => {
@@ -1142,6 +1143,7 @@ export function listCampaign(subculture: string): { key: string; name: string; f
         units: units.filter((k) => allByKey.has(k)),
         upgrades: c.upgrades ?? {},
         buildings,
+        ...(c.howToPlay ? { howToPlay: c.howToPlay } : {}),
       };
     });
 }

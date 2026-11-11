@@ -177,6 +177,8 @@ export interface UnitData {
   art?: string;
   /** Descripción corta del juego */
   desc?: string;
+  /** Historia de la unidad (texto largo del juego) */
+  history?: string;
   /** Puntos fuertes/débiles de la carta del juego (claves de ui_unit_bullet_point_enums) */
   bullets?: string[];
 }
@@ -325,6 +327,8 @@ export interface CharacterTree extends CharacterSummary {
   items?: ItemInfo[];
   /** En qué es bueno según el juego: puntos fuertes/débiles de su carta y descripción de su unidad */
   role?: { bullets: { name: string; tip?: string; good: boolean }[]; desc?: string };
+  /** Historia del personaje (texto largo de su unidad en el juego) */
+  history?: string;
   /** Estandartes que desbloquea (con una habilidad o como objeto propio): se le ponen a una unidad o a un personaje */
   banners?: BannerInfo[];
   /** Conjuntos de esos objetos: bonificación extra con todas las piezas */

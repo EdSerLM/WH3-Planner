@@ -953,3 +953,16 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .ad-chronicle p.ad-cry { font-style: italic; color: #d4b45a; text-align: right; margin-bottom: 0; }
 .army-desc .ad-data { margin-top: 6px; }
 .army-desc .ad-data > summary { font-weight: 400; color: var(--muted); font-size: 13px; }
+
+/* ---------- Junto al selector: unidades más potenciadas, cómo se juega, historia ---------- */
+.char-info { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 6px;
+  padding: 6px 10px; border: 1px solid var(--gold-dim); background: #17120d; border-radius: 4px; }
+.ci-block { min-width: 0; }
+.ci-title { color: var(--gold); font-size: 13px; font-weight: 600; cursor: default; }
+details.ci-block > summary.ci-title, .ip-history > summary { cursor: pointer; }
+.ci-units { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.ci-unit { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; white-space: nowrap; }
+.ci-text { white-space: pre-line; font-size: 13px; line-height: 1.45; color: #d6ccbd; max-height: 320px; overflow-y: auto; margin: 6px 0 0; }
+.ip-history { margin-top: 8px; }
+.ip-history > summary { color: var(--gold); font-size: 13px; }
+@media (max-width: 700px) { .char-info { flex-basis: 100%; } }

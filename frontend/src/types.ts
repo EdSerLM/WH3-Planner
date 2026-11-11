@@ -107,6 +107,8 @@ export interface CharacterTree extends CharacterSummary {
   items?: ItemInfo[];
   /** En qué es bueno según el juego: puntos fuertes/débiles de su carta y descripción de su unidad */
   role?: { bullets: { name: string; tip?: string; good: boolean }[]; desc?: string };
+  /** Historia del personaje (texto largo de su unidad en el juego) */
+  history?: string;
   itemSets?: { key: string; name: string; items: string[]; effects: ParsedEffect[] }[];
   /** Dones del Príncipe Demonio (Daniel): piezas intercambiables por ranura */
   armory?: ArmoryInfo;
@@ -223,6 +225,8 @@ export interface UnitData {
   missile?: { dmg: number; ap: number; range: number; reload: number; shots: number; ammo: number; bvl?: number; bvi?: number };
   attrs?: string[];
   desc?: string;
+  /** Historia de la unidad (texto largo del juego) */
+  history?: string;
   /** Icono genérico (tipo de arma/montura) */
   icon?: string;
   /** Icono oficial de categoría (/unitcat/<catIcon>.png) */
@@ -518,6 +522,8 @@ export interface CampaignFaction {
   upgrades: Record<string, number>;
   /** Unidades que solo recluta con un edificio porque su reserva es de otra facción: unidad -> edificios */
   buildings?: Record<string, string[]>;
+  /** «Cómo se juega»: el texto del juego al empezar la campaña con esta facción */
+  howToPlay?: string;
 }
 
 export interface SavedBuild {

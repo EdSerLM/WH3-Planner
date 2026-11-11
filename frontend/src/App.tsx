@@ -24,6 +24,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { emptyBuild } from './treeLogic';
 import { campaignForLord, campaignUnits } from './campaign';
 import { CampaignStart } from './components/CampaignStart';
+import { CharInfo } from './components/CharInfo';
 import { CharUnits } from './components/CharUnits';
 import type { AbilityState, ArmyState, BuildSelection, CampaignFaction, CharacterSummary, CharacterTree, ComputedCard, ComputeResult, Meta, SavedBuild, UnitData } from './types';
 
@@ -550,6 +551,11 @@ export default function App() {
                 <CharacterPicker characters={characters} type="hero" value={army.heroes[tab]?.character ?? null} onChange={(k) => setHero(tab, k)} campaign={army.campaign} />
                 <button className="ghost danger" onClick={() => removeHero(tab)}>Quitar héroe</button>
               </>
+            )}
+            {currentSel && currentTree && (
+              <CharInfo character={currentSel.character} kind={tab === 'lord' ? 'lord' : 'hero'} units={rosterUnits} history={currentTree.history}
+                howToPlay={tab === 'lord' ? campaigns.find((c) => c.key === army.campaign)?.howToPlay : undefined}
+                factionName={campaigns.find((c) => c.key === army.campaign)?.name} />
             )}
           </div>
 

@@ -310,7 +310,8 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
   const subFactions = new Map<string, Set<string>>();
   for (const f of T['factions_tables']) subFactions.set(f.subculture, (subFactions.get(f.subculture) ?? new Set()).add(f.key));
   const ieFactions = new Set<string>(T['start_pos_factions_tables'].filter((r) => r.campaign === 'wh3_main_combi' && r.playable).map((r) => r.faction as string));
-  const campaign: { key: string; name: string; subculture: string; flagPath?: string | null; leaders: string[]; units: string[]; upgrades: Record<string, number>; buildings: Record<string, string[]> }[] = [];
+  const campaign: { key: string; name: string; subculture: string; flagPath?: string | null; leaders: string[]; units: string[]; upgrades: Record<string, number>; buildings: Record<string, string[]>; howToPlay?: string }[] = [];
+  const howTo = howToPlayTexts(sp);
   for (const ff of T['frontend_factions_tables']) {
     const f = fac.get(ff.faction);
     if (!f || f.is_quest_faction || f.is_rebel) continue;
@@ -350,6 +351,7 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     campaign.push({
       key: f.key, name: sp.get(`factions_screen_name_${f.key}`) ?? f.key, subculture: f.subculture, flagPath: f.flags_path ?? null,
       leaders: [...new Set(leaders.get(f.key) ?? [])], units: [...list].sort(), upgrades, buildings,
+      ...(howTo.get(f.key) ? { howToPlay: howTo.get(f.key) } : {}),
     });
   }
   campaign.sort((a, b) => a.subculture.localeCompare(b.subculture) || a.name.localeCompare(b.name, 'es'));
@@ -432,6 +434,9 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     u.icon = unitIcon(mu.caste, u.uiGroup ?? '', u.size ?? '', L, w, pj, ent, ment, !!engine);
     const desc = L.short_description_text ? sp.get(`unit_description_short_texts_text_${L.short_description_text}`) : undefined;
     if (desc) u.desc = desc;
+    // Historia de la unidad (el texto largo del juego)
+    const hist = L.historical_description_text ? sp.get(`unit_description_historical_texts_text_${L.historical_description_text}`) : undefined;
+    if (hist) u.history = hist;
     const bl = [...new Set(bulletsOf.get(mu.unit) ?? [])].filter((k) => bulletDefs[k]).sort((a, b) => bulletDefs[a].o - bulletDefs[b].o);
     if (bl.length) u.bullets = bl;
     if (w.is_magical) u.magical = true;
@@ -494,6 +499,46 @@ const portraitFiles = new Map<string, string>();
 let allUnitsOut: ReturnType<typeof buildAllUnits> | null = null;
 /** Atributo (nombre en español) -> clave del juego */
 const attrKeyByName = new Map<string, string>();
+/**
+ * «Cómo se juega» de cada facción: el texto que el juego muestra al empezar la campaña. La relación facción -> texto
+ * está en el script wh_campaign_setup.lua (show_how_to_play_event), dentro de data_script.pack. Se lee de
+ * WH3_LUA_DIR (carpeta con script/campaign/...) si existe; si no, se conservan los textos ya extraídos.
+ */
+function howToPlayTexts(sp: Map<string, string>): Map<string, string> {
+  const out = new Map<string, string>();
+  const dir = process.env.WH3_LUA_DIR;
+  const file = dir ? join(dir, 'script', 'campaign', 'wh_campaign_setup.lua') : '';
+  if (file && existsSync(file)) {
+    const lua = readFileSync(file, 'utf8');
+    const start = lua.indexOf('function show_how_to_play_event');
+    const body = lua.slice(start, lua.indexOf('\nfunction ', start + 30) > 0 ? lua.indexOf('\nfunction ', start + 30) : undefined);
+    // Cada rama: if/elseif faction_name == "A" or faction_name == "B" then ... secondary_detail = "CLAVE"
+    const re = /(?:if|elseif)\s+((?:faction_name\s*==\s*"[^"]+"\s*(?:or\s*)?)+)then([\s\S]*?)(?=\n\t\telseif|\n\t\telse\b|\n\t\tend)/g;
+    for (const m of body.matchAll(re)) {
+      const facs = [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
+      const keys = [...m[2].matchAll(/secondary_detail\s*=\s*"([^"]+)"/g)].map((x) => x[1]);
+      const key = keys.find((k) => /_ie$/i.test(k)) ?? keys[0];
+      const text = key ? cleanMarkup(sp.get(key) ?? '') : '';
+      if (text) for (const f of facs) if (!out.has(f)) out.set(f, text);
+    }
+  } else {
+    try {
+      const prev = JSON.parse(readFileSync(join(BACKEND, 'data/raw/wh3_all_units.json'), 'utf8')) as { campaign?: { key: string; howToPlay?: string }[] };
+      for (const c of prev.campaign ?? []) if (c.howToPlay) out.set(c.key, c.howToPlay);
+    } catch { /* primera extracción */ }
+  }
+  return out;
+}
+/** Quita el marcado de los textos del juego ([[col:...]], [[img:...]], enlaces) y deja el texto plano */
+function cleanMarkup(t: string): string {
+  return t
+    .replace(/^[^\n]*\[\[url:[^\]]*\]\]\s*aqu[ií]\s*\[\[\/url\]\][^\n]*$/gim, '') // "Aprende más ... aquí"
+    .replace(/\[\[img:[^\]]*\]\]\[\[\/img\]\]/g, '')
+    .replace(/\{\{tt:[^}]*\}\}/g, '')
+    .replace(/\[\[\/?[a-z_]+(?::[^\]]*)?\]\]/gi, '')
+    .replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 /** Banderas: ruta en el .pack -> clave de facción */
 const wantedFlags = new Map<string, string>();
 
