@@ -961,16 +961,11 @@ td.ip-bar span { display: inline-block; height: 6px; vertical-align: middle; }
 .ci-title { color: var(--gold); font-size: 13px; font-weight: 600; cursor: default; }
 details.ci-block > summary.ci-title, .ip-history > summary { cursor: pointer; }
 .ci-units { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
-.ci-unit { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; white-space: nowrap; }
+.ci-unit { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
 .ci-text { white-space: pre-line; font-size: 13px; line-height: 1.45; color: #d6ccbd; max-height: 320px; overflow-y: auto; margin: 6px 0 0; }
 .ip-history { margin-top: 8px; }
 .ip-history > summary { color: var(--gold); font-size: 13px; }
 @media (max-width: 700px) { .char-info { flex-basis: 100%; } }
-/* Tarjetas pequeñas, como en la barra de unidades de la batalla */
-.ci-unit .utile { width: 58px; height: 82px; font-size: 9px; padding: 2px; }
-.ci-unit .utile .ut-cost { font-size: 9px; padding: 0 2px; }
-.ci-unit .utile .ut-icon { height: 26px; }
-.ci-unit .utile .ut-icon .unit-icon { width: 22px; height: 22px; }
-.ci-unit .utile .ut-name { display: none; }
-.ci-units { gap: 6px; }
-.ci-unit .small { font-size: 11px; }
+/* Mismo tamaño que las tarjetas del roster */
+.ci-units { gap: 8px; }
+.ci-unit .small { font-size: 11px; white-space: nowrap; }

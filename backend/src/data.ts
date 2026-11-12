@@ -20,6 +20,20 @@ const artCards = new Set(existsSync(ART_DIR) ? readdirSync(ART_DIR).filter((f) =
 /** Nombre del archivo de la carta (sin .png) si existe */
 export const artOf = (card?: string) => (card && card.toLowerCase() !== 'placeholder' && artCards.has(card.toLowerCase()) ? card.toLowerCase() : undefined);
 
+/**
+ * Personajes cuya carta y retrato de batalla personalizada no existen para la unidad de campaña:
+ * Kairos tiene su retrato en la variante de batalla personalizada, Daniel lo arma el juego por piezas,
+ * y los demás solo existen en campaña. Se usa el retrato más cercano que sí está entre las cartas.
+ */
+const ART_FALLBACK: Record<string, string> = {
+  wh3_main_tze_cha_kairos_fateweaver_0: 'pt_dae_kairos_0',
+  wh3_main_dae_cha_daemon_prince_0: 'pt_dae_chs_daemon_prince_1_0',
+  wh3_dlc23_chd_cha_convoy_overseer: 'pt_chd_overseer_campaign_01_0',
+  wh3_main_cth_cha_lord_caravan_master: 'pt_cth_lord_magistrate_campaign_01_0',
+  wh2_main_def_cha_dreadlord_0_black_ark: 'pt_def_dreadlord_campaign_02_0',
+};
+
+
 function readJson<T>(file: string): T {
   return JSON.parse(readFileSync(join(DATA_DIR, file), 'utf8')) as T;
 }
@@ -1065,7 +1079,7 @@ function asRosterUnit(u: AllUnitsFile['units'][number]): UnitData & { subculture
       key: r.k, name: r.n, category: r.cat, categoryName: r.catN, banned: r.ban, texts: r.e.map((e) => e.d).filter(Boolean),
     })),
     // "art" lo pone npm run extraer cuando la carta propia no existe (retrato del personaje o carta de la unidad base)
-    art: artOf((u as { art?: string }).art) ?? artOf(u.card),
+    art: artOf((u as { art?: string }).art) ?? artOf(u.card) ?? artOf(ART_FALLBACK[u.key]),
     nameEn: u.name,
     casteEs: u.caste,
     caste: u.casteKey ?? u.caste,
@@ -1095,7 +1109,7 @@ export function listSubcultures() {
 
 /** Arte de la carta de la unidad de un personaje (por su clave de unidad) */
 export function artOfUnit(unitKey?: string): string | undefined {
-  return unitKey ? allByKey.get(unitKey)?.art : undefined;
+  return unitKey ? allByKey.get(unitKey)?.art ?? artOf(ART_FALLBACK[unitKey]) : undefined;
 }
 
 export function listTargets(subculture: string): UnitData[] {
