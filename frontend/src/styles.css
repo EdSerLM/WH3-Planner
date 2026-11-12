@@ -966,6 +966,14 @@ details.ci-block > summary.ci-title, .ip-history > summary { cursor: pointer; }
 .ip-history { margin-top: 8px; }
 .ip-history > summary { color: var(--gold); font-size: 13px; }
 @media (max-width: 700px) { .char-info { flex-basis: 100%; } }
-/* Mismo tamaño que las tarjetas del roster */
-.ci-units { gap: 8px; }
+/* Tarjetas pequeñas, como en la barra de unidades de la batalla: junto al señor y en el roster de la pestaña Ejército */
+.ci-unit .utile, .rpanel-tiles .utile { width: 58px; height: 82px; font-size: 9px; }
+.ci-unit .utile .ut-cost, .rpanel-tiles .utile .ut-cost { font-size: 9px; padding: 0 2px; }
+.ci-unit .utile.has-art .ut-icon, .rpanel-tiles .utile.has-art .ut-icon { top: 13px; transform: scale(.8); transform-origin: top right; }
+.ci-unit .utile .ut-name, .rpanel-tiles .utile.has-art .ut-name { display: none; }
+.rpanel-tiles .utile.has-art .ut-attrs { bottom: 13px; min-height: 13px; transform: scale(.85); transform-origin: bottom left; width: 118%; }
+.rpanel-tiles .utile.has-art .ut-marks { min-height: 13px; font-size: 9px; }
+.rpanel-tiles .utile .ut-count { font-size: 10px; }
+.rpanel-tiles { gap: 6px; }
+.ci-units { gap: 6px; }
 .ci-unit .small { font-size: 11px; white-space: nowrap; }
