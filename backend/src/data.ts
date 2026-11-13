@@ -404,8 +404,14 @@ function gameNode(n: GameNode, c: GameCharacter, present: Set<string>): SkillNod
     isMount: levels.some((l) => l.mountStats || l.effects.some((e) => e.kind === 'mount')),
     icon: raw.img ? raw.img.split('/').pop() : undefined,
     // En el juego muchos hechizos del árbol (Nurgle, Tzeentch, Slaanesh...) traen la imagen del Saber de las Fauces;
-    // el icono correcto es el de la habilidad de batalla que da el nodo (frontend/public/abilities)
-    abilityIcon: levels.flatMap((l) => l.abilities).map((k) => abilities[k]).find((a) => a?.spell && a.icon)?.icon,
+    // el icono correcto es el de la habilidad de batalla que da el nodo (frontend/public/abilities).
+    // Hechizos (también los vinculados): icono de su habilidad. Si el nodo solo mejora un hechizo y el juego le pone el
+    // icono de las Fauces, el del hechizo que mejora
+    abilityIcon: levels.flatMap((l) => l.abilities).filter((k) => /_spell_/.test(k)).map((k) => abilities[k]).find((a) => a?.icon)?.icon
+      ?? levels.flatMap((l) => l.abilities).map((k) => abilities[k]).find((a) => a?.spell && a.icon)?.icon
+      ?? (/great_maw/.test(raw.img ?? '') && !/great_maw/.test(n.s)
+        ? levels.flatMap((l) => l.effects).map((e) => (e.abilityTarget ? abilities[e.abilityTarget] : undefined)).find((a) => a?.icon && !/great_maw/.test(a.icon))?.icon
+        : undefined),
     autoActive: n.bg ? !!n.auto : undefined,
   };
 }
