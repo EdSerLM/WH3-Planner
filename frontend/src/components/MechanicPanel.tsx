@@ -62,11 +62,12 @@ const HELP: Record<string, string> = {
   SHANTY: 'La Saloma perdida (Costa del Vampiro): cada verso encontrado da a tus ejércitos una habilidad de ejército; con los 3 versos, la canción completa da liderazgo a todos tus ejércitos.',
   WORKSHOP: 'Taller de Ikit (Clan Skryre): mejoras de las armas que se investigan en el taller. Afectan a todas esas unidades de la facción; marca las que tengas. Bajo el nombre ves el nivel de taller que piden.',
   CHIEF: 'Jefes vasallos de Tamurkhan: cada nivel de lealtad añade un paquete de efectos a la facción, y algunos jefes dan una habilidad a su propio ejército. Marca los niveles que tengas.',
+  WHITE_TOWER: 'Secretos de la Torre Blanca (Teclis): rituales que se pagan con Pergaminos del Saber ganados en batalla. Cada escuela tiene mejoras permanentes (rango al reclutar magos, menor coste de vientos), rituales sobre tu ejército o el enemigo (2 turnos) y hechizos de cataclismo temporales. Marca los que tengas activos.',
   PATH_TO_GLORY_BOON: 'Marca los regalos que tienes en tu campaña; cada uno muestra la condición para conseguirlo.',
 };
 const EMOJI: Record<string, string> = {
   DA_PLAN: '📜', FORGE: '⚒️', CLOAK: '💀', GUNNERY: '🔫', KISLEV: '❄️', HELLFORGE: '🔥', HELLFORGE_MANU: '⚒️', GLOTTKIN: '🌿', COOKING: '🍲', PLAGUE: '🧪',
-  DANCE: '💃', PATRONAGE: '🦅', COURT: '🌳', LAIR: '🦇', BREW: '⚗️', MARKS: '💜', ULRIC: '🐺', CHIEF: '🪓', WORKSHOP: '⚙️', FORGE_BUFF: '🔥', ICE_COURT: '❄️', VOWS: '⚜️', SHANTY: '🏴‍☠️',
+  DANCE: '💃', PATRONAGE: '🦅', COURT: '🌳', LAIR: '🦇', BREW: '⚗️', MARKS: '💜', ULRIC: '🐺', CHIEF: '🪓', WORKSHOP: '⚙️', FORGE_BUFF: '🔥', ICE_COURT: '❄️', VOWS: '⚜️', SHANTY: '🏴‍☠️', WHITE_TOWER: '📜',
 };
 
 /** Fila y nivel de una pieza: del dato (group/level) o del nombre ("X · nivel 2: Y", "Coraza del Dragón III") */

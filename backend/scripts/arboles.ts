@@ -1046,6 +1046,23 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       ],
     });
   }
+  // Secretos de la Torre Blanca (Teclis, Señores del Conocimiento): rituales con Pergaminos del Saber en 5 escuelas
+  {
+    const SWT: [string, string][] = [
+      ['SWT_LOREMASTER', 'Gran Señor del Conocimiento'], ['SWT_BRILLIANCE', 'Genialidad (Luz y Cielos)'], ['SWT_BEING', 'Ser (Vida y Bestias)'],
+      ['SWT_DARKNESS', 'Oscuridad (Muerte y Sombras)'], ['SWT_OBLIVION', 'Olvido (Fuego y Metal)'],
+    ];
+    const cats = SWT.map(([c]) => c);
+    const items = ritualsOf(cats).map((r) => {
+      const lvl = /_(?:rank|wom_cost)_(\d)$/.exec(r.key)?.[1];
+      const base = L(`rituals_display_name_${r.key}`) ?? pretty(String(r.key).replace(/^.*white_tower_/, ''));
+      return ritualItem(r, { tier: cats.indexOf(r.category) + 1, sec: SWT[cats.indexOf(r.category)][1], n: lvl ? `${base} ${ROMAN[Number(lvl)]}` : base });
+    });
+    mech.push({
+      who: (sub, t, scs) => isLord(t) && scs.includes('wh2_main_sc_hef_high_elves'),
+      sets: [{ k: 'mech:white_tower', cat: 'WHITE_TOWER', fac: 'wh2_main_hef_order_of_loremasters', n: 'Secretos de la Torre Blanca', max: 0, secs: SWT.map(([, n]) => n), items }],
+    });
+  }
   // Forja Infernal (Enanos del Caos): rituales que suben el máximo de unidades por tipo
   {
     const HF_ES: Record<string, string> = {
