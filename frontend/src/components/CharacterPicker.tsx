@@ -55,7 +55,7 @@ export function CharacterPicker({ characters, type, value, onChange, campaign }:
   const search = useRef<HTMLInputElement>(null);
 
   const list = useMemo(
-    () => characters.filter((c) => c.type === type && (!campaign || !c.factions || c.factions.includes(campaign) || c.key === value)),
+    () => characters.filter((c) => c.type === type && (!campaign || ((!c.factions || c.factions.includes(campaign)) && !c.notFactions?.includes(campaign)) || c.key === value)),
     [characters, type, campaign, value],
   );
   const current = characters.find((c) => c.key === value);

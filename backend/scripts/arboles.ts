@@ -1554,6 +1554,9 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
   const actionsOfNodes = (ns: Row[]) => [...new Set(ns.flatMap((n) => (lvlEff.get(n.s) ?? []).map((r) => actionOfEffect.get(r.effect_key)).filter(Boolean)))] as string[];
 
   const characters: Row[] = [];
+  // Facciones con un árbol propio para cada personaje (sin contar navíos ni ejércitos)
+  const ownSets = new Map<string, string[]>();
+  for (const s of T['character_skill_node_sets_tables']) if (s.faction_key && !s.for_navy && !s.for_army && fac.has(s.faction_key)) (ownSets.get(s.agent_subtype_key) ?? ownSets.set(s.agent_subtype_key, []).get(s.agent_subtype_key)!).push(s.faction_key);
   for (const s of T['character_skill_node_sets_tables']) {
     if (s.for_navy || s.for_army || !ag.has(s.agent_subtype_key)) continue;
     const a = ag.get(s.agent_subtype_key)!;
@@ -1583,6 +1586,10 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       } else if (so) only = so[1];
       if (only) scs = [...new Set(only.map((f) => fac.get(f)!.subculture as string))].sort();
     }
+    // Árbol propio de una facción (p. ej. los de afinidad de los Altos Elfos): solo en esa facción; en ella sustituye
+    // al árbol genérico del mismo personaje
+    if (s.faction_key && fac.has(s.faction_key) && !only) only = [s.faction_key];
+    const notFactions = !s.faction_key ? (ownSets.get(s.agent_subtype_key) ?? []).filter((f) => f !== null) : [];
     if (!scs.length) continue;
     const outNodes: Row[] = [], bg: Row[] = [], mounts: Record<string, Row> = {};
     for (const it of items.get(s.key) ?? []) {
@@ -1626,7 +1633,7 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       type: s.agent_key === 'general' ? 'lord' : 'hero', agent: s.agent_key, legendary,
       // Género (has_female_name) y grupo de nombres del juego: para nombrar a los genéricos en la crónica
       fem: a.has_female_name || undefined, ng: a.names_group || scNameGroup.get(homeSc(unit, scs) ?? '') || scNameGroup.get(scs[0]) || undefined,
-      subcultures: scs, factions: only ?? undefined, home: homeSc(unit, scs), nodes: outNodes, bg, stats: charStats(unit), mounts: Object.keys(mounts).length ? mounts : null,
+      subcultures: scs, factions: only ?? undefined, nf: notFactions.length ? notFactions : undefined, home: homeSc(unit, scs), nodes: outNodes, bg, stats: charStats(unit), mounts: Object.keys(mounts).length ? mounts : null,
       items: legendary && itemsFor(s.agent_subtype_key).length ? itemsFor(s.agent_subtype_key) : null,
       armory: armoryFor(s.agent_subtype_key),
       bn: (() => {

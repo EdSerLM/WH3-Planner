@@ -57,7 +57,7 @@ interface GameCharacter {
   acts?: string[] | null;
   subcultures: string[]; home: string; nodes: GameNode[];
   /** Solo estas facciones de campaña lo consiguen (héroes legendarios por misión o script) */
-  factions?: string[]; bg: GameNode[]; stats: CharacterStats | null; mounts?: Record<string, CharacterStats>;
+  factions?: string[]; nf?: string[]; bg: GameNode[]; stats: CharacterStats | null; mounts?: Record<string, CharacterStats>;
   items?: { k: string; rank?: number; quest?: boolean }[];
   bn?: { k: string; sk?: string }[];
   /** Dones del Príncipe Demonio (Daniel): piezas por ranura */
@@ -903,7 +903,7 @@ export function listCharacters(faction?: string): CharacterSummary[] {
     .map((c) => {
       const lore = loreOf(c);
       const cu = getUnit(c.unit);
-      return { key: charId(c, f), name: names.get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction: f, art: artOfUnit(c.unit), ...(cu?.upkeep !== undefined ? { upkeep: cu.upkeep, rc: cu.rc } : {}), ...(c.factions ? { factions: c.factions } : {}), ...(c.fem ? { female: true } : {}), ...(c.ng ? { namesGroup: c.ng } : {}), ...(lore ? { lore } : {}) };
+      return { key: charId(c, f), name: names.get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction: f, art: artOfUnit(c.unit), ...(cu?.upkeep !== undefined ? { upkeep: cu.upkeep, rc: cu.rc } : {}), ...(c.factions ? { factions: c.factions } : {}), ...(c.nf ? { notFactions: c.nf } : {}), ...(c.fem ? { female: true } : {}), ...(c.ng ? { namesGroup: c.ng } : {}), ...(lore ? { lore } : {}) };
     })
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
 }

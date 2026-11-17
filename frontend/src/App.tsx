@@ -311,7 +311,7 @@ export default function App() {
   };
   const addHero = () => {
     if (usedSlots >= 20) return;
-    const first = characters.find((c) => c.type === 'hero' && !c.legendary) ?? characters.find((c) => c.type === 'hero' && (!army.campaign || !c.factions || c.factions.includes(army.campaign)));
+    const first = characters.find((c) => c.type === 'hero' && !c.legendary) ?? characters.find((c) => c.type === 'hero' && (!army.campaign || ((!c.factions || c.factions.includes(army.campaign)) && !c.notFactions?.includes(army.campaign))));
     if (!first) return;
     const i = army.heroes.length;
     setHero(i, first.key).then(() => setTab(i));

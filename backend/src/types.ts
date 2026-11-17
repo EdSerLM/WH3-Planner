@@ -288,7 +288,10 @@ export interface CharacterSummary {
   legendary: boolean;
   /** Facción (subcultura) con la que se arma el árbol */
   faction?: string;  /** Solo estas facciones de campaña lo consiguen (héroes legendarios por misión o script) */
-  factions?: string[];  /** Arte de su carta (/units/<art>.png) */
+  factions?: string[];
+  /** Facciones donde lo sustituye un árbol propio de la facción */
+  notFactions?: string[];
+  /** Arte de su carta (/units/<art>.png) */
   art?: string;
   /** Mujer según el juego (has_female_name) y su grupo de nombres */
   female?: boolean; namesGroup?: string;
