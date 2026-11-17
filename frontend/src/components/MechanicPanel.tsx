@@ -65,12 +65,13 @@ const HELP: Record<string, string> = {
   GRUNGNI: 'Espíritu de Grungni: el dirigible de Malakai es su ejército-horda. Cada cadena de edificios se sube de nivel con oro; marca el nivel que tengas construido (no se suman niveles de la misma cadena). Los niveles 3 de Salón de cerveza, Estantes de carga, Tienda de armas y Sala de máquinas también afectan a los ejércitos dentro del radio de apoyo (Sistema de señales: 25 o 50). Los edificios sin efectos solo desbloquean reclutamiento.',
   MALAKAI_ADV: 'Aventuras de Malakai: 7 aventuras con 6 misiones y una batalla legendaria cada una. Las recompensas son mejoras permanentes de unidades para toda la facción de Malakai (cañones, girocópteros, cercenagoblins, girobombarderos, cañones de llamas, cañones órgano, Barcaza del Trueno). Marca las que hayas conseguido.',
   ATHEL_TAMARHA: 'Athel Tamarha (Eltharion): repara las zonas de la fortaleza con Suministros del Guardián (cada mejora de nivel II y III suma +5 a las Bendiciones de Ladrielle). En los calabozos (1, o 2 con la mejora) guardas a los lords capturados: cada prisionero da +5 de liderazgo contra su cultura y −10 de relaciones con ella. Al interrogar a uno, los Caminantes de las Brumas copian una habilidad de su cultura (solo una a la vez).',
+  CAVILL: 'Cavill: Eltharion empieza la campaña con este Señor del Conocimiento de Hoeth, que trae el rasgo único Lobo Blanco. Márcalo si este héroe es Cavill.',
   WHITE_TOWER: 'Secretos de la Torre Blanca (Teclis): rituales que se pagan con Pergaminos del Saber ganados en batalla. Cada escuela tiene mejoras permanentes (rango al reclutar magos, menor coste de vientos), rituales sobre tu ejército o el enemigo (2 turnos) y hechizos de cataclismo temporales. Marca los que tengas activos.',
   PATH_TO_GLORY_BOON: 'Marca los regalos que tienes en tu campaña; cada uno muestra la condición para conseguirlo.',
 };
 const EMOJI: Record<string, string> = {
   DA_PLAN: '📜', FORGE: '⚒️', CLOAK: '💀', GUNNERY: '🔫', KISLEV: '❄️', HELLFORGE: '🔥', HELLFORGE_MANU: '⚒️', GLOTTKIN: '🌿', COOKING: '🍲', PLAGUE: '🧪',
-  DANCE: '💃', PATRONAGE: '🦅', COURT: '🌳', LAIR: '🦇', BREW: '⚗️', MARKS: '💜', ULRIC: '🐺', CHIEF: '🪓', WORKSHOP: '⚙️', FORGE_BUFF: '🔥', ICE_COURT: '❄️', VOWS: '⚜️', SHANTY: '🏴‍☠️', WHITE_TOWER: '📜', ATHEL_TAMARHA: '⛓️', GRUNGNI: '🎈', MALAKAI_ADV: '🗺️',
+  DANCE: '💃', PATRONAGE: '🦅', COURT: '🌳', LAIR: '🦇', BREW: '⚗️', MARKS: '💜', ULRIC: '🐺', CHIEF: '🪓', WORKSHOP: '⚙️', FORGE_BUFF: '🔥', ICE_COURT: '❄️', VOWS: '⚜️', SHANTY: '🏴‍☠️', WHITE_TOWER: '📜', ATHEL_TAMARHA: '⛓️', CAVILL: '🐺', GRUNGNI: '🎈', MALAKAI_ADV: '🗺️',
 };
 
 /** Fila y nivel de una pieza: del dato (group/level) o del nombre ("X · nivel 2: Y", "Coraza del Dragón III") */

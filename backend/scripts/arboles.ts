@@ -1100,6 +1100,17 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     const interro = CULT.map(([c, , u]) => bItem(`${pre(c)}_hef_dungeon_mistwalker_upgrade_${u}`, c, {})).filter(Boolean) as Row[];
     const grom = bItem('wh2_dlc15_hef_dungeon_mistwalker_upgrade_greenskins_grom', 'wh_main_grn_greenskins', { n: 'Pieles Verdes (Grom el Panzudo)' });
     if (grom) interro.push(grom);
+    // Cavill: el Señor del Conocimiento de Hoeth con el que empieza Yvresse (personaje de la posición inicial, no de la
+    // base de datos) trae el rasgo único "Lobo Blanco" (wh2_dlc15_trait_white_wolf)
+    const ww = effRows(traitEff.get('wh2_dlc15_trait_white_wolf') ?? [], 'effect');
+    if (ww.length) mech.push({
+      who: (sub) => sub === 'wh2_main_hef_loremaster_of_hoeth',
+      sets: [{ k: 'mech:cavill', cat: 'CAVILL', fac: FAC, n: 'Cavill', max: 1, items: [strip({
+        k: 'trait:wh2_dlc15_trait_white_wolf', n: L('character_trait_levels_onscreen_name_wh2_dlc15_trait_white_wolf') ?? 'Lobo Blanco',
+        req: `Rasgo único de Cavill${L('character_trait_levels_colour_text_wh2_dlc15_trait_white_wolf') ? ` · ${L('character_trait_levels_colour_text_wh2_dlc15_trait_white_wolf')}` : ''}`,
+        img: 'trait_high_elves', e: ww,
+      })] }],
+    });
     mech.push({
       who: (sub, t, scs) => isLord(t) && scs.includes('wh2_main_sc_hef_high_elves'),
       sets: [
