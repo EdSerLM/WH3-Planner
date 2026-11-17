@@ -1,4 +1,4 @@
-import type { AbilityInfo, TechTreeData, TechTreeSummary, ArmyState, CampaignFaction, CampaignStartRace, GraphData, TechSummaryData, CharacterSummary, CharacterTree, ComputeResult, DpsRow, Meta, AbilityTiming, TimedAbilityInfo, SavedBuild, UnitData } from './types';
+import type { AbilityInfo, TechTreeData, TechTreeSummary, ArmyState, CampaignFaction, CampaignStartRace, LoreInfo, GraphData, TechSummaryData, CharacterSummary, CharacterTree, ComputeResult, DpsRow, Meta, AbilityTiming, TimedAbilityInfo, SavedBuild, UnitData } from './types';
 
 // Web estática (celular, GitHub Pages): no hay servidor, el backend corre en el navegador con los mismos datos
 const STATIC = import.meta.env.VITE_STATIC === '1';
@@ -26,6 +26,7 @@ export const api = {
     req<{ abilities: AbilityInfo[]; attrs: Record<string, string> }>(`/api/unit-abilities?unit=${encodeURIComponent(unit)}&names=${encodeURIComponent(names.join('|'))}`),
   units: (faction?: string) => req<UnitData[]>(`/api/units${faction ? `?faction=${encodeURIComponent(faction)}` : ''}`),
   campaignStart: () => req<CampaignStartRace[]>('/api/campaign-start'),
+  lores: () => req<LoreInfo[]>('/api/lores'),
   campaign: (faction: string) => req<CampaignFaction[]>(`/api/campaign?faction=${encodeURIComponent(faction)}`),
   compute: (army: ArmyState) => req<ComputeResult>('/api/compute', { method: 'POST', body: JSON.stringify(army) }),
   dps: (army: ArmyState, attacker: string, targets: string[], dir: 'front' | 'flank' | 'rear' = 'front', mode: 'melee' | 'ranged' = 'melee', timing: AbilityTiming = 'relaunch') =>

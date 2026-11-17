@@ -330,3 +330,30 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
   .cs-align:first-child { margin: 0 2px; }
   .cs-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
 }
+
+/* ---- Visor de hechizos ---- */
+.spell-viewer { display: grid; grid-template-columns: 260px 1fr; gap: 14px; align-items: start; }
+.sv-list { display: flex; flex-direction: column; gap: 2px; max-height: calc(100vh - 170px); overflow-y: auto; position: sticky; top: 8px; padding-right: 4px; }
+.sv-search { margin-bottom: 6px; }
+.sv-group { margin: 10px 4px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold-dim); border-bottom: 1px solid var(--line); padding-bottom: 3px; }
+.sv-lore { display: flex; align-items: center; gap: 8px; text-align: left; padding: 4px 8px; border: 1px solid transparent; border-left: 3px solid var(--line); background: transparent; }
+.sv-lore span { flex: 1; min-width: 0; }
+.sv-lore.on { background: linear-gradient(90deg, rgba(212, 174, 92, 0.22), transparent); border-color: var(--gold-dim); color: var(--gold-hi); }
+.sv-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sv-head h2 { margin: 0; flex: 1; }
+.sv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 12px; }
+.sv-card { border: 1px solid var(--line); border-radius: 6px; padding: 10px; background: rgba(0, 0, 0, 0.18); }
+.sv-ch { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+.sv-ch div { display: flex; flex-direction: column; }
+.sv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.sv-table th { text-align: left; font-weight: 600; color: var(--gold-dim); padding: 2px 6px; border-bottom: 1px solid var(--line); }
+.sv-table td { padding: 3px 6px; vertical-align: top; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+.sv-table td:first-child { width: 30%; }
+.sv-table ul { margin: 0; padding-left: 14px; }
+.sv-diff { color: var(--gold-hi); font-weight: 600; }
+.sv-gone { text-decoration: line-through; opacity: 0.6; }
+@media (max-width: 800px) {
+  .spell-viewer { grid-template-columns: 1fr; }
+  .sv-list { position: static; max-height: 220px; }
+  .sv-grid { grid-template-columns: 1fr; }
+}

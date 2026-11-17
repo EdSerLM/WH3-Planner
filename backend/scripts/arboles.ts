@@ -109,6 +109,9 @@ export const SKILL_TABLES = [
   'building_levels_tables',
   // Espíritu de Grungni (Malakai): edificios del dirigible (efectos y unidades) y recompensas de las misiones de aventura
   'building_effects_junction_tables', 'building_units_allowed_tables', 'cdir_events_mission_payloads_tables',
+  // Visor de hechizos: saberes (grupos de habilidades) y el daño de proyectiles, explosiones, vórtices y bombardeos
+  'projectiles_tables', 'projectiles_explosions_tables', 'battle_vortexs_tables', 'projectile_bombardments_tables',
+  'special_ability_groups_tables', 'special_ability_groups_to_unit_abilities_junctions_tables',
   'campaign_group_cooking_recipes_tables',
   // Más mecánicas: rituales con paquetes de efectos, Caldero de Grom y plagas de Nurgle
   'ritual_payload_effect_bundles_tables', 'cooking_recipes_tables', 'cooking_ingredients_tables', 'cooking_recipe_required_ingredient_groups_tables',
@@ -284,6 +287,36 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
   const targetFlags: Record<string, string> = {};
   for (const f of T['special_ability_invalid_usage_flags_tables'])
     targetFlags[f.flag_key] = L(`special_ability_invalid_usage_flags_flag_description_${f.flag_key}`) ?? L(`special_ability_invalid_usage_flags_alt_description_${f.flag_key}`) ?? '';
+  // Daño directo de un hechizo o habilidad: proyectil (con su explosión y vórtice), vórtice o bombardeo
+  const projT = by('projectiles_tables', 'key'), explT = by('projectiles_explosions_tables', 'key');
+  const vortT = by('battle_vortexs_tables', 'vortex_key'), bombT = by('projectile_bombardments_tables', 'bombardment_key');
+  const vortexOf = (k: unknown): Row | null => {
+    const v = typeof k === 'string' && k ? vortT.get(k) : undefined;
+    if (!v) return null;
+    return strip({
+      kind: 'vortex', dmg: v.damage, ap: v.damage_ap, dur: r2(v.duration), r: r2(v.goal_radius || v.start_radius), r0: v.start_radius !== v.goal_radius ? r2(v.start_radius) : null,
+      n: v.num_vortexes > 1 ? v.num_vortexes : null, spd: v.movement_speed ? r2(v.movement_speed) : null, mag: v.is_magical || null, fire: v.ignition_amount > 0 || null,
+      allies: v.affects_allies || null, next: vortexOf(v.subsequent_vortex),
+    });
+  };
+  const projOf = (k: unknown): Row | null => {
+    const pr = typeof k === 'string' && k ? projT.get(k) : undefined;
+    if (!pr) return null;
+    const ex = pr.explosion_type ? explT.get(pr.explosion_type) : undefined;
+    return strip({
+      kind: 'projectile', dmg: pr.damage, ap: pr.ap_damage, n: (pr.projectile_number || 1) * (pr.shots_per_volley || 1) * (pr.burst_size || 1) > 1 ? (pr.projectile_number || 1) * (pr.shots_per_volley || 1) * (pr.burst_size || 1) : null,
+      vInf: pr.bonus_v_infantry || null, vLarge: pr.bonus_v_large || null, mag: pr.is_magical || null, fire: pr.ignition_amount > 0 || null,
+      ex: ex && (ex.detonation_damage || ex.detonation_damage_ap) ? strip({ dmg: ex.detonation_damage, ap: ex.detonation_damage_ap, r: r2(ex.detonation_radius) }) : null,
+      vortex: vortexOf(pr.spawned_vortex),
+    });
+  };
+  const spellDamage = (s: Row): Row | null => {
+    const v = vortexOf(s.vortex);
+    if (v) return v;
+    const b = s.bombardment ? bombT.get(s.bombardment) : undefined;
+    if (b) { const pj = projOf(b.projectile_type); return pj ? { ...pj, kind: 'bombardment', n: (b.num_projectiles || 1) * (pj.n ?? 1), spread: r2(b.radius_spread) } : null; }
+    return projOf(s.activated_projectile);
+  };
   const abilities: Record<string, Row> = {};
   const ability = (key: string) => {
     if (abilities[key] || !ua.has(key)) return;
@@ -309,8 +342,12 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
           return { stat: st.stat, how: st.how, v: st.value, d: st.how === 'mult' ? `×${r2(st.value)} ${nm}` : `${st.value > 0 ? '+' : ''}${r2(st.value)} ${nm}` };
         }),
       } : null;
+      // Daño o curación por tiempo: damage_amount es daño por entidad cada hp_change_frequency s; heal_amount es fracción de la vida
+      const freq = p.hp_change_frequency || 1;
       return strip({
         dur: p.duration ?? 0, tf: j.target_friends, te: j.target_enemies, ts: j.target_self, type: p.effect_type,
+        dot: p.damage_amount > 0 ? r2(p.damage_amount / freq) : null, dotMax: p.damage_amount > 0 && p.max_damaged_entities > 0 ? p.max_damaged_entities : null,
+        heal: p.heal_amount > 0 ? r2((p.heal_amount * 100) / freq) : null, res: p.resurrect ? true : null,
         mag: p.imbue_magical ? true : null, fire: p.imbue_ignition ? true : null, imb, stats,
         attr: (phAt.get(j.phase) ?? []).filter((x) => x.attribute_type !== 'negative').map((x) => attrName(x.attribute)),
       });
@@ -322,6 +359,7 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       tf: s.target_friends, te: s.target_enemies, ts: s.affect_self, tg: s.target_ground, hidden: a.is_hidden_in_ui || null,
       passive: !!s.passive, phases,
       inv: invalidTargets.has(key) ? invalidTargets.get(key)!.map((r) => r.invalid_target as string) : null,
+      dmg: spellDamage(s), reach: s.target_intercept_range > 0 ? r2(s.target_intercept_range) : null,
     });
     if (a.overpower_option) ability(a.overpower_option);
   };
@@ -1850,13 +1888,35 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     if (isBanner(a.key)) { bannerDef(a.key); lootBanners.push(row); continue; }
     ancDef(a.key); loot.push(row);
   }
+  // Saberes de magia para el visor de hechizos: grupos de habilidades del juego (special_ability_groups) con hechizos.
+  // Hay grupos por unidad con solo parte del saber (p. ej. el de los Espectros del Árbol); de cada nombre se queda el
+  // grupo con más hechizos.
+  const groupAb = group('special_ability_groups_to_unit_abilities_junctions_tables', 'special_ability_groups');
+  const loreBy = new Map<string, Row>();
+  for (const g of [...T['special_ability_groups_tables']].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))) {
+    if (g.is_naval || /_upgraded$/.test(g.ability_group) || !/lore/.test(g.ability_group)) continue;
+    const name = L(`special_ability_groups_name_${g.ability_group}`);
+    if (!name) continue;
+    const spells = (groupAb.get(g.ability_group) ?? []).map((r) => r.unit_special_abilities as string)
+      .filter((k) => ua.has(k) && (usa.get(k)?.mana_cost ?? 0) > 0 && !/_upgraded$/.test(k) && !ua.get(k)!.is_hidden_in_ui);
+    // Los grupos compuestos son saberes de un personaje concreto; los que juntan decenas de hechizos (Escribas Azules,
+    // Kairos, "Otros hechizos") no son un saber
+    if (!spells.length || (g.is_composite_group && spells.length > 12) || !g.show_lore_icon) continue;
+    const id = name.toLowerCase();
+    const prev = loreBy.get(id);
+    // El saber general gana al de un personaje con el mismo nombre; entre iguales, el de más hechizos
+    if (prev && (prev.main ? g.is_composite_group || prev.spells.length >= spells.length : g.is_composite_group && prev.spells.length >= spells.length)) continue;
+    loreBy.set(id, { k: g.ability_group, n: name, img: iconBase(g.icon_path), c: [g.colour_r, g.colour_g, g.colour_b], main: !g.is_composite_group || undefined, spells });
+  }
+  const lores = [...loreBy.values()].sort((a, b) => a.n.localeCompare(b.n, 'es'));
+  for (const l of lores) for (const k of l.spells) ability(k);
   // Solo las acciones que tiene algún personaje
   const usedActs = new Set(characters.flatMap((c) => (c.acts ?? []) as string[]));
   for (const k of Object.keys(heroActions)) if (!usedActs.has(k)) delete heroActions[k];
   return {
     unitUpgrades, unitAbilities, attrDesc, heroActions,
     source: 'db.pack + local_sp.pack de tu instalación (Total War: WARHAMMER III)', format: 2,
-    subcultures: subs, characters, skills: skillsOut, names: namesOut, abilities, unitLists, locks, techTrees, techs, ancillaries, banners, itemSets, graphs, loot, lootBanners, factionSets,
+    subcultures: subs, characters, skills: skillsOut, names: namesOut, abilities, unitLists, locks, techTrees, techs, ancillaries, banners, itemSets, graphs, loot, lootBanners, factionSets, lores,
     // Solo las restricciones que usan las habilidades extraídas
     targetFlags: Object.fromEntries(Object.entries(targetFlags).filter(([k]) => Object.values(abilities).some((a) => a.inv?.includes(k)))),
   };

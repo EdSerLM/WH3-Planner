@@ -8,7 +8,7 @@ import {
   officialCount, officialCharacterName, translateAbilityStat, translateAttribute, translateEffect,
 } from './i18n.js';
 import type { BannerInfo,
-  AbilityInfo, CharacterStats, ContactEffect, CharacterSummary, ItemInfo, CharacterTree, ExclusiveGroup, ParsedEffect, RawAbility, RawNode, SkillNode, SkillsFile, StatKey, UnitData, UnitsFile,
+  AbilityInfo, LoreInfo, CharacterStats, ContactEffect, CharacterSummary, ItemInfo, CharacterTree, ExclusiveGroup, ParsedEffect, RawAbility, RawNode, SkillNode, SkillsFile, StatKey, UnitData, UnitsFile,
 } from './types.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -86,6 +86,8 @@ interface GameSkillsFile {
   banners?: Record<string, { n: string; d?: string; e: GameEffect[]; ul?: number }>;
   itemSets?: { key: string; n: string; items: string[]; e: GameEffect[] }[];
   graphs?: GameGraph[];
+  /** Saberes de magia (visor de hechizos) */
+  lores?: { k: string; n: string; img?: string; c?: [number, number, number]; main?: boolean; spells: string[] }[];
   targetFlags?: Record<string, string>;
   /** Mejoras de unidad compradas en campaña (aspectos de Dríades y Árboles, mejoras de Ogros, genes de Moulder...) */
   heroActions?: Record<string, { n: string; img?: string; en: string[]; out: { k: string; v: number; d?: string; e: string; s: GameEffect['s'][] }[]; buffs?: { sk: string; lv: number; o: string; v: number }[] }>;
@@ -1331,4 +1333,13 @@ export function isNamedMount(name: string): boolean {
 /** Nombres que el juego da a los personajes de un grupo (nombres de hombre, de mujer y apellidos) */
 export function namesOf(group: string): { m: string[]; f: string[]; sm: string[]; sf: string[] } {
   return (gameFile as unknown as { names?: Record<string, { m: string[]; f: string[]; sm: string[]; sf: string[] }> } | null)?.names?.[group] ?? { m: [], f: [], sm: [], sf: [] };
+}
+
+/** Saberes de magia con cada hechizo normal y su versión sobrecargada (visor de hechizos) */
+export function listLores(): LoreInfo[] {
+  const ab = gameFile?.abilities ?? {};
+  return (gameFile?.lores ?? []).map((l) => ({
+    key: l.k, name: l.n, img: l.img, color: l.c, main: !!l.main,
+    spells: l.spells.filter((k) => ab[k]).map((k) => ({ normal: ab[k], over: ab[k].over ? ab[ab[k].over!] : undefined })),
+  }));
 }

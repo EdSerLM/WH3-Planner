@@ -546,3 +546,71 @@ export interface SavedBuild {
 /** always: activas toda la pelea · once: un solo uso · relaunch: se relanzan al recargarse */
 export type AbilityTiming = 'always' | 'once' | 'relaunch';
 export interface TimedAbilityInfo { name: string; owner: string; icon?: string; mode: string; dur: number; cd: number }
+
+// ---- Visor de hechizos ----
+export interface RawAbilityPhase {
+  dur: number;
+  tf?: boolean; // afecta aliados
+  te?: boolean; // afecta enemigos
+  ts?: boolean; // afecta a sí mismo
+  type?: string;
+  mag?: boolean; // vuelve mágicos los ataques
+  fire?: boolean; // vuelve flamígeros los ataques
+  /** Imbuir: los ataques aplican este efecto de contacto a los enemigos que golpean */
+  imb?: { n: string; dur: number; stats: { stat: string; how: string; v: number; d: string }[] };
+  stats: { stat: string; how: 'add' | 'mult' | string; v: number; d: string }[];
+  attr: string[];
+  /** Daño por segundo a cada entidad (y máximo de entidades) mientras dura la fase */
+  dot?: number; dotMax?: number;
+  /** Curación: % de la vida por segundo; res = revive modelos */
+  heal?: number; res?: boolean;
+}
+
+export interface RawAbility {
+  key: string;
+  name: string;
+  /** Icono del juego (ui/battle ui/ability_icons/<img>.png) */
+  img?: string;
+  spell?: boolean;
+  type?: string;
+  over?: string;
+  active?: number;
+  range?: number;
+  mana?: number;
+  cd?: number;
+  tf?: boolean;
+  te?: boolean;
+  ts?: boolean;
+  tg?: boolean;
+  /** Restricciones de objetivo del juego (special_ability_to_invalid_target_flags): a quién NO afecta */
+  inv?: string[];
+  hidden?: boolean;
+  phases: RawAbilityPhase[];
+  dmg?: SpellDamage | null;
+  /** Alcance para lanzarlo */
+  reach?: number | null;
+}
+
+/** Daño directo de un hechizo: proyectil (con explosión o vórtice), vórtice o bombardeo */
+export interface SpellDamage {
+  kind: 'projectile' | 'vortex' | 'bombardment';
+  /** Daño base y perforante (vórtices: por entidad y tic) */
+  dmg?: number; ap?: number;
+  /** Proyectiles en total (bombardeos: todos los que caen) */
+  n?: number;
+  vInf?: number; vLarge?: number; mag?: boolean; fire?: boolean;
+  /** Explosión al impactar */
+  ex?: { dmg?: number; ap?: number; r?: number };
+  /** Vórtice: duración, radio (r0 = radio inicial si crece), velocidad, si daña aliados y el vórtice que sigue */
+  dur?: number; r?: number; r0?: number; spd?: number; allies?: boolean; next?: SpellDamage;
+  vortex?: SpellDamage;
+  /** Bombardeo: dispersión */
+  spread?: number;
+}
+
+export interface LoreInfo {
+  key: string; name: string; img?: string; color?: [number, number, number];
+  /** Saber general (no el de un personaje concreto) */
+  main: boolean;
+  spells: { normal: RawAbility; over?: RawAbility }[];
+}

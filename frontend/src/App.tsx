@@ -20,6 +20,7 @@ import { TechTree } from './components/TechTree';
 import { PyramidGraph } from './components/PyramidGraph';
 import { TechSummary } from './components/TechSummary';
 import { UnitBuffSummary } from './components/UnitBuffSummary';
+import { SpellViewer } from './components/SpellViewer';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { emptyBuild } from './treeLogic';
 import { campaignForLord, campaignUnits } from './campaign';
@@ -114,7 +115,7 @@ function loadFaction(): string {
 type Tab = 'lord' | 'techs' | number; // número = índice de héroe
 
 const PAGE_KEY = 'wh3-planner:page';
-type Page = 'chars' | 'army' | 'dps';
+type Page = 'chars' | 'army' | 'dps' | 'spells';
 
 export default function App() {
   const [meta, setMeta] = useState<Meta | null>(null);
@@ -137,7 +138,7 @@ export default function App() {
   const [page, setPageState] = useState<Page>(() => {
     try {
       const p = localStorage.getItem(PAGE_KEY);
-      return p === 'army' || p === 'dps' ? p : 'chars';
+      return p === 'army' || p === 'dps' || p === 'spells' ? p : 'chars';
     } catch {
       return 'chars';
     }
@@ -502,7 +503,17 @@ export default function App() {
           <span className="pt-title"><GameIcon path="skills/battle_damage" emoji="📊" size={20} /> DPS</span>
           <span className="pt-sub">tus unidades contra cada objetivo</span>
         </button>
+        <button className={page === 'spells' ? 'active' : ''} onClick={() => setPage('spells')}>
+          <span className="pt-title"><GameIcon path="skills/battle_magic" emoji="📖" size={20} /> Hechizos</span>
+          <span className="pt-sub">cada saber, normal y sobrecargado</span>
+        </button>
       </nav>
+
+      {page === 'spells' && (
+        <ErrorBoundary label="el visor de hechizos" resetKey="spells">
+          <SpellViewer />
+        </ErrorBoundary>
+      )}
 
       {page === 'chars' && (
       <ErrorBoundary label="el personaje" resetKey={`${faction}|${String(tab)}|${leftView}|${currentSel?.character}`}>
