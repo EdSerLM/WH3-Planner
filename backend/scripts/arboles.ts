@@ -1065,6 +1065,50 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       sets: [{ k: 'mech:white_tower', cat: 'WHITE_TOWER', fac: 'wh2_main_hef_order_of_loremasters', n: 'Secretos de la Torre Blanca', max: 0, secs: SWT.map(([, n]) => n), items }],
     });
   }
+  // Athel Tamarha (Eltharion, Yvresse): mejoras de la cárcel con Suministros del Guardián, efectos de los prisioneros
+  // según su cultura y la mejora de los Caminantes de la Niebla al interrogar (wh2_dlc15_eltharion_lair.lua).
+  {
+    const FAC = 'wh2_main_hef_yvresse';
+    const LINES: [RegExp, string][] = [
+      [/_prison_/, 'Cárcel'], [/_interrogation_/, 'Interrogatorio'], [/_influence_/, 'Influencia'], [/_mist_\d/, 'Niebla de Yvresse'],
+      [/_mistwalkers_recruitment_/, 'Reclutamiento de Caminantes'], [/_mistwalkers_upgrades_/, 'Mejoras de Caminantes'],
+      [/_melee_mistwalkers_/, 'Caminantes cuerpo a cuerpo'], [/_ranged_mistwalkers_/, 'Caminantes a distancia'],
+    ];
+    const lineOf = (k: string) => LINES.findIndex(([re]) => re.test(k));
+    const ups = ritualsOf(['ATHEL_TAMARHA_RITUAL']).filter((r) => lineOf(r.key) >= 0).map((r) => {
+      const li = lineOf(r.key), lvl = /_(\d)$/.exec(r.key)?.[1];
+      return ritualItem(r, { tier: li + 1, sec: LINES[li][1], n: `${L(`rituals_display_name_${r.key}`) ?? LINES[li][1]}${lvl ? ` ${ROMAN[Number(lvl)]}` : ''}` });
+    }).sort((a, b) => a.tier - b.tier);
+    // Cultura del prisionero -> paquete mientras está en la cárcel / mejora de los Caminantes al interrogarlo
+    const CULT: [string, string, string][] = [
+      ['wh_dlc03_bst_beastmen', 'beastmen', 'beastmen'], ['wh_main_brt_bretonnia', 'bretonnia', 'bretonnia'], ['wh3_main_cth_cathay', 'cathay', 'cathay'],
+      ['wh_main_chs_chaos', 'chaos_warriors', 'chaos_warriors'], ['wh3_dlc23_chd_chaos_dwarfs', 'chaos_dwarfs', 'chaos_dwarfs'], ['wh2_main_def_dark_elves', 'dark_elves', 'dark_elves'],
+      ['wh3_main_dae_daemons', 'daemons', 'daemons'], ['wh_main_dwf_dwarfs', 'dwarfs', 'dwarfs'], ['wh_main_emp_empire', 'empire', 'empire'],
+      ['wh_main_grn_greenskins', 'greenskins', 'greenskins'], ['wh2_main_hef_high_elves', 'high_elves', 'high_elves'], ['wh3_main_ksl_kislev', 'kislev', 'kislev'],
+      ['wh2_main_lzd_lizardmen', 'lizardmen', 'lizardmen'], ['wh_dlc08_nor_norsca', 'norsca', 'norsca'], ['wh3_main_ogr_ogre_kingdoms', 'ogre_kingdoms', 'ogre_kingdoms'],
+      ['wh2_main_rogue', 'rogue_armies', 'rogue_army'], ['wh2_main_skv_skaven', 'skaven', 'skaven'], ['wh2_dlc09_tmb_tomb_kings', 'tomb_kings', 'tomb_kings'],
+      ['wh3_dlc29_nag_undead_legions', 'undead_legions', 'undead_legions'], ['wh2_dlc11_cst_vampire_coast', 'vampire_coast', 'vampire_coast'],
+      ['wh_main_vmp_vampire_counts', 'vampire_counts', 'vampire_counts'], ['wh_dlc05_wef_wood_elves', 'wood_elves', 'wood_elves'],
+    ];
+    const cultN = (c: string) => (c === 'wh3_main_dae_daemons' ? 'Demonios (y los 4 dioses)' : c === 'wh2_main_rogue' ? 'Ejércitos renegados' : L(`cultures_name_${c}`) ?? pretty(c));
+    const bItem = (b: string, cult: string, extra: Row) => {
+      const e = effRows(bundleEff.get(b) ?? [], 'effect_key');
+      return e.length ? strip({ k: b, n: cultN(cult), req: L(`effect_bundles_localised_title_${b}`) ?? undefined, e, ...extra }) : undefined;
+    };
+    const pre = (c: string) => (c === 'wh3_dlc29_nag_undead_legions' ? 'wh3_dlc29' : 'wh2_dlc15');
+    const prisoners = CULT.map(([c, r]) => bItem(`${pre(c)}_hef_eltharion_dungeon_reward_${r}`, c, {})).filter(Boolean) as Row[];
+    const interro = CULT.map(([c, , u]) => bItem(`${pre(c)}_hef_dungeon_mistwalker_upgrade_${u}`, c, {})).filter(Boolean) as Row[];
+    const grom = bItem('wh2_dlc15_hef_dungeon_mistwalker_upgrade_greenskins_grom', 'wh_main_grn_greenskins', { n: 'Pieles Verdes (Grom el Panzudo)' });
+    if (grom) interro.push(grom);
+    mech.push({
+      who: (sub, t, scs) => isLord(t) && scs.includes('wh2_main_sc_hef_high_elves'),
+      sets: [
+        { k: 'mech:athel_tamarha', cat: 'ATHEL_TAMARHA', fac: FAC, n: 'Athel Tamarha: mejoras', max: 0, secs: LINES.map(([, n]) => n), items: ups },
+        { k: 'mech:athel_prisoners', cat: 'ATHEL_TAMARHA', fac: FAC, n: 'Prisioneros en la cárcel (por cultura)', max: 2, items: prisoners },
+        { k: 'mech:athel_interrogate', cat: 'ATHEL_TAMARHA', fac: FAC, n: 'Interrogar: mejora de los Caminantes de la Niebla', max: 1, items: interro },
+      ],
+    });
+  }
   // Forja Infernal (Enanos del Caos): rituales que suben el máximo de unidades por tipo
   {
     const HF_ES: Record<string, string> = {
