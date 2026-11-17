@@ -800,7 +800,7 @@ function buildGameTree(c: GameCharacter, faction: string): CharacterTree {
 }
 
 /** Facciones con árboles (las 25 del juego si extrajiste tus datos; si no, solo Guerreros del Caos). */
-export function listCharacterFactions(): { key: string; name: string; flag?: string }[] {
+export function listCharacterFactions(): { key: string; name: string; flag?: string; rep?: string; align?: Align }[] {
   if (!gameFile) {
     return skillsFile.characters.length ? [{ key: DEFAULT_FACTION, name: 'Guerreros del Caos' }] : [];
   }
@@ -808,8 +808,45 @@ export function listCharacterFactions(): { key: string; name: string; flag?: str
   const flags = new Map((allUnitsFile?.subcultures ?? []).map((s) => [s.key, s.flag]));
   // Solo las razas jugables en Imperios Inmortales (si la extracción ya las trae)
   const ie = new Set((allUnitsFile as { ieSubcultures?: string[] } | null)?.ieSubcultures ?? []);
+  const camp = new Map((allUnitsFile?.campaign ?? []).map((c) => [c.key, c]));
   return [...gameFile.subcultures].filter((s) => !ie.size || ie.has(s.key))
-    .map((s) => ({ ...s, flag: flags.get(s.key) })).sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    .map((s) => {
+      const rep = camp.get(REPRESENTATIVE[s.key] ?? '') ?? camp.get(flags.get(s.key) ?? '');
+      return { ...s, flag: rep?.key ?? flags.get(s.key), rep: rep?.name, align: alignOf(s.key) };
+    })
+    .sort((a, b) => ALIGNS.indexOf(a.align) - ALIGNS.indexOf(b.align) || a.name.localeCompare(b.name, 'es'));
+}
+
+/**
+ * Facción que representa a cada raza (la del señor con el que salió la raza; la que muestra el juego por defecto).
+ * Las que no están aquí usan la facción que se llama como la subcultura (wh_main_emp_empire = Reikland, etc.).
+ */
+const REPRESENTATIVE: Record<string, string> = {
+  wh2_main_sc_hef_high_elves: 'wh2_main_hef_eataine',
+  wh2_main_sc_def_dark_elves: 'wh2_main_def_naggarond',
+  wh2_main_sc_lzd_lizardmen: 'wh2_main_lzd_hexoatl',
+  wh2_main_sc_skv_skaven: 'wh2_main_skv_clan_mors',
+  wh2_dlc09_sc_tmb_tomb_kings: 'wh2_dlc09_tmb_khemri',
+  wh3_main_sc_cth_cathay: 'wh3_main_cth_the_northern_provinces',
+  wh3_main_sc_ksl_kislev: 'wh3_main_ksl_the_ice_court',
+  wh3_main_sc_nur_nurgle: 'wh3_main_nur_poxmakers_of_nurgle',
+  wh3_main_sc_sla_slaanesh: 'wh3_main_sla_seducers_of_slaanesh',
+  wh3_main_sc_tze_tzeentch: 'wh3_main_tze_oracles_of_tzeentch',
+};
+
+/**
+ * Bando de cada raza. Orden = el contexto de batalla del juego "fighting_culture_forces_of_order" (+ Elfos Silvanos,
+ * que el juego cuenta entre las facciones del orden para diplomacia). Caos = los dioses, Guerreros del Caos, Norsca y
+ * Hombres Bestia ("fighting_culture_beastmen_chaos_daemons_norsca"). Destrucción = el resto (forces_of_destruction y
+ * death_and_destruction del juego: pieles verdes, no muertos, skaven, elfos oscuros, ogros, enanos del caos).
+ */
+export type Align = 'order' | 'chaos' | 'destruction';
+const ALIGNS: Align[] = ['order', 'chaos', 'destruction'];
+function alignOf(sc: string): Align {
+  const code = /_sc_([a-z]+)_/.exec(sc)?.[1] ?? '';
+  if (['emp', 'dwf', 'brt', 'hef', 'lzd', 'ksl', 'cth', 'wef'].includes(code)) return 'order';
+  if (['chs', 'dae', 'kho', 'nur', 'sla', 'tze', 'bst', 'nor'].includes(code)) return 'chaos';
+  return 'destruction';
 }
 
 /**
@@ -1138,7 +1175,7 @@ export function listRoster(faction?: string): UnitData[] {
  * Pantalla de inicio de campaña: cada raza jugable con sus facciones de campaña y los señores que las lideran
  * (nombre y arte de su carta), como la elección de campaña del juego.
  */
-export function campaignStart(): { key: string; name: string; flag?: string; factions: { key: string; name: string; flag: string; leaders: { id: string; name: string; art?: string }[] }[] }[] {
+export function campaignStart(): { key: string; name: string; flag?: string; rep?: string; align?: Align; factions: { key: string; name: string; flag: string; leaders: { id: string; name: string; art?: string }[] }[] }[] {
   return listCharacterFactions().map((sc) => {
     const names = gameFile ? factionNames(sc.key) : new Map<string, string>();
     const factions = (allUnitsFile?.campaign ?? []).filter((c) => c.subculture === sc.key).map((c) => ({

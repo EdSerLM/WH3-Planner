@@ -507,6 +507,10 @@ export interface Meta {
 /** Pantalla de inicio de campaña: raza, sus facciones de campaña y los señores que las lideran */
 export interface CampaignStartRace {
   key: string; name: string; flag?: string;
+  /** Facción que representa a la raza (la de su bandera) */
+  rep?: string;
+  /** Bando: orden, caos o destrucción */
+  align?: 'order' | 'chaos' | 'destruction';
   factions: { key: string; name: string; flag: string; leaders: { id: string; name: string; art?: string }[] }[];
 }
 

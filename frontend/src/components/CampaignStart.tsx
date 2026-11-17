@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
 import { Flag } from '../gameIcons';
 import type { CampaignStartRace } from '../types';
@@ -14,6 +14,8 @@ interface Props {
   onPick: (race: string, campaign: string | undefined, leader?: string) => void;
   onClose: () => void;
 }
+
+const ALIGN_NAME = { order: 'Fuerzas del Orden', chaos: 'Fuerzas del Caos', destruction: 'Fuerzas de la Destrucción' } as const;
 
 let cache: CampaignStartRace[] | null = null;
 const norm = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -56,11 +58,17 @@ export function CampaignStart({ faction, campaign, onPick, onClose }: Props) {
         </div>
         <div className="cs-body">
           <nav className="cs-races" ref={navRef}>
-            {races.map((r) => (
-              <button key={r.key} className={'cs-race' + (r.key === race && !t ? ' on' : '')} onClick={() => { setRace(r.key); setQ(''); }}>
-                <Flag flag={r.flag} size={34} />
-                <span>{r.name}</span>
-              </button>
+            {races.map((r, i) => (
+              <Fragment key={r.key}>
+                {r.align && r.align !== races[i - 1]?.align && <div className={`cs-align cs-align-${r.align}`}>{ALIGN_NAME[r.align]}</div>}
+                <button className={'cs-race' + (r.key === race && !t ? ' on' : '')} onClick={() => { setRace(r.key); setQ(''); }} title={r.rep ? `${r.name} · ${r.rep}` : r.name}>
+                  <Flag flag={r.flag} size={34} />
+                  <span className="cs-race-n">
+                    <span>{r.name}</span>
+                    {r.rep && <small className="muted">{r.rep}</small>}
+                  </span>
+                </button>
+              </Fragment>
             ))}
             {!races.length && <span className="muted small">Cargando…</span>}
           </nav>
