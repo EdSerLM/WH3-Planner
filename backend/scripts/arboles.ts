@@ -107,6 +107,8 @@ export const SKILL_TABLES = [
   'agent_actions_tables', 'action_results_additional_outcomes_tables', 'effect_bonus_value_id_action_results_additional_outcomes_junctions_tables',
   // Guaridas de Vampiros: edificios secundarios que se eligen al despertar a un vampiro
   'building_levels_tables',
+  // Espíritu de Grungni (Malakai): edificios del dirigible (efectos y unidades) y recompensas de las misiones de aventura
+  'building_effects_junction_tables', 'building_units_allowed_tables', 'cdir_events_mission_payloads_tables',
   'campaign_group_cooking_recipes_tables',
   // Más mecánicas: rituales con paquetes de efectos, Caldero de Grom y plagas de Nurgle
   'ritual_payload_effect_bundles_tables', 'cooking_recipes_tables', 'cooking_ingredients_tables', 'cooking_recipe_required_ingredient_groups_tables',
@@ -1359,6 +1361,84 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     if (items.length) mech.push({
       who: (sub, t, scs) => isLord(t) && scs.includes('wh2_dlc11_sc_cst_vampire_coast'),
       sets: [{ k: 'mech:shanty', cat: 'SHANTY', n: 'La Saloma perdida', max: 0, items }],
+    });
+  }
+  // Malakai Makaisson: el Espíritu de Grungni (edificios del dirigible, horda) y las Aventuras de Malakai (7 cadenas de
+  // misiones con mejoras de unidades). Las recompensas que da el script (wh3_dlc25_malakai_battles.lua) están copiadas
+  // aquí; las de las misiones de la base de datos salen de cdir_events_mission_payloads.
+  {
+    const FAC = 'wh3_dlc25_dwf_malakai';
+    const MALAKAI = 'wh3_dlc25_dwf_malakai_makaisson';
+    const beff = group('building_effects_junction_tables', 'building');
+    const bunits = group('building_units_allowed_tables', 'building');
+    const unitN = (u: string) => L(`land_units_onscreen_name_${u}`) ?? pretty(u.replace(/^wh\d?_(main|dlc\d+)_dwf_/, ''));
+    const lv = T['building_levels_tables'].filter((r) => /^wh3_dlc25_dwarf_spirit_of_grungni_/.test(r.level_name) && /spirit_of_grungni/.test(r.chain));
+    const chains = [...new Set(lv.map((r) => r.chain as string))].sort((a, b) => (a.endsWith('main_chain') ? -1 : b.endsWith('main_chain') ? 1 : a.localeCompare(b)));
+    const ship: Row[] = [];
+    const shipSecs: string[] = [];
+    for (const ch of chains) {
+      const levels = lv.filter((r) => r.chain === ch).sort((a, b) => a.level - b.level);
+      const g = L(`building_culture_variants_name_${levels[0].level_name}`) ?? pretty(levels[0].building_instance_key.replace(/^.*grungni_/, ''));
+      for (const r of levels) {
+        const units = [...new Set((bunits.get(r.level_name) ?? []).map((u) => unitN(u.unit)))];
+        ship.push(strip({
+          k: r.level_name, n: `${ROMAN[r.level + 1]}. ${L(`building_culture_variants_name_${r.level_name}`) ?? g}`, tier: shipSecs.length + 1, sec: g,
+          req: [r.create_cost ? `${r.create_cost} de oro` : 'Inicial', units.length ? `Recluta: ${units.join(', ')}` : ''].filter(Boolean).join(' · '),
+          e: effRows(beff.get(r.level_name) ?? [], 'effect'),
+        }));
+      }
+      shipSecs.push(g);
+    }
+    const ADV = ['dragon_hunters', 'dreadquake_destruction', 'spider_swarm', 'undead_empowered', 'malevolent_tree_spirits', 'exalted_bloodthirster', 'warpstone_bomb'];
+    const SCRIPTED: Record<string, Record<number, string>> = {
+      dragon_hunters: { 2: 'wh3_dlc25_reward_dwf_malakai_dragon_hunters_level_1', 3: 'wh3_dlc25_dwf_upgrade_exp_gain_cannons', 5: 'wh3_dlc25_reward_dwf_malakai_dragon_hunters_level_2' },
+      dreadquake_destruction: { 2: 'wh3_dlc25_reward_dwf_malakai_gyrocopters_2', 3: 'wh3_dlc25_dwf_upgrade_exp_gain_gyrocopters', 5: 'wh3_dlc25_reward_dwf_malakai_dreadquake_destruction_level_5' },
+      spider_swarm: { 2: 'wh3_dlc25_reward_dwf_malakai_goblin_hewers_2', 3: 'wh3_dlc25_dwf_upgrade_armour_sundering_goblin_hewer_war', 4: 'wh3_dlc25_reward_dwf_malakai_goblin_hewers_4', 5: 'wh3_dlc25_dwf_upgrade_exp_gain_goblin_hewers' },
+      undead_empowered: { 2: 'wh3_dlc25_reward_dwf_malakai_gyrobombers_2', 3: 'wh3_dlc25_dwf_upgrade_exp_gain_gyrobombers', 5: 'wh3_dlc25_reward_dwf_malakai_gyrobombers_5' },
+      malevolent_tree_spirits: { 2: 'wh3_dlc25_reward_dwf_malakai_flame_cannon_2', 3: 'wh3_dlc25_reward_dwf_malakai_flame_cannon_3', 5: 'wh3_dlc25_reward_dwf_malakai_flame_cannon_5' },
+      exalted_bloodthirster: { 2: 'wh3_dlc25_dwf_upgrade_exp_gain_organ_guns', 5: 'wh3_dlc25_reward_dwf_malakai_organ_guns_5', 6: 'wh3_dlc25_dwf_upgrade_reload_organ_guns' },
+      warpstone_bomb: { 2: 'wh3_dlc25_reward_dwf_malakai_thunderbarge_2', 3: 'wh3_dlc25_dwf_upgrade_missile_resist_thunderbarge_veh', 4: 'wh3_dlc25_reward_dwf_malakai_thunderbarge_4', 6: 'wh3_dlc25_reward_dwf_malakai_thunderbarge_6' },
+    };
+    // Recompensas de la base de datos: misión -> paquetes y objetos (sin repetir la versión _ie de Imperios Inmortales)
+    const dbPay = new Map<string, { b: string[]; a: string[] }>();
+    for (const r of T['cdir_events_mission_payloads_tables']) {
+      const m = /^wh3_dlc25_mis_dwf_malakai_(.+?)(?:_ie)?$/.exec(r.mission_key);
+      if (!m) continue;
+      const x = dbPay.get(m[1]) ?? { b: [], a: [] };
+      const b = /KEY\[([^\]]+)\]/.exec(r.value)?.[1], a = /ANCILLARY_KEY\[([^\]]+)\]/.exec(r.value)?.[1];
+      if (r.payload_key === 'EFFECT_BUNDLE' && b && !x.b.includes(b)) x.b.push(b);
+      if (r.payload_key === 'ADD_ANCILLARY' && a && !x.a.includes(a)) x.a.push(a);
+      dbPay.set(m[1], x);
+    }
+    const ancN = (a: string) => L(`ancillaries_onscreen_name_${a}`) ?? pretty(a.replace(/^.*_anc_/, ''));
+    const secs = ADV.map((a) => L(`missions_localised_title_wh3_dlc25_mis_dwf_malakai_${a}_1`) ?? pretty(a));
+    const adv: Row[] = [];
+    ADV.forEach((a, i) => {
+      const steps: [string, string, string[]][] = [];
+      for (let n = 1; n <= 6; n++) {
+        const bs = [...(dbPay.get(`${a}_${n}`)?.b ?? []), ...(SCRIPTED[a][n] ? [SCRIPTED[a][n]] : [])];
+        for (const b of bs) steps.push([b, `Misión ${n}`, []]);
+      }
+      // Araña: el nivel 2 de la recompensa llega con su propia misión
+      for (const b of dbPay.get(`${a}_level_2`)?.b ?? []) steps.push([b, 'Misión adicional', dbPay.get(`${a}_level_2`)?.a ?? []]);
+      const fin = dbPay.get(`${a}_narrative_battle`);
+      for (const b of fin?.b ?? []) steps.push([b, 'Batalla legendaria (final)', fin?.a ?? []]);
+      for (const [b, req, ancs] of steps) {
+        const e = effRows(bundleEff.get(b) ?? [], 'effect_key');
+        if (!e.length) continue;
+        adv.push(strip({
+          k: `malakai:${b}`, n: L(`effect_bundles_localised_title_${b}`) ?? pretty(b.replace(/^.*malakai_|^.*dwf_upgrade_/, '')), tier: i + 1, sec: secs[i],
+          req: [req, ancs.length ? `también da: ${ancs.map(ancN).join(', ')}` : ''].filter(Boolean).join(' · '), e,
+        }));
+      }
+    });
+    mech.push({
+      who: (sub) => sub === MALAKAI,
+      sets: [{ k: 'mech:spirit_of_grungni', cat: 'GRUNGNI', fac: FAC, n: 'Espíritu de Grungni (dirigible)', max: 0, secs: shipSecs, items: ship }],
+    });
+    if (adv.length) mech.push({
+      who: (sub, t, scs) => isLord(t) && scs.includes('wh_main_sc_dwf_dwarfs'),
+      sets: [{ k: 'mech:malakai_adventures', cat: 'MALAKAI_ADV', fac: FAC, n: 'Aventuras de Malakai', max: 0, secs, items: adv }],
     });
   }
   // Grupo de nombres de cada subcultura (el de su primera facción con grupo) y listas de nombres por grupo y género

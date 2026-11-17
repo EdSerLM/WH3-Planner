@@ -19854,6 +19854,114 @@
           "I64"
         ]
       ]
+    },
+    "building_effects_junction_tables": {
+      "3": [
+        [
+          "building",
+          "StringU8"
+        ],
+        [
+          "effect",
+          "StringU8"
+        ],
+        [
+          "effect_scope",
+          "StringU8"
+        ],
+        [
+          "value",
+          "F32"
+        ],
+        [
+          "value_damaged",
+          "F32"
+        ],
+        [
+          "value_ruined",
+          "F32"
+        ]
+      ],
+      "0": [
+        [
+          "building",
+          "StringU8"
+        ],
+        [
+          "effect",
+          "StringU8"
+        ],
+        [
+          "effect_scope",
+          "StringU8"
+        ],
+        [
+          "value",
+          "F32"
+        ],
+        [
+          "value_damaged",
+          "F32"
+        ],
+        [
+          "value_ruined",
+          "F32"
+        ],
+        [
+          "context_requirement",
+          "StringU8"
+        ]
+      ]
+    },
+    "cdir_events_mission_payloads_tables": {
+      "2": [
+        [
+          "id",
+          "I64"
+        ],
+        [
+          "mission_key",
+          "StringU8"
+        ],
+        [
+          "payload_key",
+          "StringU8"
+        ],
+        [
+          "status_key",
+          "StringU8"
+        ],
+        [
+          "value",
+          "StringU8"
+        ],
+        [
+          "target_key",
+          "StringU8"
+        ]
+      ],
+      "1": [
+        [
+          "id",
+          "I64"
+        ],
+        [
+          "mission_key",
+          "StringU8"
+        ],
+        [
+          "payload_key",
+          "StringU8"
+        ],
+        [
+          "status_key",
+          "StringU8"
+        ],
+        [
+          "value",
+          "StringU8"
+        ]
+      ]
     }
   }
 }

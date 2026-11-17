@@ -62,12 +62,14 @@ const HELP: Record<string, string> = {
   SHANTY: 'La Saloma perdida (Costa del Vampiro): cada verso encontrado da a tus ejércitos una habilidad de ejército; con los 3 versos, la canción completa da liderazgo a todos tus ejércitos.',
   WORKSHOP: 'Taller de Ikit (Clan Skryre): mejoras de las armas que se investigan en el taller. Afectan a todas esas unidades de la facción; marca las que tengas. Bajo el nombre ves el nivel de taller que piden.',
   CHIEF: 'Jefes vasallos de Tamurkhan: cada nivel de lealtad añade un paquete de efectos a la facción, y algunos jefes dan una habilidad a su propio ejército. Marca los niveles que tengas.',
+  GRUNGNI: 'Espíritu de Grungni: el dirigible de Malakai es su ejército-horda. Cada cadena de edificios se sube de nivel con oro; marca el nivel que tengas construido (no se suman niveles de la misma cadena). Los niveles 3 de Salón de cerveza, Estantes de carga, Tienda de armas y Sala de máquinas también afectan a los ejércitos dentro del radio de apoyo (Sistema de señales: 25 o 50). Los edificios sin efectos solo desbloquean reclutamiento.',
+  MALAKAI_ADV: 'Aventuras de Malakai: 7 aventuras con 6 misiones y una batalla legendaria cada una. Las recompensas son mejoras permanentes de unidades para toda la facción de Malakai (cañones, girocópteros, cercenagoblins, girobombarderos, cañones de llamas, cañones órgano, Barcaza del Trueno). Marca las que hayas conseguido.',
   WHITE_TOWER: 'Secretos de la Torre Blanca (Teclis): rituales que se pagan con Pergaminos del Saber ganados en batalla. Cada escuela tiene mejoras permanentes (rango al reclutar magos, menor coste de vientos), rituales sobre tu ejército o el enemigo (2 turnos) y hechizos de cataclismo temporales. Marca los que tengas activos.',
   PATH_TO_GLORY_BOON: 'Marca los regalos que tienes en tu campaña; cada uno muestra la condición para conseguirlo.',
 };
 const EMOJI: Record<string, string> = {
   DA_PLAN: '📜', FORGE: '⚒️', CLOAK: '💀', GUNNERY: '🔫', KISLEV: '❄️', HELLFORGE: '🔥', HELLFORGE_MANU: '⚒️', GLOTTKIN: '🌿', COOKING: '🍲', PLAGUE: '🧪',
-  DANCE: '💃', PATRONAGE: '🦅', COURT: '🌳', LAIR: '🦇', BREW: '⚗️', MARKS: '💜', ULRIC: '🐺', CHIEF: '🪓', WORKSHOP: '⚙️', FORGE_BUFF: '🔥', ICE_COURT: '❄️', VOWS: '⚜️', SHANTY: '🏴‍☠️', WHITE_TOWER: '📜',
+  DANCE: '💃', PATRONAGE: '🦅', COURT: '🌳', LAIR: '🦇', BREW: '⚗️', MARKS: '💜', ULRIC: '🐺', CHIEF: '🪓', WORKSHOP: '⚙️', FORGE_BUFF: '🔥', ICE_COURT: '❄️', VOWS: '⚜️', SHANTY: '🏴‍☠️', WHITE_TOWER: '📜', GRUNGNI: '🎈', MALAKAI_ADV: '🗺️',
 };
 
 /** Fila y nivel de una pieza: del dato (group/level) o del nombre ("X · nivel 2: Y", "Coraza del Dragón III") */
