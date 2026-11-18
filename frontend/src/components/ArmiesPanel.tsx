@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CharacterSummary, UnitData } from '../types';
 import { GameIcon } from '../gameIcons';
+import { armiesLink } from '../share';
 
 /**
  * Varios ejércitos de la misma facción: se guardan con nombre, se cargan para editarlos y se suma su mantenimiento.
@@ -165,6 +166,19 @@ export function ArmiesPanel({ faction, army, characters, units, onLoad, factions
     setSaved([...saved, { id, name: n, army: JSON.parse(JSON.stringify(army)) }]);
     setActive(id); setName('');
   };
+  const [shareMsg, setShareMsg] = useState('');
+  const shareAll = async () => {
+    const flash = (m: string) => { setShareMsg(m); setTimeout(() => setShareMsg(''), 2500); };
+    try {
+      const url = await armiesLink({ faction, list: saved.map((s) => ({ name: s.name, army: s.army as never })) });
+      if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+        await navigator.share({ title: `${saved.length} ejércitos`, url }).catch(() => undefined);
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      flash('✓ Enlace copiado');
+    } catch { flash('No se pudo copiar'); }
+  };
   const update = (id: string) => setSaved(saved.map((s) => (s.id === id ? { ...s, army: JSON.parse(JSON.stringify(army)) } : s)));
   const rename = (id: string, n: string) => setSaved(saved.map((s) => (s.id === id ? { ...s, name: n } : s)));
 
@@ -221,6 +235,7 @@ export function ArmiesPanel({ faction, army, characters, units, onLoad, factions
       <div className="ap-tools small">
         <input value={name} placeholder={`Nombre (p. ej. ${lordName(army)})`} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') save(); }} />
         <button onClick={save}>Guardar el ejército actual</button>
+        {saved.length > 0 && <button className="ghost" title="Copiar un enlace con todos tus ejércitos guardados de esta facción" onClick={shareAll}>{shareMsg || `🔗 Compartir todos (${saved.length})`}</button>}
         <span className="muted">Actual: {cur.n} unidades · reclutar {fmt(cur.rc)} · mantenimiento {fmt(cur.upkeep)}</span>
         <label className="ap-diff">Dificultad
           <select value={diff} onChange={(e) => setDiff(e.target.value)}>

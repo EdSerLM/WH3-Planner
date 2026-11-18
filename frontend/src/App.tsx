@@ -21,6 +21,7 @@ import { PyramidGraph } from './components/PyramidGraph';
 import { TechSummary } from './components/TechSummary';
 import { UnitBuffSummary } from './components/UnitBuffSummary';
 import { armyLink, clearArmyLink, readArmyLink } from './share';
+import type { SharedList } from './share';
 import { SpellViewer } from './components/SpellViewer';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { emptyBuild } from './treeLogic';
@@ -219,16 +220,36 @@ export default function App() {
     }
   }
   useEffect(() => {
-    readArmyLink().then((s) => {
+    const onHash = () => readArmyLink().then((s) => {
       if (!s) return;
       clearArmyLink();
+      if ('list' in s) { importArmies(s); return; }
       changeFaction(s.faction, cleanArmy({ ...EMPTY, ...s.army, faction: s.faction }));
       setCurrentId(undefined);
       setBuildName(s.name ?? '');
       setPage('army');
     }).catch(() => { clearArmyLink(); setError('El enlace del ejército está dañado o incompleto.'); });
+    onHash();
+    // Si se pega un enlace en la misma pestaña solo cambia el #, sin recargar la página
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Varios ejércitos por enlace: se agregan a «Mis ejércitos» de esa facción (sin repetir los que ya están)
+  const [armiesStamp, setArmiesStamp] = useState(0);
+  function importArmies(s: SharedList) {
+    const k = `wh3-planner:armies:${s.faction}`;
+    let cur: { id: string; name: string; army: unknown }[] = [];
+    try { const v = JSON.parse(localStorage.getItem(k) ?? '[]'); if (Array.isArray(v)) cur = v; } catch { /* vacío */ }
+    const seen = new Set(cur.map((x) => JSON.stringify(x.army)));
+    const add = s.list.filter((x) => !seen.has(JSON.stringify(x.army))).map((x, i) => ({ id: `link:${Date.now()}:${i}`, name: x.name, army: x.army }));
+    try { localStorage.setItem(k, JSON.stringify([...cur, ...add])); } catch { /* sin almacenamiento */ }
+    if (s.faction !== faction) changeFaction(s.faction);
+    setArmiesStamp((n) => n + 1);
+    setPage('army');
+    flash(add.length ? `✓ ${add.length} ejércitos agregados` : 'Ya tenías esos ejércitos');
+  }
 
   function changeFaction(f: string, next?: ArmyState) {
     setFaction(f);
@@ -692,7 +713,7 @@ export default function App() {
       {page === 'army' && (
       <section className="bottom setup-page">
         <ErrorBoundary label="tus ejércitos" resetKey={faction}>
-          <ArmiesPanel faction={faction} army={army} characters={characters} units={units}
+          <ArmiesPanel key={armiesStamp} faction={faction} army={army} characters={characters} units={units}
             onLoad={(a) => setArmy({ ...(a as ArmyState), faction })} factions={factions} onFaction={(f) => changeFaction(f)} />
         </ErrorBoundary>
         <ErrorBoundary label="el roster" resetKey={faction}>
