@@ -16,7 +16,9 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   const url = new URL(req.url);
-  const isPage = req.mode === 'navigate' || /\/(index\.html)?$/.test(url.pathname) || /\.(js|css|webmanifest)$/.test(url.pathname) || url.pathname.endsWith('/data/version.txt');
+  const isPage = req.mode === 'navigate' || /\/(index\.html)?$/.test(url.pathname) || /\.(js|css|webmanifest)$/.test(url.pathname) || url.pathname.endsWith('/data/version.txt')
+    // Partidas: cambian al subir campañas nuevas y van cifradas juntas (índice + archivos): siempre primero la red
+    || url.pathname.includes('/partidas/');
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);
     if (isPage) {
