@@ -20,6 +20,7 @@ import { TechTree } from './components/TechTree';
 import { PyramidGraph } from './components/PyramidGraph';
 import { TechSummary } from './components/TechSummary';
 import { UnitBuffSummary } from './components/UnitBuffSummary';
+import { armyLink, clearArmyLink, readArmyLink } from './share';
 import { SpellViewer } from './components/SpellViewer';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { emptyBuild } from './treeLogic';
@@ -200,6 +201,34 @@ export default function App() {
       })
       .catch((e) => setError(e.message));
   }, [faction]);
+
+  // Compartir por enlace: copia la URL con el ejército; al abrir un enlace así, se carga ese ejército
+  const [shareMsg, setShareMsg] = useState('');
+  const flash = (m: string) => { setShareMsg(m); setTimeout(() => setShareMsg(''), 2500); };
+  async function shareArmy() {
+    try {
+      const url = await armyLink({ faction, name: buildName.trim(), army });
+      if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+        await navigator.share({ title: buildName.trim() || 'Ejército', url }).catch(() => undefined);
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      flash('✓ Enlace copiado');
+    } catch {
+      flash('No se pudo copiar');
+    }
+  }
+  useEffect(() => {
+    readArmyLink().then((s) => {
+      if (!s) return;
+      clearArmyLink();
+      changeFaction(s.faction, cleanArmy({ ...EMPTY, ...s.army, faction: s.faction }));
+      setCurrentId(undefined);
+      setBuildName(s.name ?? '');
+      setPage('army');
+    }).catch(() => { clearArmyLink(); setError('El enlace del ejército está dañado o incompleto.'); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function changeFaction(f: string, next?: ArmyState) {
     setFaction(f);
@@ -450,6 +479,7 @@ export default function App() {
         <div className="saves">
           <input placeholder="Nombre del ejército" value={buildName} onChange={(e) => setBuildName(e.target.value)} />
           <button onClick={save}>{currentId ? 'Guardar cambios' : 'Guardar'}</button>
+          <button className="ghost" title="Copiar un enlace con este ejército para mandarlo" onClick={shareArmy}>{shareMsg || '🔗 Compartir'}</button>
           <button
             className="ghost"
             onClick={() => {
