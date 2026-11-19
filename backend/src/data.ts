@@ -1165,6 +1165,8 @@ export function listTargets(subculture: string): UnitData[] {
 /** Roster para armar el ejército: todas las unidades que la facción tiene en el juego (sin señores ni héroes). */
 export function listRoster(faction?: string): UnitData[] {
   if (!allUnitsFile) return listUnits();
+  // "all": todas las unidades del juego (comparador)
+  if (faction === 'all') return [...allByKey.values()].filter((u) => u.caste !== 'lord' && u.caste !== 'hero');
   return listTargets(faction || DEFAULT_FACTION).filter((u) => u.caste !== 'lord' && u.caste !== 'hero');
 }
 

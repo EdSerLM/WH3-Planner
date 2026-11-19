@@ -23,6 +23,7 @@ import { UnitBuffSummary } from './components/UnitBuffSummary';
 import { armyLink, clearArmyLink, readArmyLink } from './share';
 import type { SharedList } from './share';
 import { SpellViewer } from './components/SpellViewer';
+import { UnitCompare } from './components/UnitCompare';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { emptyBuild } from './treeLogic';
 import { campaignForLord, campaignUnits } from './campaign';
@@ -117,7 +118,8 @@ function loadFaction(): string {
 type Tab = 'lord' | 'techs' | number; // número = índice de héroe
 
 const PAGE_KEY = 'wh3-planner:page';
-type Page = 'chars' | 'army' | 'dps' | 'spells';
+type Page = 'chars' | 'techs' | 'mechs' | 'army' | 'dps' | 'compare' | 'spells';
+const PAGES: Page[] = ['chars', 'techs', 'mechs', 'army', 'dps', 'compare', 'spells'];
 
 export default function App() {
   const [meta, setMeta] = useState<Meta | null>(null);
@@ -140,7 +142,7 @@ export default function App() {
   const [page, setPageState] = useState<Page>(() => {
     try {
       const p = localStorage.getItem(PAGE_KEY);
-      return p === 'army' || p === 'dps' || p === 'spells' ? p : 'chars';
+      return PAGES.includes(p as Page) ? (p as Page) : 'chars';
     } catch {
       return 'chars';
     }
@@ -435,6 +437,22 @@ export default function App() {
   const sideKind = tab === 'lord' || tab === 'techs' ? 'lord' : 'hero';
   const sideCard = sideSel ? cards.find((c) => c.id === sideSel.character && c.kind === sideKind) : undefined;
   const labels = meta?.statLabels ?? ({} as Meta['statLabels']);
+  // Mecánicas de facción: personajes del ejército (señor y héroes) que tienen alguna en esta campaña
+  const mechChars = [army.lord ? { tab: 'lord' as Tab, sel: army.lord } : null, ...army.heroes.map((h, i) => ({ tab: i as Tab, sel: h }))]
+    .filter((x): x is { tab: Tab; sel: BuildSelection } => !!x)
+    .map((x) => ({ ...x, tree: trees[x.sel.character], name: characters.find((c) => c.key === x.sel.character)?.name ?? '' }))
+    .map((x) => ({ ...x, sets: visibleSets(x.tree?.initiativeSets, army.campaign) }))
+    .filter((x) => x.sets.length > 0);
+  const mechTab: Tab = mechChars.some((m) => m.tab === tab) ? tab : mechChars[0]?.tab ?? 'lord';
+  const mechSel = mechTab === 'lord' ? army.lord : typeof mechTab === 'number' ? army.heroes[mechTab] ?? null : null;
+  const mechTree = mechSel ? trees[mechSel.character] : undefined;
+  const mechCard = mechSel ? cards.find((c) => c.id === mechSel.character && c.kind === (mechTab === 'lord' ? 'lord' : 'hero')) : undefined;
+  // En la página de mecánicas, el personaje que se edita es el de su pestaña
+  useEffect(() => {
+    if (page === 'mechs' && mechChars.length && mechTab !== tab) setTab(mechTab);
+    if (page === 'chars' && tab === 'techs') setTab('lord');
+    if (leftView === 'initiatives') setLeftView('tree');
+  }, [page, mechTab, tab, mechChars.length, leftView]);
   const legendaryKeys = useMemo(() => characters.filter((c) => c.legendary).map((c) => c.key), [characters]);
   // Nombres del juego por grupo (para nombrar a los genéricos en la crónica): se cargan los que hacen falta
   const [nameLists, setNameLists] = useState<Record<string, { m: string[]; f: string[]; sm: string[]; sf: string[] }>>({});
@@ -539,12 +557,19 @@ export default function App() {
 
       <nav className="page-tabs">
         <button className={page === 'chars' ? 'active' : ''} onClick={() => setPage('chars')}>
-          <span className="pt-title"><GameIcon path="unitcat/commander" emoji="👑" size={20} /> Señor, héroes y tecnologías</span>
+          <span className="pt-title"><GameIcon path="unitcat/commander" emoji="👑" size={20} /> Señor y héroes</span>
           <span className="pt-sub">
             {army.lord ? characters.find((c) => c.key === army.lord!.character)?.name ?? 'Señor' : 'sin señor'}
             {army.heroes.length ? ` · ${army.heroes.length} héroe${army.heroes.length === 1 ? '' : 's'}` : ''}
-            {army.techs?.length ? ` · ${army.techs.length} tecnologías` : ''}
           </span>
+        </button>
+        <button className={page === 'techs' ? 'active' : ''} onClick={() => setPage('techs')}>
+          <span className="pt-title"><GameIcon path="skills/campaign_technology" emoji="🔬" size={20} /> Tecnologías</span>
+          <span className="pt-sub">{army.techs?.length ? `${army.techs.length} investigadas` : 'ninguna investigada'}</span>
+        </button>
+        <button className={page === 'mechs' ? 'active' : ''} onClick={() => setPage('mechs')}>
+          <span className="pt-title"><GameIcon path="skills/campaign_devotion" emoji="🌟" size={20} /> Mecánicas de facción</span>
+          <span className="pt-sub">{mechChars.length ? mechTabLabel(mechChars.flatMap((m) => m.sets), army.campaign) : 'tu señor no tiene'}</span>
         </button>
         <button className={page === 'army' ? 'active' : ''} onClick={() => setPage('army')}>
           <span className="pt-title"><GameIcon path="skills/campaign_army" emoji="⚔️" size={20} /> Ejército y tarjetas</span>
@@ -553,6 +578,10 @@ export default function App() {
         <button className={page === 'dps' ? 'active' : ''} onClick={() => setPage('dps')}>
           <span className="pt-title"><GameIcon path="skills/battle_damage" emoji="📊" size={20} /> DPS</span>
           <span className="pt-sub">tus unidades contra cada objetivo</span>
+        </button>
+        <button className={page === 'compare' ? 'active' : ''} onClick={() => setPage('compare')}>
+          <span className="pt-title"><GameIcon path="skills/character_attack" emoji="⚖️" size={20} /> Comparar</span>
+          <span className="pt-sub">unidades lado a lado</span>
         </button>
         <button className={page === 'spells' ? 'active' : ''} onClick={() => setPage('spells')}>
           <span className="pt-title"><GameIcon path="skills/battle_magic" emoji="📖" size={20} /> Hechizos</span>
@@ -564,6 +593,78 @@ export default function App() {
         <ErrorBoundary label="el visor de hechizos" resetKey="spells">
           <SpellViewer />
         </ErrorBoundary>
+      )}
+
+      {page === 'compare' && (
+        <ErrorBoundary label="el comparador" resetKey="compare">
+          <UnitCompare army={army} cards={cards} />
+        </ErrorBoundary>
+      )}
+
+      {page === 'techs' && (
+      <ErrorBoundary label="las tecnologías" resetKey={`${faction}|techs`}>
+      <main>
+        <section className="left">
+          <TechTree
+            faction={faction}
+            treeKey={army.techTree}
+            variant={army.techVariant}
+            researched={army.techs ?? []}
+            onChange={(p) => setArmy((a) => ({ ...a, ...p }))}
+            units={units}
+            characters={characters}
+            campaign={campaigns.find((c) => c.key === army.campaign)}
+            labels={labels}
+            armyChars={[...(army.lord ? [`lord:${army.lord.character}`] : []), ...army.heroes.map((h) => `hero:${h.character}`)]}
+          />
+          {/* Pirámide Negra (Legiones No Muertas) y otros grafos del juego: se investigan como tecnologías */}
+          <PyramidGraph faction={faction} researched={army.techs ?? []} onChange={(p) => setArmy((a) => ({ ...a, ...p }))} units={rosterUnits} characters={characters} labels={labels}
+            armyChars={[...(army.lord ? [`lord:${army.lord.character}`] : []), ...army.heroes.map((h) => `hero:${h.character}`)]} />
+        </section>
+        <aside className="right">
+          <TechSummary researched={army.techs ?? []} />
+        </aside>
+      </main>
+      </ErrorBoundary>
+      )}
+
+      {page === 'mechs' && (
+      <ErrorBoundary label="las mecánicas" resetKey={`${faction}|mechs|${String(tab)}`}>
+      <main>
+        <section className="left">
+          {mechChars.length ? (
+            <>
+              <nav className="tabs">
+                {mechChars.map((m) => (
+                  <button key={String(m.tab)} className={mechTab === m.tab ? 'active' : ''} onClick={() => setTab(m.tab)}>
+                    {m.tab === 'lord' ? 'Señor' : 'Héroe'}: {m.name} · {mechTabLabel(m.sets, army.campaign)}
+                  </button>
+                ))}
+              </nav>
+              {mechSel && mechTree && (
+                <InitiativesPanel
+                  tree={mechTree} selection={mechSel} onChange={updateSelection} campaign={army.campaign}
+                  army={mechTab === 'lord' ? {
+                    units: army.units, roster: rosterUnits, used: usedSlots,
+                    charUnits: [army.lord, ...army.heroes].map((b) => (b ? trees[b.character]?.unit : undefined)).filter((u): u is string => !!u),
+                    onUnits: (u) => setArmy((a) => ({ ...a, units: u })),
+                  } : undefined}
+                />
+              )}
+            </>
+          ) : (
+            <p className="muted">
+              {army.lord ? 'Ni tu señor ni tus héroes tienen mecánicas de facción en esta campaña.' : 'Elige un señor en «Señor y héroes» para ver las mecánicas de su facción.'}
+            </p>
+          )}
+        </section>
+        <aside className="right">
+          <div className="char-card-box">
+            {mechCard ? <UnitCard card={mechCard} labels={labels} selfAbilities={selfAbilities(mechCard)} onToggleAbility={toggleAbility} /> : <p className="muted small">La tarjeta del personaje aparece aquí.</p>}
+          </div>
+        </aside>
+      </main>
+      </ErrorBoundary>
       )}
 
       {page === 'chars' && (
@@ -580,30 +681,9 @@ export default function App() {
               </button>
             ))}
             <button className="ghost" onClick={addHero} disabled={usedSlots >= 20}>+ Héroe</button>
-            <button className={tab === 'techs' ? 'active' : ''} onClick={() => setTab('techs')} title="Tecnologías investigadas: sus bufos se suman a las tarjetas">
-              Tecnologías{army.techs?.length ? ` (${army.techs.length})` : ''}
-            </button>
           </nav>
 
-          {tab === 'techs' ? (
-            <>
-              <TechTree
-                faction={faction}
-                treeKey={army.techTree}
-                variant={army.techVariant}
-                researched={army.techs ?? []}
-                onChange={(p) => setArmy((a) => ({ ...a, ...p }))}
-                units={units}
-                characters={characters}
-                campaign={campaigns.find((c) => c.key === army.campaign)}
-                labels={labels}
-                armyChars={[...(army.lord ? [`lord:${army.lord.character}`] : []), ...army.heroes.map((h) => `hero:${h.character}`)]}
-              />
-              {/* Pirámide Negra (Legiones No Muertas) y otros grafos del juego: se investigan como tecnologías */}
-              <PyramidGraph faction={faction} researched={army.techs ?? []} onChange={(p) => setArmy((a) => ({ ...a, ...p }))} units={rosterUnits} characters={characters} labels={labels}
-                armyChars={[...(army.lord ? [`lord:${army.lord.character}`] : []), ...army.heroes.map((h) => `hero:${h.character}`)]} />
-            </>
-          ) : (
+          {tab === 'techs' ? null : (
           <>
           <div className="char-bar">
             {tab === 'lord' ? (
@@ -636,23 +716,14 @@ export default function App() {
                   </button>
                 ) : null}
                 {visibleSets(currentTree.initiativeSets, army.campaign).length ? (
-                  <button className={leftView === 'initiatives' ? 'active' : ''} onClick={() => setLeftView('initiatives')} title="Regalos del Caos, devociones y otras mecánicas del personaje">
-                    {mechTabLabel(currentTree.initiativeSets ?? [], army.campaign)}
+                  <button className="ghost" onClick={() => setPage('mechs')} title="Las mecánicas de facción tienen su propia pestaña arriba">
+                    {mechTabLabel(currentTree.initiativeSets ?? [], army.campaign)} →
                   </button>
                 ) : null}
                 <button className={leftView === 'summary' ? 'active' : ''} onClick={() => setLeftView('summary')}>Efectos acumulados</button>
               </nav>
               {leftView === 'gifts' && currentTree.armory ? (
                 <ArmoryPanel tree={currentTree} selection={currentSel} onChange={updateSelection} />
-              ) : leftView === 'initiatives' && visibleSets(currentTree.initiativeSets, army.campaign).length ? (
-                <InitiativesPanel
-                  tree={currentTree} selection={currentSel} onChange={updateSelection} campaign={army.campaign}
-                  army={tab === 'lord' ? {
-                    units: army.units, roster: rosterUnits, used: usedSlots,
-                    charUnits: [army.lord, ...army.heroes].map((b) => (b ? trees[b.character]?.unit : undefined)).filter((u): u is string => !!u),
-                    onUnits: (u) => setArmy((a) => ({ ...a, units: u })),
-                  } : undefined}
-                />
               ) : leftView === 'spells' && currentTree.spellSlots?.length ? (
                 <SpellSlotsPanel tree={currentTree} selection={currentSel} onChange={updateSelection} />
               ) : leftView !== 'summary' ? (
@@ -683,10 +754,7 @@ export default function App() {
         </section>
 
         <aside className="right">
-          {tab === 'techs' ? (
-            // En Tecnologías: lo que suman las tecnologías / nodos investigados
-            <TechSummary researched={army.techs ?? []} />
-          ) : (
+          {(
             <>
               <div className="char-card-box">
                 {sideCard ? (

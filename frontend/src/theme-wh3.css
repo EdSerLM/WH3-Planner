@@ -357,3 +357,37 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
   .sv-list { position: static; max-height: 220px; }
   .sv-grid { grid-template-columns: 1fr; }
 }
+
+/* ---- Comparador de unidades ---- */
+.compare-page { display: flex; flex-direction: column; gap: 12px; }
+.cmp-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cmp-src { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: rgba(0, 0, 0, 0.18); }
+.cmp-chips, .cmp-results { display: flex; flex-wrap: wrap; gap: 4px; }
+.cmp-results { max-height: 180px; overflow-y: auto; }
+.cmp-chip { font-size: 12px; padding: 3px 8px; border-radius: 12px; border: 1px solid var(--line); background: transparent; }
+.cmp-chip.on { border-color: var(--gold-dim); color: var(--gold-hi); background: rgba(212, 174, 92, 0.18); }
+.cmp-opts { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.cmp-wrap { overflow-x: auto; }
+.cmp-table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+.cmp-table th, .cmp-table td { padding: 4px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); text-align: center; vertical-align: top; }
+.cmp-table td:first-child, .cmp-table th:first-child { text-align: left; position: sticky; left: 0; background: var(--bg, #15121a); }
+.cmp-head { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 120px; }
+.cmp-head img { width: 54px; height: 76px; object-fit: cover; border-radius: 3px; }
+.cmp-group td { color: var(--gold-dim); font-weight: 600; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; text-align: left; padding-top: 10px; }
+.cmp-best { color: var(--gold-hi); font-weight: 700; }
+.cmp-worst { opacity: 0.55; }
+.cmp-table small.up { color: #8fc47a; }
+.cmp-table small.down { color: #d9675a; }
+@media (max-width: 800px) { .cmp-pick { grid-template-columns: 1fr; } }
+
+/* 7 pestañas: en pantallas medianas se encogen; en el celular, tira deslizable con solo el título */
+.page-tabs .pt-title { white-space: nowrap; }
+@media (max-width: 1250px) {
+  .page-tabs button { padding: 6px 10px; font-size: 13px; }
+  .page-tabs .pt-sub { display: none; }
+}
+@media (max-width: 800px) {
+  .page-tabs { overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap; }
+  .page-tabs::-webkit-scrollbar { display: none; }
+  .page-tabs button { flex: 0 0 auto; }
+}
