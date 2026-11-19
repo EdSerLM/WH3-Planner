@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import { fmtStat } from '../statFormat';
+import { StatImg } from '../gameIcons';
 import type { ArmyState, ComputedCard, StatKey, UnitData } from '../types';
 
 /**
@@ -12,37 +13,37 @@ type Pick = { src: 'army'; id: string } | { src: 'any'; card: string };
 const KEY = 'wh3-planner:compare';
 const pickId = (p: Pick) => (p.src === 'army' ? `army:${p.id}` : `any:${p.card}`);
 
-interface Row { label: string; get: (c: ComputedCard) => number | undefined; fmt?: (v: number) => string; better?: 'high' | 'low'; stat?: StatKey }
+interface Row { label: string; get: (c: ComputedCard) => number | undefined; fmt?: (v: number) => string; better?: 'high' | 'low'; stat?: StatKey; icon?: string; emoji?: string }
 const st = (k: StatKey) => (c: ComputedCard) => c.stats[k]?.final;
-const ROWS: { group: string; rows: Row[] }[] = [
-  { group: 'General', rows: [
-    { label: 'Coste', get: (c) => c.cost, better: 'low' },
-    { label: 'Modelos', get: (c) => c.models },
+const ROWS: { group: string; icon: string; rows: Row[] }[] = [
+  { group: 'General', icon: '📋', rows: [
+    { label: 'Coste', get: (c) => c.cost, better: 'low', emoji: '💰' },
+    { label: 'Modelos', get: (c) => c.models, emoji: '👥' },
     { label: 'Vida por modelo', get: st('hp'), stat: 'hp', better: 'high' },
-    { label: 'Vida total', get: (c) => (c.stats.hp ? c.stats.hp.final * c.models : undefined), better: 'high' },
+    { label: 'Vida total', get: (c) => (c.stats.hp ? c.stats.hp.final * c.models : undefined), better: 'high', icon: 'hp' },
     { label: 'Armadura', get: st('armour'), stat: 'armour', better: 'high' },
     { label: 'Liderazgo', get: st('ld'), stat: 'ld', better: 'high' },
     { label: 'Velocidad', get: st('speed'), stat: 'speed', better: 'high' },
   ] },
-  { group: 'Cuerpo a cuerpo', rows: [
+  { group: 'Cuerpo a cuerpo', icon: '⚔️', rows: [
     { label: 'Ataque c. a c.', get: st('ma'), stat: 'ma', better: 'high' },
     { label: 'Defensa c. a c.', get: st('md'), stat: 'md', better: 'high' },
     { label: 'Bonif. de carga', get: st('charge'), stat: 'charge', better: 'high' },
     { label: 'Daño base', get: st('dmg'), stat: 'dmg', better: 'high' },
     { label: 'Daño perforante', get: st('ap'), stat: 'ap', better: 'high' },
-    { label: 'Daño por golpe (base + perf.)', get: (c) => (c.stats.dmg?.final ?? 0) + (c.stats.ap?.final ?? 0), better: 'high' },
+    { label: 'Daño por golpe (base + perf.)', get: (c) => (c.stats.dmg?.final ?? 0) + (c.stats.ap?.final ?? 0), better: 'high', icon: 'dmg' },
     { label: 'Bonif. contra grandes', get: st('bvl'), stat: 'bvl', better: 'high' },
     { label: 'Bonif. contra infantería', get: st('bvi'), stat: 'bvi', better: 'high' },
-    { label: 'Intervalo de ataque (s)', get: (c) => c.interval || undefined, better: 'low', fmt: (v) => v.toLocaleString('es-MX', { maximumFractionDigits: 2 }) },
+    { label: 'Intervalo de ataque (s)', get: (c) => c.interval || undefined, better: 'low', emoji: '⏱️', fmt: (v) => v.toLocaleString('es-MX', { maximumFractionDigits: 2 }) },
   ] },
-  { group: 'Distancia', rows: [
+  { group: 'Distancia', icon: '🏹', rows: [
     { label: 'Daño de proyectil', get: st('missileDmg'), stat: 'missileDmg', better: 'high' },
-    { label: 'Perforante del proyectil', get: (c) => c.missile?.ap, better: 'high' },
+    { label: 'Perforante del proyectil', get: (c) => c.missile?.ap, better: 'high', icon: 'ap' },
     { label: 'Alcance', get: st('range'), stat: 'range', better: 'high' },
     { label: 'Munición', get: st('ammo'), stat: 'ammo', better: 'high' },
     { label: 'Recarga (s)', get: st('reload'), stat: 'reload', better: 'low', fmt: (v) => v.toLocaleString('es-MX', { maximumFractionDigits: 2 }) },
   ] },
-  { group: 'Resistencias (%)', rows: [
+  { group: 'Resistencias (%)', icon: '🛡️', rows: [
     { label: 'Física', get: st('resPhysical'), stat: 'resPhysical', better: 'high' },
     { label: 'Proyectiles', get: st('resMissile'), stat: 'resMissile', better: 'high' },
     { label: 'Mágica', get: st('resMagic'), stat: 'resMagic', better: 'high' },
@@ -85,7 +86,12 @@ export function UnitCompare({ army, cards }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anyKey, rank, buffs, army.lord, army.heroes, army.techs, army.faction]);
 
-  const cardOf = (p: Pick) => (p.src === 'army' ? cards.find((c) => `${c.kind}:${c.id}` === p.id) : anyCards[p.card]);
+  // La misma unidad puede estar varias veces en el ejército (con otro rango o estandarte): cada una con su número
+  const armyKeys = useMemo(() => {
+    const seen: Record<string, number> = {};
+    return cards.map((c) => { const k = `${c.kind}:${c.id}`; seen[k] = (seen[k] ?? 0) + 1; return seen[k] > 1 ? `${k}#${seen[k]}` : k; });
+  }, [cards]);
+  const cardOf = (p: Pick) => (p.src === 'army' ? cards[armyKeys.indexOf(p.id)] : anyCards[p.card]);
   const cols = picks.map((p) => ({ p, c: cardOf(p) }));
   const add = (p: Pick) => setPicks((l) => (l.some((x) => pickId(x) === pickId(p)) || l.length >= 6 ? l : [...l, p]));
   const del = (p: Pick) => setPicks((l) => l.filter((x) => pickId(x) !== pickId(p)));
@@ -104,10 +110,10 @@ export function UnitCompare({ army, cards }: Props) {
         <div className="cmp-src">
           <b className="small">De tu ejército</b>
           <div className="cmp-chips">
-            {cards.length ? cards.map((c) => {
-              const p: Pick = { src: 'army', id: `${c.kind}:${c.id}` };
+            {cards.length ? cards.map((c, ci) => {
+              const p: Pick = { src: 'army', id: armyKeys[ci] };
               const on = picks.some((x) => pickId(x) === pickId(p));
-              return <button key={pickId(p)} className={'cmp-chip' + (on ? ' on' : '')} onClick={() => (on ? del(p) : add(p))}>{c.name}{c.kind === 'unit' && c.count > 1 ? ` ×${c.count}` : ''}</button>;
+              return <button key={pickId(p)} className={'cmp-chip' + (on ? ' on' : '')} onClick={() => (on ? del(p) : add(p))}>{c.name}{c.kind === 'unit' && c.count > 1 ? ` ×${c.count}` : ''}{c.kind === 'unit' && armyKeys.filter((k) => k.split('#')[0] === armyKeys[ci].split('#')[0]).length > 1 ? ` · rango ${c.rank ?? 0}` : ''}</button>;
             }) : <span className="muted small">Arma un ejército para compararlo con sus bufos.</span>}
           </div>
         </div>
@@ -138,14 +144,19 @@ export function UnitCompare({ army, cards }: Props) {
           <table className="cmp-table">
             <thead>
               <tr>
-                <th></th>
-                {cols.map(({ p, c }) => (
-                  <th key={pickId(p)}>
+                <th className="cmp-ref-note small muted">{cols.length > 1 ? <>Flechas: contra <b>{cols[0].c?.name ?? 'la primera'}</b></> : null}</th>
+                {cols.map(({ p, c }, i) => (
+                  <th key={pickId(p)} className={i === 0 && cols.length > 1 ? 'cmp-ref' : ''}>
                     <div className="cmp-head">
-                      {c?.art && <img src={`/units/${c.art}.png`} alt="" loading="lazy" />}
-                      <span>{c?.name ?? '…'}</span>
-                      <small className="muted">{p.src === 'army' ? 'tu ejército' : buffs ? `rango ${rank} · tus bufos` : `rango ${rank} · base`}</small>
-                      <button className="ghost small" onClick={() => del(p)} title="Quitar">✕</button>
+                      {c?.art ? <img src={`/units/${c.art}.png`} alt="" loading="lazy" /> : <span className="cmp-noart">?</span>}
+                      <div className="cmp-head-txt">
+                        <span className="cmp-name">{c?.name ?? '…'}</span>
+                        <small className="muted">{i === 0 && cols.length > 1 ? '◆ referencia · ' : ''}{p.src === 'army' ? 'tu ejército' : buffs ? `rango ${rank} · tus bufos` : `rango ${rank} · base`}</small>
+                        <span className="cmp-acts">
+                          {i > 0 && <button className="cmp-x" onClick={() => setPicks((l) => [p, ...l.filter((x) => pickId(x) !== pickId(p))])} title="Usar como referencia">◆</button>}
+                          <button className="cmp-x" onClick={() => del(p)} title="Quitar">✕</button>
+                        </span>
+                      </div>
                     </div>
                   </th>
                 ))}
@@ -156,24 +167,41 @@ export function UnitCompare({ army, cards }: Props) {
                 const rows = g.rows.filter((r) => cols.some(({ c }) => c && (r.get(c) ?? 0) !== 0));
                 if (!rows.length) return null;
                 return [
-                  <tr key={g.group} className="cmp-group"><td colSpan={cols.length + 1}>{g.group}</td></tr>,
+                  <tr key={g.group} className="cmp-group"><td colSpan={cols.length + 1}>{g.icon} {g.group}</td></tr>,
                   ...rows.map((r) => {
                     const vals = cols.map(({ c }) => (c ? r.get(c) : undefined));
                     const nums = vals.filter((v): v is number => v != null && v !== 0);
-                    const best = nums.length > 1 && r.better ? (r.better === 'high' ? Math.max(...nums) : Math.min(...nums)) : undefined;
-                    const worst = nums.length > 1 && r.better ? (r.better === 'high' ? Math.min(...nums) : Math.max(...nums)) : undefined;
+                    const max = nums.length ? Math.max(...nums) : 0, min = nums.length ? Math.min(...nums) : 0;
+                    const best = nums.length > 1 && r.better && max !== min ? (r.better === 'high' ? max : min) : undefined;
+                    const worst = nums.length > 1 && r.better && max !== min ? (r.better === 'high' ? min : max) : undefined;
+                    const ref = vals[0];
+                    const show = (v: number) => (r.fmt ? r.fmt(v) : fmtStat(v, r.stat));
                     return (
                       <tr key={g.group + r.label}>
-                        <td className="muted">{r.label}</td>
+                        <td className="cmp-label"><StatImg stat={r.icon ?? r.stat ?? ''} emoji={r.emoji ?? ''} size={15} /> {r.label}</td>
                         {cols.map(({ p, c }, i) => {
                           const v = vals[i];
                           const line = r.stat && c ? c.stats[r.stat] : undefined;
-                          const diff = line && line.final !== line.base ? line.final - line.base : 0;
-                          const cls = v != null && best !== undefined && best !== worst ? (v === best ? 'cmp-best' : v === worst ? 'cmp-worst' : '') : '';
+                          const buff = line && line.final !== line.base ? line.final - line.base : 0;
+                          if (v == null || v === 0) return <td key={pickId(p)} className="cmp-empty">—</td>;
+                          const cls = v === best ? 'cmp-best' : v === worst ? 'cmp-worst' : '';
+                          // Barra: lo lleno es lo bueno (en "menos es mejor" se invierte)
+                          const pct = max > 0 ? (r.better === 'low' ? (min / v) * 100 : (v / max) * 100) : 0;
+                          // Flecha contra la referencia (primera columna): verde si es mejor, roja si es peor
+                          const d = i > 0 && ref != null && ref !== 0 ? v - ref : 0;
+                          const good = r.better ? (r.better === 'high' ? d > 0 : d < 0) : undefined;
                           return (
-                            <td key={pickId(p)} className={cls} title={line && diff ? `Base ${fmtStat(line.base, r.stat)}` : undefined}>
-                              {v == null || v === 0 ? '—' : r.fmt ? r.fmt(v) : fmtStat(v, r.stat)}
-                              {diff ? <small className={diff > 0 ? 'up' : 'down'}> ({diff > 0 ? '+' : ''}{fmtStat(diff, r.stat)})</small> : null}
+                            <td key={pickId(p)} className={cls} title={line && buff ? `Base ${fmtStat(line.base, r.stat)} · bufos ${buff > 0 ? '+' : ''}${fmtStat(buff, r.stat)}` : undefined}>
+                              <div className="cmp-cell">
+                                <span className="cmp-val">{v === best && <span className="cmp-crown">★</span>}{show(v)}</span>
+                                {d !== 0 && (
+                                  <span className={'cmp-delta ' + (good === undefined ? '' : good ? 'good' : 'bad')}>
+                                    {d > 0 ? '▲' : '▼'}{show(Math.abs(d))}
+                                  </span>
+                                )}
+                                {buff ? <span className={'cmp-buff ' + (buff > 0 ? 'up' : 'down')} title="Lo que suman tus bufos">{buff > 0 ? '+' : ''}{fmtStat(buff, r.stat)}</span> : null}
+                              </div>
+                              {r.better && <div className="cmp-bar"><i style={{ width: `${Math.max(4, Math.min(100, pct))}%` }} /></div>}
                             </td>
                           );
                         })}
@@ -182,17 +210,22 @@ export function UnitCompare({ army, cards }: Props) {
                   }),
                 ];
               })}
-              <tr className="cmp-group"><td colSpan={cols.length + 1}>Atributos</td></tr>
+              <tr className="cmp-group"><td colSpan={cols.length + 1}>🏷️ Atributos</td></tr>
               <tr>
                 <td></td>
-                {cols.map(({ p, c }) => <td key={pickId(p)} className="small">{c?.attributes.map((a) => a.name).join(', ') || '—'}</td>)}
+                {cols.map(({ p, c }) => (
+                  <td key={pickId(p)} className="cmp-attrs">
+                    {c?.attributes.length ? c.attributes.map((a) => <span key={a.name} className="cmp-attr">{a.name}</span>) : '—'}
+                  </td>
+                ))}
               </tr>
             </tbody>
           </table>
         </div>
       )}
       <p className="small muted">
-        En dorado la mejor de cada fila; en gris la peor. Entre paréntesis lo que suman los bufos sobre el valor base. Las de tu ejército usan su rango y
+        ★ = la mejor de cada fila; en gris la peor. La barra se llena según qué tan buena es (en coste, intervalo y recarga, menos es mejor).
+        ▲▼ = cuánto más o menos que la referencia ◆ (verde si es mejor, rojo si es peor); el número chico es lo que suman tus bufos. Las de tu ejército usan su rango y
         las habilidades que tengas encendidas; las demás, el rango elegido arriba. No cuenta carga real, habilidades propias de la unidad ni contra quién pelea:
         para eso está la pestaña DPS.
       </p>

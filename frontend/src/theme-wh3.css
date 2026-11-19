@@ -16,11 +16,14 @@
   --text: #ece2cf;
   --muted: #a39580;
   --frame: linear-gradient(180deg, #a8843f 0%, #5c4520 45%, #8f6f33 100%);
+  /* Color de la raza elegida: brillo del fondo, tinte de los paneles y botones activos */
+  --race-glow: rgba(120, 30, 20, 0.28);
+  --race-tint: rgba(36, 27, 21, 0.96);
 }
 
 body {
   background:
-    radial-gradient(ellipse at 50% -10%, rgba(120, 30, 20, 0.28), transparent 60%),
+    radial-gradient(ellipse at 50% -10%, var(--race-glow), transparent 60%),
     radial-gradient(ellipse at 50% 120%, rgba(0, 0, 0, 0.9), transparent 55%),
     repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.012) 0 2px, transparent 2px 6px),
     #0d0a09;
@@ -52,7 +55,7 @@ header {
 
 /* Paneles: fondo oscuro con marco dorado biselado y sombra interior */
 section.left, aside.right > div, .army-col, .bottom-main, .army-desc, .setup, .setup-abilities, .char-card-box, .abilities {
-  background: linear-gradient(180deg, rgba(36, 27, 21, 0.96), rgba(17, 13, 11, 0.98));
+  background: linear-gradient(180deg, var(--race-tint), rgba(17, 13, 11, 0.98));
   border: 1px solid #000;
   border-radius: 3px;
   box-shadow:
@@ -78,7 +81,7 @@ button.active, .tabs button.active, .seg button.on {
   background: linear-gradient(180deg, var(--blood-hi), var(--blood));
   border-color: var(--gold);
   color: var(--gold-hi);
-  box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.25), 0 0 10px rgba(154, 39, 28, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.25), 0 0 10px var(--race-glow);
 }
 
 /* Pestañas principales: placas con marco, la activa unida al panel */
@@ -90,7 +93,7 @@ button.active, .tabs button.active, .seg button.on {
   border-radius: 4px 4px 0 0;
   background: linear-gradient(180deg, #2a2019, #140f0c);
 }
-.page-tabs button.active { background: linear-gradient(180deg, var(--blood-hi), #2a120e); color: var(--gold-hi); }
+.page-tabs button.active { background: linear-gradient(180deg, var(--blood-hi), var(--blood)); color: var(--gold-hi); }
 .page-tabs .pt-sub { font-family: Inter, system-ui, sans-serif; text-transform: none; letter-spacing: 0; color: #c9b58f; }
 
 /* Campos: hundidos en el panel */
@@ -361,24 +364,74 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
 /* ---- Comparador de unidades ---- */
 .compare-page { display: flex; flex-direction: column; gap: 12px; }
 .cmp-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.cmp-src { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: rgba(0, 0, 0, 0.18); }
+.cmp-src { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: rgba(0, 0, 0, 0.22); }
 .cmp-chips, .cmp-results { display: flex; flex-wrap: wrap; gap: 4px; }
 .cmp-results { max-height: 180px; overflow-y: auto; }
 .cmp-chip { font-size: 12px; padding: 3px 8px; border-radius: 12px; border: 1px solid var(--line); background: transparent; }
-.cmp-chip.on { border-color: var(--gold-dim); color: var(--gold-hi); background: rgba(212, 174, 92, 0.18); }
+.cmp-chip.on { border-color: var(--gold); color: var(--gold-hi); background: linear-gradient(180deg, var(--blood-hi), var(--blood)); }
 .cmp-opts { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .cmp-wrap { overflow-x: auto; }
-.cmp-table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
-.cmp-table th, .cmp-table td { padding: 4px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); text-align: center; vertical-align: top; }
-.cmp-table td:first-child, .cmp-table th:first-child { text-align: left; position: sticky; left: 0; background: var(--bg, #15121a); }
-.cmp-head { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 120px; }
-.cmp-head img { width: 54px; height: 76px; object-fit: cover; border-radius: 3px; }
-.cmp-group td { color: var(--gold-dim); font-weight: 600; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; text-align: left; padding-top: 10px; }
-.cmp-best { color: var(--gold-hi); font-weight: 700; }
-.cmp-worst { opacity: 0.55; }
-.cmp-table small.up { color: #8fc47a; }
-.cmp-table small.down { color: #d9675a; }
-@media (max-width: 800px) { .cmp-pick { grid-template-columns: 1fr; } }
+.cmp-table { border-collapse: separate; border-spacing: 0; font-size: 13px; width: auto; background: linear-gradient(180deg, var(--race-tint), rgba(17, 13, 11, 0.98)); border: 1px solid var(--gold-dim); border-radius: 4px; }
+.cmp-table th, .cmp-table td { padding: 4px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); text-align: center; vertical-align: middle; width: 168px; min-width: 140px; }
+.cmp-table td:first-child, .cmp-table th:first-child { text-align: left; width: 200px; min-width: 170px; position: sticky; left: 0; z-index: 1; background: #120d0a; }
+.cmp-table th { vertical-align: bottom; border-bottom: 2px solid var(--gold-dim); }
+.cmp-table th.cmp-ref, .cmp-table td:nth-child(2) { background: rgba(212, 174, 92, 0.05); }
+.cmp-head { display: flex; gap: 6px; align-items: flex-start; text-align: left; }
+.cmp-head img, .cmp-noart { width: 38px; height: 54px; object-fit: cover; border-radius: 3px; border: 1px solid var(--gold-dim); flex: none; }
+.cmp-noart { display: grid; place-items: center; color: var(--muted); }
+.cmp-head-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cmp-name { font-weight: 700; color: var(--gold-hi); font-size: 12.5px; line-height: 1.2; }
+.cmp-head-txt small { font-size: 10.5px; font-weight: 400; }
+.cmp-acts { display: flex; gap: 4px; }
+.cmp-x { padding: 0 6px; font-size: 11px; line-height: 18px; }
+.cmp-ref-note { font-weight: 400; vertical-align: bottom; }
+.cmp-label { white-space: nowrap; color: var(--muted); }
+.cmp-label img, .cmp-label span { vertical-align: -3px; }
+.cmp-group td { color: var(--gold); font-family: Cinzel, Georgia, serif; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; text-align: left; padding-top: 10px; background: rgba(0, 0, 0, 0.25) !important; }
+.cmp-cell { display: flex; gap: 6px; align-items: baseline; justify-content: center; flex-wrap: wrap; }
+.cmp-val { font-weight: 600; font-size: 14px; }
+.cmp-crown { color: var(--gold-hi); margin-right: 2px; font-size: 11px; }
+.cmp-best .cmp-val { color: var(--gold-hi); text-shadow: 0 0 6px rgba(240, 211, 145, 0.35); }
+.cmp-worst .cmp-val { opacity: 0.55; }
+.cmp-delta { font-size: 11px; font-weight: 600; color: var(--muted); }
+.cmp-delta.good { color: #8fd17a; }
+.cmp-delta.bad { color: #e0705f; }
+.cmp-buff { font-size: 10px; padding: 0 4px; border-radius: 6px; background: rgba(143, 196, 122, 0.12); color: #8fc47a; }
+.cmp-buff.down { background: rgba(217, 103, 90, 0.12); color: #d9675a; }
+.cmp-bar { height: 4px; margin-top: 3px; background: rgba(255, 255, 255, 0.06); border-radius: 2px; overflow: hidden; }
+.cmp-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--blood-hi), var(--gold)); border-radius: 2px; }
+.cmp-best .cmp-bar i { background: linear-gradient(90deg, var(--gold), var(--gold-hi)); }
+.cmp-empty { color: var(--muted); opacity: 0.4; }
+.cmp-attrs { text-align: left !important; }
+.cmp-attr { display: inline-block; font-size: 10.5px; padding: 1px 6px; margin: 1px; border-radius: 8px; border: 1px solid var(--line); color: #d8c9a8; }
+@media (max-width: 800px) { .cmp-pick { grid-template-columns: 1fr; } .cmp-table td:first-child, .cmp-table th:first-child { min-width: 120px; width: 120px; white-space: normal; } }
+
+/* ---- Color de cada raza (data-race en <html>, de la facción elegida) ---- */
+:root[data-race="sla"] { --blood: #4a1d5e; --blood-hi: #7d3a9c; --race-glow: rgba(150, 60, 170, 0.32); --race-tint: rgba(36, 22, 40, 0.96); }
+:root[data-race="cth"] { --blood: #12483a; --blood-hi: #1f7a5e; --race-glow: rgba(40, 150, 110, 0.28); --race-tint: rgba(18, 34, 28, 0.96); }
+:root[data-race="nur"] { --blood: #33461a; --blood-hi: #5a7a24; --race-glow: rgba(110, 150, 40, 0.28); --race-tint: rgba(28, 33, 18, 0.96); }
+:root[data-race="tze"] { --blood: #1c3466; --blood-hi: #2f58a8; --race-glow: rgba(60, 110, 210, 0.3); --race-tint: rgba(18, 24, 40, 0.96); }
+:root[data-race="kho"] { --blood: #6e100c; --blood-hi: #a81d14; --race-glow: rgba(170, 30, 20, 0.34); --race-tint: rgba(40, 18, 14, 0.96); }
+:root[data-race="dae"] { --blood: #4b1a3e; --blood-hi: #7d2a60; --race-glow: rgba(140, 40, 110, 0.3); --race-tint: rgba(34, 20, 30, 0.96); }
+:root[data-race="ksl"] { --blood: #1d4a63; --blood-hi: #2f7799; --race-glow: rgba(90, 160, 210, 0.28); --race-tint: rgba(18, 28, 36, 0.96); }
+:root[data-race="emp"] { --blood: #1f2f5c; --blood-hi: #2f4a8f; --race-glow: rgba(60, 90, 170, 0.26); --race-tint: rgba(20, 24, 36, 0.96); }
+:root[data-race="dwf"] { --blood: #2c3a4f; --blood-hi: #46607f; --race-glow: rgba(110, 130, 160, 0.24); --race-tint: rgba(24, 27, 32, 0.96); }
+:root[data-race="brt"] { --blood: #1f2f6e; --blood-hi: #34489e; --race-glow: rgba(60, 80, 190, 0.26); --race-tint: rgba(20, 22, 38, 0.96); }
+:root[data-race="hef"] { --blood: #1b4f66; --blood-hi: #2c7e9f; --race-glow: rgba(120, 190, 220, 0.24); --race-tint: rgba(20, 30, 36, 0.96); }
+:root[data-race="def"] { --blood: #3a1648; --blood-hi: #5e2577; --race-glow: rgba(110, 40, 140, 0.3); --race-tint: rgba(28, 18, 32, 0.96); }
+:root[data-race="lzd"] { --blood: #105a50; --blood-hi: #1c8a7a; --race-glow: rgba(30, 160, 140, 0.26); --race-tint: rgba(16, 32, 30, 0.96); }
+:root[data-race="skv"] { --blood: #3b4a12; --blood-hi: #62781c; --race-glow: rgba(140, 190, 30, 0.24); --race-tint: rgba(28, 30, 16, 0.96); }
+:root[data-race="tmb"] { --blood: #5e4612; --blood-hi: #94701e; --race-glow: rgba(200, 160, 60, 0.24); --race-tint: rgba(38, 32, 18, 0.96); }
+:root[data-race="vmp"] { --blood: #4e0c22; --blood-hi: #7e1638; --race-glow: rgba(140, 20, 60, 0.32); --race-tint: rgba(32, 14, 20, 0.96); }
+:root[data-race="cst"] { --blood: #154a52; --blood-hi: #227680; --race-glow: rgba(40, 140, 150, 0.26); --race-tint: rgba(16, 30, 32, 0.96); }
+:root[data-race="grn"] { --blood: #2e4d14; --blood-hi: #4b7a20; --race-glow: rgba(90, 160, 40, 0.26); --race-tint: rgba(24, 32, 16, 0.96); }
+:root[data-race="wef"] { --blood: #24461f; --blood-hi: #3b6e30; --race-glow: rgba(70, 140, 60, 0.26); --race-tint: rgba(22, 30, 20, 0.96); }
+:root[data-race="bst"] { --blood: #4a3014; --blood-hi: #7a5020; --race-glow: rgba(150, 100, 40, 0.26); --race-tint: rgba(34, 26, 16, 0.96); }
+:root[data-race="nor"] { --blood: #2a4258; --blood-hi: #41658a; --race-glow: rgba(90, 130, 180, 0.26); --race-tint: rgba(22, 28, 34, 0.96); }
+:root[data-race="ogr"] { --blood: #5a2a12; --blood-hi: #8e441c; --race-glow: rgba(180, 90, 40, 0.26); --race-tint: rgba(36, 24, 16, 0.96); }
+:root[data-race="chd"] { --blood: #6a2508; --blood-hi: #a83c0e; --race-glow: rgba(220, 90, 20, 0.3); --race-tint: rgba(40, 22, 14, 0.96); }
+:root[data-race="nag"] { --blood: #2b2452; --blood-hi: #463a86; --race-glow: rgba(90, 70, 180, 0.28); --race-tint: rgba(24, 22, 36, 0.96); }
+
 
 /* 7 pestañas: en pantallas medianas se encogen; en el celular, tira deslizable con solo el título */
 .page-tabs .pt-title { white-space: nowrap; }
@@ -391,3 +444,6 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
   .page-tabs::-webkit-scrollbar { display: none; }
   .page-tabs button { flex: 0 0 auto; }
 }
+/* Encabezados del roster y crónica con el color de la raza */
+.rpanel-head { background: linear-gradient(90deg, var(--blood-hi), var(--blood) 55%, transparent); }
+.ad-chronicle { background: linear-gradient(180deg, rgba(240, 211, 145, 0.07), rgba(240, 211, 145, 0.02)), linear-gradient(90deg, var(--race-glow), transparent 40%); }

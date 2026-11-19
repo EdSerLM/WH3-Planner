@@ -253,6 +253,13 @@ export default function App() {
     flash(add.length ? `✓ ${add.length} ejércitos agregados` : 'Ya tenías esos ejércitos');
   }
 
+  // Tema de color según la raza (Slaanesh morado, Catai jade, Nurgle verde…)
+  useEffect(() => {
+    const code = /_sc_([a-z]+)_/.exec(faction)?.[1];
+    if (code) document.documentElement.dataset.race = code;
+    else delete document.documentElement.dataset.race;
+  }, [faction]);
+
   function changeFaction(f: string, next?: ArmyState) {
     setFaction(f);
     setArmy(next ?? loadLocal(f));
