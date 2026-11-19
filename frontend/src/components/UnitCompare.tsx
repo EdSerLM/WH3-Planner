@@ -144,13 +144,13 @@ export function UnitCompare({ army, cards }: Props) {
           <table className="cmp-table">
             <thead>
               <tr>
-                <th className="cmp-ref-note small muted">{cols.length > 1 ? <>Flechas: contra <b>{cols[0].c?.name ?? 'la primera'}</b></> : null}</th>
+                <th className="cmp-ref-note small muted">{cols.length > 1 ? <>Diferencias contra <b>{cols[0].c?.name ?? 'la primera'}</b> ◆</> : null}</th>
                 {cols.map(({ p, c }, i) => (
                   <th key={pickId(p)} className={i === 0 && cols.length > 1 ? 'cmp-ref' : ''}>
                     <div className="cmp-head">
                       {c?.art ? <img src={`/units/${c.art}.png`} alt="" loading="lazy" /> : <span className="cmp-noart">?</span>}
                       <div className="cmp-head-txt">
-                        <span className="cmp-name">{c?.name ?? '…'}</span>
+                        <span className="cmp-name" title={c?.name}>{c?.name ?? '…'}</span>
                         <small className="muted">{i === 0 && cols.length > 1 ? '◆ referencia · ' : ''}{p.src === 'army' ? 'tu ejército' : buffs ? `rango ${rank} · tus bufos` : `rango ${rank} · base`}</small>
                         <span className="cmp-acts">
                           {i > 0 && <button className="cmp-x" onClick={() => setPicks((l) => [p, ...l.filter((x) => pickId(x) !== pickId(p))])} title="Usar como referencia">◆</button>}
@@ -195,8 +195,9 @@ export function UnitCompare({ army, cards }: Props) {
                               <div className="cmp-cell">
                                 <span className="cmp-val">{v === best && <span className="cmp-crown">★</span>}{show(v)}</span>
                                 {d !== 0 && (
-                                  <span className={'cmp-delta ' + (good === undefined ? '' : good ? 'good' : 'bad')}>
-                                    {d > 0 ? '▲' : '▼'}{show(Math.abs(d))}
+                                  <span className={'cmp-delta ' + (good === undefined ? '' : good ? 'good' : 'bad')}
+                                    title={`${d > 0 ? 'Más' : 'Menos'} que la referencia${good === undefined ? '' : good ? ' (mejor)' : ' (peor)'}${r.better === 'low' ? ' · aquí menos es mejor' : ''}`}>
+                                    {good === undefined ? '' : good ? '👍 ' : '👎 '}{d > 0 ? '+' : '−'}{show(Math.abs(d))}
                                   </span>
                                 )}
                                 {buff ? <span className={'cmp-buff ' + (buff > 0 ? 'up' : 'down')} title="Lo que suman tus bufos">{buff > 0 ? '+' : ''}{fmtStat(buff, r.stat)}</span> : null}
@@ -225,7 +226,7 @@ export function UnitCompare({ army, cards }: Props) {
       )}
       <p className="small muted">
         ★ = la mejor de cada fila; en gris la peor. La barra se llena según qué tan buena es (en coste, intervalo y recarga, menos es mejor).
-        ▲▼ = cuánto más o menos que la referencia ◆ (verde si es mejor, rojo si es peor); el número chico es lo que suman tus bufos. Las de tu ejército usan su rango y
+        +/− = diferencia contra la referencia ◆: 👍 verde si es mejor, 👎 rojo si es peor (en coste, intervalo y recarga, tener más es peor). La etiqueta chica es lo que suman tus bufos. Las de tu ejército usan su rango y
         las habilidades que tengas encendidas; las demás, el rango elegido arriba. No cuenta carga real, habilidades propias de la unidad ni contra quién pelea:
         para eso está la pestaña DPS.
       </p>
