@@ -103,6 +103,8 @@ export const SKILL_TABLES = [
   'unit_purchasable_effects_tables', 'unit_purchasable_effect_sets_tables', 'faction_banned_unit_purchasable_effects_tables',
   // Forja de Daith (Heraldas de Ariel): rituales que forjan y mejoran objetos (nivel 1-4)
   'rituals_tables', 'ritual_payload_ancillaries_tables',
+  // Colegios de Magia (Gelt): coste de cada ritual en Ensayos Arcanos
+  'resource_cost_pooled_resource_junctions_tables',
   // Acciones de héroe en su ejército (Instrucción, Formación de asalto...): acción -> resultados con efecto y valor; mejoras por habilidad
   'agent_actions_tables', 'action_results_additional_outcomes_tables', 'effect_bonus_value_id_action_results_additional_outcomes_junctions_tables',
   // Guaridas de Vampiros: edificios secundarios que se eligen al despertar a un vampiro
@@ -1062,6 +1064,39 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
         { k: 'mech:gunnery_school', cat: 'GUNNERY', fac: 'wh_main_emp_wissenland', n: 'Escuela de Artillería de Nuln', max: 0, rows: true, items: school },
         { k: 'mech:amethyst_armory', cat: 'GUNNERY', fac: 'wh_main_emp_wissenland', n: 'Armería de Amatista', max: 0, items: armory },
       ],
+    });
+  }
+  // Colegio de Magia (Balthasar Gelt, Orden Dorada): rituales por cada uno de los 8 colegios, pagados con Ensayos
+  // Arcanos; el ritual del hechicero desbloquea los demás de su colegio (wh3_dlc25_college_of_magic.lua)
+  {
+    const COLS: [string, string][] = [
+      ['COM_METAL', 'Metal (Dorado)'], ['COM_FIRE', 'Fuego (Brillante)'], ['COM_HEAVENS', 'Cielos (Celestial)'], ['COM_LIFE', 'Vida (Jade)'],
+      ['COM_LIGHT', 'Luz'], ['COM_BEAST', 'Bestias (Ámbar)'], ['COM_SHADOW', 'Sombras (Gris)'], ['COM_DEATH', 'Muerte (Amatista)'],
+    ];
+    // Lo que hace el script (no viene en los paquetes de efectos)
+    const SCRIPTED: Record<string, string> = {
+      wizard: 'Desbloquea los demás rituales del colegio; el hechicero llega con sus puntos de acción llenos',
+      amethyst_damage_enemies: 'Quita el 30% de la vida máxima a cada unidad de los ejércitos enemigos en la misma región',
+    };
+    const ancN = (a: string) => L(`ancillaries_onscreen_name_${a}`) ?? pretty(a);
+    const essays = new Map(T['resource_cost_pooled_resource_junctions_tables'].filter((r) => /arcane_essays/.test(r.pooled_resource_factor ?? '')).map((r) => [r.resource_cost, -Number(r.amount)]));
+    const ancE = (a: string) => (ancEff.get(a) ?? []).flatMap((r) => parts(r.effect, r.value, r.effect_scope).map((p, j) => ({ k: r.effect, d: j === 0 ? effectText(r.effect, r.value, r.effect_scope) : '', s: p })));
+    const items = COLS.flatMap(([cat, sec], i) => ritualsOf([cat]).map((r) => {
+      const tail = String(r.key).replace('wh3_dlc25_college_of_magic_', '');
+      const ancK = [r.completion_payload, r.start_payload].filter(Boolean).flatMap((p) => (ritualAnc.get(p) ?? []).map((a) => a.ancillary as string));
+      const scr = SCRIPTED[tail] ?? (tail.startsWith('wizard_') ? SCRIPTED.wizard : undefined);
+      const it = ritualItem(r, { tier: i + 1, sec });
+      if (ancK.length) it.e = [...(it.e ?? []), ...ancK.flatMap(ancE)];
+      const cost = essays.get(r.expended_resources), cd = Number(r.cooldown_time);
+      const meta = [cost ? `${cost} Ensayos Arcanos${r.percentage_cost_increase_per_use ? ` (+${Math.round(r.percentage_cost_increase_per_use * 100)}% por cada uso)` : ''}` : '',
+        cd > 0 ? `recarga ${cd} turno${cd > 1 ? 's' : ''}` : cd < 0 ? 'una sola vez' : ''].filter(Boolean).join(' · ');
+      const extra = [meta, scr, ancK.length ? `Objeto: ${ancK.map(ancN).join(', ')}` : undefined].filter(Boolean).join(' · ');
+      if (extra) it.req = it.req ? `${extra}\n${it.req}` : extra;
+      return it;
+    }));
+    mech.push({
+      who: (sub, t, scs) => isLord(t) && scs.includes('wh_main_sc_emp_empire'),
+      sets: [{ k: 'mech:college_of_magic', cat: 'COLLEGE_MAGIC', fac: 'wh2_dlc13_emp_golden_order', n: 'Colegios de Magia', max: 0, secs: COLS.map(([, n]) => n), items }],
     });
   }
   // Kislev: favores de la Corte de Hielo / la Gran Ortodoxia y rituales de la Madre Patria

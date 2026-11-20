@@ -21518,6 +21518,44 @@
           "StringU8"
         ]
       ]
+    },
+    "resource_cost_pooled_resource_junctions_tables": {
+      "1": [
+        [
+          "amount",
+          "I32"
+        ],
+        [
+          "pooled_resource_factor",
+          "StringU8"
+        ],
+        [
+          "resource_cost",
+          "StringU8"
+        ],
+        [
+          "context",
+          "StringU8"
+        ],
+        [
+          "ui_resource_transaction_pooled_resource",
+          "StringU8"
+        ]
+      ],
+      "0": [
+        [
+          "amount",
+          "I32"
+        ],
+        [
+          "pooled_resource_factor",
+          "StringU8"
+        ],
+        [
+          "resource_cost",
+          "StringU8"
+        ]
+      ]
     }
   }
 }
