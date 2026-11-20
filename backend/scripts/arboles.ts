@@ -1104,6 +1104,103 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       sets: [{ k: 'mech:college_of_magic', cat: 'COLLEGE_MAGIC', fac: 'wh2_dlc13_emp_golden_order', n: 'Colegios de Magia', max: 0, secs: COLS.map(([, n]) => n), items }],
     });
   }
+  // El Cambiante: Maquinaciones por teatro (misiones del script wh3_dlc24_the_changeling.lua, Imperios Inmortales). Cada
+  // maquinación menor da un paquete permanente para la facción, un objeto o una forma; la gran conspiración pide la mitad
+  // de las menores y una batalla. [teatro, misión, objetivo, paquetes, objetos, otras recompensas]
+  {
+  const CHANGELING_SCHEMES: [string, string, string, string[], string[], string[]][] = [
+    ["the_empire", "the_empire_minor_1", "the_empire_create_cult_objective", [], [], ["reveal_shroud_payload"]],
+    ["the_empire", "the_empire_minor_2", "the_empire_sylvania_corruption_objective", ["the_empire_minor_2"], [], ["open_rift_payload", "rift_gem_payload"]],
+    ["the_empire", "the_empire_minor_3", "the_empire_sack_altdorf_objective", [], [], ["unlock_ror_steam_tank"]],
+    ["the_empire", "the_empire_minor_4", "the_empire_win_battles", ["the_empire_minor_4"], [], ["hidden_cultist_payload"]],
+    ["the_empire", "the_empire_minor_5", "", ["the_empire_minor_5"], [], []],
+    ["the_empire", "the_empire_minor_6", "", ["the_empire_minor_6"], [], []],
+    ["the_empire", "the_empire_grand", "grand_scheme_objective", ["the_empire_grand"], ["wh3_dlc24_anc_weapon_runefang"], ["ultimate_battle_empire", "the_empire_grand_scripted", "aekold_form", "rift_gem_payload"]],
+    ["bretonnia", "bretonnia_minor_1", "bretonnia_create_cult_objective", [], [], ["reveal_shroud_payload"]],
+    ["bretonnia", "bretonnia_minor_2", "bretonnia_skavenblight_corruption_objective", [], [], []],
+    ["bretonnia", "bretonnia_minor_3", "bretonnia_form_orion_objective", [], ["wh3_dlc24_anc_talisman_tree_sap"], ["hidden_cultist_payload"]],
+    ["bretonnia", "bretonnia_minor_4", "", ["bretonnia_minor_4"], [], []],
+    ["bretonnia", "bretonnia_minor_5", "", ["bretonnia_minor_5"], [], ["bretonnia_athel_loren_beastmen_rebels"]],
+    ["bretonnia", "bretonnia_grand", "grand_scheme_objective", ["bretonnia_grand"], [], ["ultimate_battle_bretonnia", "bretonnia_grand_scripted", "green_knight_form", "rift_gem_payload"]],
+    ["norsca", "norsca_minor_1", "norsca_create_cult_objective", [], [], ["reveal_shroud_payload"]],
+    ["norsca", "norsca_minor_2", "norsca_sack_hell_pit_objective", [], ["wh3_dlc24_anc_armour_scavenged_laboratory_materials"], ["unlock_ror_feral_carnosaur", "ghoritch_form"]],
+    ["norsca", "norsca_minor_3", "norsca_great_cities_objective", [], [], ["kislev_all_forms_payload", "hidden_cultist_payload"]],
+    ["norsca", "norsca_minor_4", "norsca_monolith_corruption_objective_roc", ["norsca_minor_4"], [], []],
+    ["norsca", "norsca_minor_5", "", ["norsca_minor_5"], [], ["wulfrik_throgg_form"]],
+    ["norsca", "norsca_grand", "grand_scheme_objective", ["norsca_grand"], [], ["ultimate_battle_norsca", "norsca_grand_scripted_roc", "unlock_ror_frost_wyrm", "rift_gem_payload"]],
+    ["chaos_wastes", "chaos_wastes_minor_1", "chaos_wastes_create_cult_objective", [], [], ["reveal_shroud_payload"]],
+    ["chaos_wastes", "chaos_wastes_minor_2", "", [], ["wh3_dlc24_anc_armour_unknown_champions_cloak"], ["hidden_cultist_payload"]],
+    ["chaos_wastes", "chaos_wastes_minor_3", "", ["chaos_wastes_minor_3"], ["wh3_main_anc_weapon_chainsword"], []],
+    ["chaos_wastes", "chaos_wastes_minor_4", "chaos_wastes_province_capitals_objective", ["chaos_wastes_minor_4"], [], []],
+    ["chaos_wastes", "chaos_wastes_minor_5", "chaos_wastes_win_battles", ["chaos_wastes_minor_5"], [], []],
+    ["chaos_wastes", "chaos_wastes_grand", "grand_scheme_objective", ["chaos_wastes_grand"], [], ["ultimate_battle_chaos", "chaos_wastes_grand_scripted", "blue_scribes_form", "rift_gem_payload"]],
+    ["grand_cathay", "grand_cathay_minor_1", "grand_cathay_create_cult_objective", [], [], ["reveal_shroud_payload"]],
+    ["grand_cathay", "grand_cathay_minor_2", "grand_cathay_win_battles", [], ["wh3_main_anc_caravan_von_carstein_blade", "wh3_main_anc_caravan_luminark_lens"], []],
+    ["grand_cathay", "grand_cathay_minor_3", "grand_cathay_form_zhao_ming_objective", [], ["wh3_dlc24_anc_arcane_item_alchemical_notes"], []],
+    ["grand_cathay", "grand_cathay_minor_4", "grand_cathay_nan-gau_corruption_objective", ["grand_cathay_minor_4"], [], ["hidden_cultist_payload"]],
+    ["grand_cathay", "grand_cathay_minor_5", "", ["grand_cathay_minor_5"], [], ["grand_cathay_theatre_corruption_payload"]],
+    ["grand_cathay", "grand_cathay_minor_6", "grand_cathay_form_snikch_objective", [], ["wh3_dlc24_anc_weapon_weeping_blade"], []],
+    ["grand_cathay", "grand_cathay_minor_7_ie", "", ["grand_cathay_minor_7_ie"], [], []],
+    ["grand_cathay", "grand_cathay_grand", "grand_scheme_objective", ["grand_cathay_grand"], [], ["ultimate_battle_cathay", "grand_cathay_grand_scripted", "rift_gem_payload"]],
+    ["darklands", "darklands_minor_1", "darklands_create_cult_objective", [], [], ["reveal_shroud_payload"]],
+    ["darklands", "darklands_minor_2", "darklands_pigbarter_cult_objective", ["darklands_minor_2"], [], ["hidden_cultist_payload"]],
+    ["darklands", "darklands_minor_3", "darklands_form_astragoth_objective", [], ["wh3_dlc24_anc_talisman_hellforge_flame"], []],
+    ["darklands", "darklands_minor_4", "darklands_zharr_naggrund_corruption_objective", ["darklands_minor_4"], [], []],
+    ["darklands", "darklands_minor_5", "", ["darklands_minor_5"], [], []],
+    ["darklands", "darklands_minor_6", "", ["darklands_minor_6"], [], []],
+    ["darklands", "darklands_minor_7", "", [], ["wh3_dlc24_anc_arcane_item_corrupted_flame"], []],
+    ["darklands", "darklands_grand", "grand_scheme_objective", ["darklands_grand"], [], ["ultimate_battle_greenskins", "darklands_grand_scripted", "gorduz_form", "rift_gem_payload"]],
+    ["badlands", "badlands_minor_1", "badlands_create_cult_objective", [], [], ["reveal_shroud_payload"]],
+    ["badlands", "badlands_minor_2", "badlands_form_skarbrand_objective", [], ["wh3_main_anc_weapon_chainsword"], []],
+    ["badlands", "badlands_minor_3", "", [], ["wh3_dlc24_anc_armour_unknown_champions_cloak"], ["hidden_cultist_payload"]],
+    ["badlands", "badlands_minor_4", "", ["badlands_minor_4"], [], []],
+    ["badlands", "badlands_minor_5", "", ["badlands_minor_5"], [], []],
+    ["badlands", "badlands_grand", "grand_scheme_objective", [], ["wh3_dlc24_anc_talisman_undead_tome"], ["ultimate_battle_tomb_kings", "badlands_grand_scripted", "rift_gem_payload"]],
+    ["ulthuan", "ulthuan_minor_1", "ulthuan_create_cult_objective", [], [], ["reveal_shroud_payload"]],
+    ["ulthuan", "ulthuan_minor_2", "ulthuan_form_alarielle_objective", [], ["wh3_dlc24_anc_talisman_corrupted_icon"], []],
+    ["ulthuan", "ulthuan_minor_3", "ulthuan_spawn_chaos_rebels_objective", [], [], ["ulthuan_sword_of_khaine", "hidden_cultist_payload"]],
+    ["ulthuan", "ulthuan_minor_4", "", ["ulthuan_minor_4"], [], ["ulthuan_inner_ring_chaos_rebels"]],
+    ["ulthuan", "ulthuan_minor_5", "ulthuan_sack_galleons_graveyard_objective", [], ["wh3_dlc24_anc_talisman_kraken_fang"], []],
+    ["ulthuan", "ulthuan_grand", "grand_scheme_objective", ["ulthuan_grand"], [], ["ultimate_battle_high_elves", "ulthuan_scripted", "blue_scribes_form", "rift_gem_payload"]],
+    ["naggaroth", "naggaroth_minor_1", "naggaroth_create_cult_objective", [], [], ["reveal_shroud_payload"]],
+    ["naggaroth", "naggaroth_minor_2", "naggaronth_great_cities_objective", [], [], ["naggaroth_all_forms_payload", "hidden_cultist_payload"]],
+    ["naggaroth", "naggaroth_minor_3", "naggaroth_sack_the_witchwood_objective", ["naggaroth_minor_3"], [], ["naggaroth_witchwood_greenskins_payload"]],
+    ["naggaroth", "naggaroth_minor_4", "", [], ["wh3_dlc24_anc_talisman_facial_scruff"], []],
+    ["naggaroth", "naggaroth_minor_5", "", ["naggaroth_minor_5"], [], []],
+    ["naggaroth", "naggaroth_grand", "grand_scheme_objective", [], ["wh3_dlc24_anc_arcane_item_captains_horn"], ["ultimate_battle_vampire_coast", "naggaroth_scripted", "rift_gem_payload"]],
+    ["lustria", "lustria_minor_1", "lustria_create_cult_objective", [], [], ["reveal_shroud_payload"]],
+    ["lustria", "lustria_minor_2", "lustria_form_mazdamundi_objective", [], ["wh3_dlc24_anc_talisman_pilfered_palanquin"], []],
+    ["lustria", "lustria_minor_3", "", ["lustria_minor_3"], [], ["hidden_cultist_payload"]],
+    ["lustria", "lustria_minor_4", "lustria_spawn_chaos_rebels_objective", ["lustria_minor_4"], [], []],
+    ["lustria", "lustria_minor_5", "lustria_elven_colonies_objective", ["lustria_minor_5"], [], []],
+    ["lustria", "lustria_grand", "grand_scheme_objective", ["lustria_grand"], [], ["ultimate_battle_skaven", "lustria_grand_scripted", "unlock_ror_feral_carnosaur", "lord_kroak_form", "rift_gem_payload"]],
+  ];
+    const P = 'wh3_dlc24_mission_schemes_';
+    const clean = (t?: string | null) => t?.replace(/\[\[\/?[a-z]+(:[^\]]*)?\]\]/g, '').replace(/\{\{tr:[^}]*\}\}/g, '').replace(/\s+/g, ' ').trim();
+    const ancN = (a: string) => L(`ancillaries_onscreen_name_${a}`) ?? pretty(a.replace(/^.*_anc_/, ''));
+    const ancE = (a: string) => (ancEff.get(a) ?? []).flatMap((r) => parts(r.effect, r.value, r.effect_scope).map((p, j) => ({ k: r.effect, d: j === 0 ? effectText(r.effect, r.value, r.effect_scope) : '', s: p })));
+    const theatres = [...new Set(CHANGELING_SCHEMES.map((r) => r[0]))];
+    const secOf = (t: string) => clean(L(`missions_localised_title_${P}${t}_grand`))?.replace(/^.*?:\s*/, '') ?? pretty(t);
+    const items: Row[] = [];
+    for (const [t, m, obj, bs, as, extra] of CHANGELING_SCHEMES) {
+      const e = [...bs.flatMap((b) => effRows(bundleEff.get(P + b) ?? [], 'effect_key')), ...as.flatMap(ancE)];
+      const other = extra.map((x) => clean(L(`campaign_payload_ui_details_description_dummy_${P}${x}`))).filter((x): x is string => !!x && !/^Desvela|niebla/i.test(x));
+      if (!e.length && !as.length && !other.length) continue;
+      const grand = m.endsWith('_grand');
+      const name = clean(L(`missions_localised_title_${P}${m}`)) ?? pretty(m);
+      const bName = bs.map((b) => clean(L(`effect_bundles_localised_title_${P}${b}`))).filter(Boolean);
+      items.push(strip({
+        k: `scheme:${m}`, n: grand ? `★ ${bName[0] ?? name.replace(/^Gran conspiración:\s*/, '')}` : (bName[0] ?? name), tier: theatres.indexOf(t) + 1, sec: secOf(t),
+        req: [grand ? name : `Maquinación: ${name}`, as.length ? `🎁 Objeto: ${as.map(ancN).join(', ')}` : '',
+          ...other.map((o) => `🎁 ${o}`), clean(L(`mission_text_text_${P}${obj}`))?.replace(/\s*\(Total actual: %n\)/, '')].filter(Boolean).join('\n'),
+        e,
+      }));
+    }
+    mech.push({
+      who: (sub, t, scs) => isLord(t) && scs.includes('wh3_main_sc_tze_tzeentch'),
+      sets: [{ k: 'mech:changeling_schemes', cat: 'CHANGELING_SCHEMES', fac: 'wh3_dlc24_tze_the_deceivers', n: 'Maquinaciones del Embustero', max: 0, secs: theatres.map(secOf), items }],
+    });
+  }
   // Kislev: favores de la Corte de Hielo / la Gran Ortodoxia y rituales de la Madre Patria
   {
     const BOON_ES: Record<string, string> = { battle: 'Batalla', character: 'Personajes', global: 'Global', magic: 'Magia', economy: 'Economía', military: 'Militar', public_order: 'Orden público', recruitment: 'Reclutamiento', diplomacy: 'Diplomacia' };
