@@ -798,6 +798,7 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
   // Solo con facciones jugables (para héroes: Kihar no es de los Guerreros del Caos aunque se lo permitan a sus retadores de IA)
   const campScIE = new Map<string, string[]>();
   const questOnly = new Set<string>(), realPerm = new Set<string>();
+  const campFacIE = new Map<string, Set<string>>();
   for (const r of T['faction_agent_permitted_subtypes_tables']) {
     if (r.mod_disabled || !r.subtype || !fac.has(r.faction)) continue;
     // Facciones de batalla de misión (Gotrek como señor solo existe en las batallas de misión del Imperio)
@@ -806,7 +807,11 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     const sc = fac.get(r.faction)!.subculture as string;
     campSc.set(r.subtype, [...new Set([...(campSc.get(r.subtype) ?? []), sc])].sort());
     if (!ieFac.size || ieFac.has(r.faction)) campScIE.set(r.subtype, [...new Set([...(campScIE.get(r.subtype) ?? []), sc])].sort());
+    if (ieFac.has(r.faction)) (campFacIE.get(r.subtype) ?? campFacIE.set(r.subtype, new Set()).get(r.subtype)!).add(r.faction);
   }
+  // Facciones jugables de cada subcultura: un personaje que solo permiten algunas (p. ej. los malévolos de Drycha) es de ellas
+  const ieBySc = new Map<string, Set<string>>();
+  for (const f of ieFac) { const sc = fac.get(f)?.subculture as string | undefined; if (sc) (ieBySc.get(sc) ?? ieBySc.set(sc, new Set()).get(sc)!).add(f); }
 
   // ---------------- Cargos de la corte (ministerial positions) ----------------
   // Consejo de los Elfos (Talsyn/Orión), Congregación de los Antiguos (Argwylon/Durthu), Hablantes de Drycha y la corte de las
@@ -1658,6 +1663,15 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
           .filter((f) => fac.has(f) && (!ieFac.size || ieFac.has(f))).sort();
       } else if (so) only = so[1];
       if (only) scs = [...new Set(only.map((f) => fac.get(f)!.subculture as string))].sort();
+    }
+    // Personajes que el juego permite solo a algunas facciones jugables de su subcultura (Espectros de los Árboles y Hombres
+    // Árbol Malévolos: solo Drycha; Tejehechizos: todos menos Drycha): solo esas facciones, más las que lo llevan de líder
+    // Solo genéricos reclutables: a los legendarios se les puede tener por confederación
+    if (a.auto_generate && !only && !s.faction_key && !CHAOS_DEVOTED.test(s.agent_subtype_key) && !ascendFrom.has(s.agent_subtype_key) && campFacIE.get(s.agent_subtype_key)?.size) {
+      const pf = new Set(campFacIE.get(s.agent_subtype_key));
+      for (const r of T['frontend_faction_leaders_tables']) if (r.agent_subtype_record === s.agent_subtype_key && ieFac.has(r.faction)) pf.add(r.faction);
+      const partial = scs.some((sc) => { const all = ieBySc.get(sc); return all && [...all].some((f) => !pf.has(f)); });
+      if (partial) only = [...pf].sort();
     }
     // Árbol propio de una facción (p. ej. los de afinidad de los Altos Elfos): solo en esa facción; en ella sustituye
     // al árbol genérico del mismo personaje
