@@ -4,7 +4,7 @@ import { api } from '../api';
 import { unitRank, type AbilityInfo, type ArmyUnitSelection, type BannerOption, type CampaignFaction, type ComputedCard, type StatKey, type UnitData } from '../types';
 import type { RosterBuffs } from '../App';
 import { campaignUnits } from '../campaign';
-import { groupIndex, groupInfo } from '../unitGroups';
+import { groupIndex, groupInfo, isRoR } from '../unitGroups';
 import { BuffMark, SpecialTags } from './ArmyPanel';
 import { BannerPick } from './BannerPick';
 import { UnitIcon } from './UnitIcon';
@@ -178,7 +178,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
   const roster = useMemo(() => {
     const qq = q.trim().toLowerCase();
     const list = units
-      .filter((u) => showRoR || !/_ror/.test(u.key + u.card))
+      .filter((u) => showRoR || !isRoR(u))
       .filter((u) => !allowed || allowed.has(u.card))
       .filter((u) => !qq || u.name.toLowerCase().includes(qq))
       .filter((u) => !onlyBuffed || !!buffs[u.card])
@@ -267,7 +267,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
           return (
             <button
               key={sel.card + i}
-              className={'utile ' + (GROUP_CLASS[g] ?? '') + (u?.art ? ' has-art' : '') + (selected?.kind === 'unit' && selected.card === sel.card ? ' sel' : '')}
+              className={'utile ' + (GROUP_CLASS[g] ?? '') + (u?.art ? ' has-art' : '') + (selected?.kind === 'unit' && selected.card === sel.card ? ' sel' : '') + (isRoR(u) ? ' is-ror' : '')}
               style={artStyle(u)}
               onMouseEnter={() => setHover({ kind: 'unit', card: sel.card })}
               onMouseLeave={() => setHover(null)}
@@ -370,7 +370,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
                       return (
                         <button
                           key={u.card}
-                          className={'utile ' + (GROUP_CLASS[g] ?? '') + (u.art ? ' has-art' : '') + (b ? ' buffed' : '') + (n ? ' in-army' : '')}
+                          className={'utile ' + (GROUP_CLASS[g] ?? '') + (u.art ? ' has-art' : '') + (b ? ' buffed' : '') + (n ? ' in-army' : '') + (isRoR(u) ? ' is-ror' : '')}
                           style={artStyle(u)}
                           onClick={() => add(u.card)}
                           onMouseEnter={() => setHover({ kind: 'unit', card: u.card })}
@@ -388,7 +388,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
                                 {GAIN_MARK[gains.get(u.card)!.verdict]}
                               </span>
                             )}
-                            {/_ror/.test(u.key + u.card) && <span title="Regimiento de Renombre"><GameIcon path="skills/battle_experience" emoji="🏅" size={14} title="Regimiento de Renombre" /></span>}
+                            {isRoR(u) && <span title="Regimiento de Renombre"><GameIcon path="skills/battle_experience" emoji="🏅" size={14} title="Regimiento de Renombre" /></span>}
                             {u.campaignOnly && <span title="Solo en campaña"><GameIcon path="skills/campaign_movement" emoji="🗺️" size={14} title="Solo en campaña" /></span>}
                             {(u.excl?.length ?? 0) > 0 && <span title={`Solo: ${u.excl!.join(', ')}`}>🔒</span>}
                             {campaign?.buildings?.[u.card] && <span title={`Solo con edificio: ${campaign.buildings[u.card].join(', ')}`}><GameIcon path="skills/character_construction" emoji="🏛️" size={14} /></span>}
@@ -443,7 +443,7 @@ export function RosterDuelStrip({ units, matchups, best }: { units: UnitData[]; 
       {list.map((u) => (
         <div
           key={u.card}
-          className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (best.has(u.card) ? ' best' : '')}
+          className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (best.has(u.card) ? ' best' : '') + (isRoR(u) ? ' is-ror' : '')}
           style={artStyle(u)}
           title={`${u.name}\nNo está en tu ejército: agrégala en la pestaña Ejército para elegirla como atacante`}
         >
@@ -463,7 +463,7 @@ export function UnitTile({ u, selected, dim, title, badge, onClick }: { u: UnitD
   return (
     <button
       type="button"
-      className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (selected ? ' sel' : '') + (dim ? ' dim' : '')}
+      className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (selected ? ' sel' : '') + (dim ? ' dim' : '') + (isRoR(u) ? ' is-ror' : '')}
       style={artStyle(u)}
       title={title ?? u.name}
       onClick={onClick}
@@ -510,7 +510,7 @@ export function UnitBadgeStrip({ units, chars = [], badge, tip, dim, selected, o
   const unitTile = (u: UnitData) => (
     <button
       key={u.card}
-      className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (selected === u.card ? ' sel' : '') + (dim?.(u.card) ? ' dim' : '')}
+      className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (selected === u.card ? ' sel' : '') + (dim?.(u.card) ? ' dim' : '') + (isRoR(u) ? ' is-ror' : '')}
       style={artStyle(u)}
       title={`${u.name}\n${tip(u.card)}`}
       onClick={() => onPick(u.card)}
@@ -622,7 +622,7 @@ export function PickStrip({ cards, units, selected, onPick, matchups, best }: {
         return (
           <button
             key={c.id}
-            className={'utile ' + (GROUP_CLASS[u?.group ?? ''] ?? '') + (u?.art ? ' has-art' : '') + (selected === c.id ? ' sel' : '') + (best?.has(c.id) ? ' best' : '')}
+            className={'utile ' + (GROUP_CLASS[u?.group ?? ''] ?? '') + (u?.art ? ' has-art' : '') + (selected === c.id ? ' sel' : '') + (best?.has(c.id) ? ' best' : '') + (isRoR(u) ? ' is-ror' : '')}
             style={artStyle(u)}
             onClick={() => onPick(c.id)}
             title={c.name}

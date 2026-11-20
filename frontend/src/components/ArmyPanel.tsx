@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { unitRank, type ArmyUnitSelection, type CampaignFaction, type UnitData } from '../types';
 import type { RosterBuffs } from '../App';
 import { campaignUnits } from '../campaign';
-import { groupInfo } from '../unitGroups';
+import { groupInfo, isRoR } from '../unitGroups';
 import { GroupIcon } from '../gameIcons';
 
 const RANKS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -36,7 +36,7 @@ export function BuffMark({ b }: { b?: RosterBuffs[string] }) {
 
 /** Etiquetas de unidades especiales (datos del juego): Renombre, solo campaña, exclusivas, límite, mejora */
 export function SpecialTags({ u, upgradeRank, building }: { u: UnitData; upgradeRank?: number; building?: string[] }) {
-  const ror = /_ror/.test(u.key + u.card);
+  const ror = isRoR(u);
   const excl = u.excl ?? [];
   return (
     <>
@@ -99,7 +99,7 @@ export function ArmyPanel({ units, army, usedSlots, buffs = {}, campaign, onChan
   const filtered = useMemo(() => {
     const qq = q.trim().toLowerCase();
     return units
-      .filter((u) => showRoR || !/_ror/.test(u.key + u.card)) // Regimientos de Renombre
+      .filter((u) => showRoR || !isRoR(u)) // Regimientos de Renombre
       .filter((u) => unitAllowed(u))
       .filter((u) => !qq || u.name.toLowerCase().includes(qq))
       .filter((u) => !onlyBuffed || !!buffs[u.card])

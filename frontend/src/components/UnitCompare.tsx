@@ -147,7 +147,7 @@ export function UnitCompare({ army, cards }: Props) {
                 <th className="cmp-ref-note small muted">{cols.length > 1 ? <>Diferencias contra <b>{cols[0].c?.name ?? 'la primera'}</b> ◆</> : null}</th>
                 {cols.map(({ p, c }, i) => (
                   <th key={pickId(p)} className={i === 0 && cols.length > 1 ? 'cmp-ref' : ''}>
-                    <div className="cmp-head">
+                    <div className={'cmp-head' + (c?.ror ? ' is-ror' : '')} title={c?.ror ? 'Regimiento de Renombre' : undefined}>
                       {c?.art ? <img src={`/units/${c.art}.png`} alt="" loading="lazy" /> : <span className="cmp-noart">?</span>}
                       <div className="cmp-head-txt">
                         <span className="cmp-name" title={c?.name}>{c?.name ?? '…'}</span>

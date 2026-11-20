@@ -170,6 +170,8 @@ export interface UnitData {
   rc?: number;
   upkeep?: number;
   campaignOnly: boolean;
+  /** Regimiento de Renombre (main_units.is_renown del juego) */
+  ror?: boolean;
   models: number;
   mounts: number;
   size: string;
@@ -553,6 +555,8 @@ export interface ComputedCard {
   /** Efectos de contacto extra de sus golpes (mecánicas), además de los de su arma */
   contactFx?: ContactEffect[];
   id: string; // card o clave de personaje
+  /** Regimiento de Renombre */
+  ror?: boolean;
   name: string;
   /** Arte de la carta del juego (/units/<art>.png) */
   art?: string;

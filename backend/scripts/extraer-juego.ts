@@ -421,6 +421,8 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
     };
     // Unidades especiales: solo de campaña (sin permiso de batalla personalizada), límite en campaña, exclusivas de facción
     if (!perms.has(mu.unit)) u.campOnly = true;
+    // Regimiento de Renombre según el juego (main_units.is_renown); no todos llevan "_ror" en la clave
+    if (mu.is_renown) u.ror = true;
     if ((mu.campaign_cap ?? -1) > 0) u.cap = mu.campaign_cap;
     const ex = exclusive.get(mu.unit);
     if (poolOnly.has(mu.unit)) u.excl = [...poolOnly.get(mu.unit)!].map((k) => sp.get(`factions_screen_name_${k}`) ?? k).sort((a, b) => a.localeCompare(b, 'es'));

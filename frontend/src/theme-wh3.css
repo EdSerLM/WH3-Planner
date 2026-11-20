@@ -448,3 +448,19 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
 /* Encabezados del roster y crónica con el color de la raza */
 .rpanel-head { background: linear-gradient(90deg, var(--blood-hi), var(--blood) 55%, transparent); }
 .ad-chronicle { background: linear-gradient(180deg, rgba(240, 211, 145, 0.07), rgba(240, 211, 145, 0.02)), linear-gradient(90deg, var(--race-glow), transparent 40%); }
+
+/* Regimientos de Renombre: marco dorado doble, como el borde de laureles del juego */
+.utile.is-ror {
+  border: 2px solid #f2cf6e;
+  box-shadow: 0 0 0 1px #000, 0 0 0 3px #a8781f, 0 0 14px rgba(242, 207, 110, 0.55), inset 0 0 14px rgba(242, 207, 110, 0.35);
+}
+.utile.is-ror::after {
+  content: '🏅'; position: absolute; left: 50%; bottom: 1px; transform: translateX(-50%); font-size: 12px; line-height: 1;
+  padding: 1px 6px; border-radius: 8px 8px 0 0; background: linear-gradient(#e9c160, #a8781f); box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+  pointer-events: none; z-index: 3;
+}
+.utile.is-ror.sel { box-shadow: 0 0 0 1px #000, 0 0 0 3px var(--gold-hi), 0 0 18px rgba(240, 211, 145, 0.75); }
+.card.is-ror { border-color: #d9b05a; box-shadow: 0 0 0 1px #000, 0 0 0 2px #b8892b, 0 0 16px rgba(242, 207, 110, 0.28); }
+.card.is-ror .card-art { outline: 2px solid #d9b05a; outline-offset: -1px; }
+.ror-badge { margin-right: 5px; }
+.cmp-head.is-ror img { outline: 2px solid #d9b05a; box-shadow: 0 0 10px rgba(242, 207, 110, 0.5); }

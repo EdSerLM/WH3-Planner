@@ -26,3 +26,7 @@ export function groupIndex(g?: string) {
   const i = GROUP_ORDER.indexOf(g ?? '');
   return i < 0 ? GROUP_ORDER.length : i;
 }
+
+/** Regimiento de Renombre: la marca del juego (main_units.is_renown) o "_ror" en la clave, como respaldo */
+export const isRoR = (u?: { key?: string; card?: string; ror?: boolean } | null) =>
+  !!u && (!!u.ror || /_ror/.test(`${u.key ?? ''} ${u.card ?? ''}`));

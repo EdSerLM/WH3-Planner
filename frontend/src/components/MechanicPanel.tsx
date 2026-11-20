@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { isRoR } from '../unitGroups';
 import type { ArmyUnitSelection, BuildSelection, CharacterTree, InitiativeSet, ParsedEffect, UnitData } from '../types';
 import { OfficialImg, StatImg } from '../gameIcons';
 
@@ -36,7 +37,7 @@ const ROMAN = /^(.+) (I|II|III|IV|V)$/;
 const LEVELED = /^(.+?) · nivel (\d+)(?::\s*(.+))?$/;
 // Condiciones que pueden volverse imposibles a mitad de campaña (si ya no quedan esos enemigos)
 const HARD = /Demonio|raza de|contra (los|las|un|una) [A-ZÁÉÍÓÚ]/;
-const isRor = (u: UnitData) => u.cap === 1 || /_ror/.test(u.key);
+const isRor = (u: UnitData) => u.cap === 1 || isRoR(u);
 
 const HELP: Record<string, string> = {
   DA_PLAN: 'Cada táctica pide unidades: si faltan se agregan solas al ejército; si no caben en los 20 espacios (o pide un personaje que no está), no se puede elegir. Las ranuras dependen de las habilidades de Gorbad.',

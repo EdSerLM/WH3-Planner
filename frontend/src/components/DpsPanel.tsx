@@ -2,7 +2,7 @@ import { fmtStat } from '../statFormat';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import type { AbilityTiming, ArmyState, CampaignFaction, ComputedCard, DpsRow, TimedAbilityInfo, UnitData } from '../types';
-import { GROUP_ORDER, groupIndex, groupInfo } from '../unitGroups';
+import { GROUP_ORDER, groupIndex, groupInfo, isRoR } from '../unitGroups';
 import { UnitIcon } from './UnitIcon';
 import { PickStrip, RosterDuelStrip, Tier, type MatchupCount } from './ArmySetup';
 import { campaignUnits } from '../campaign';
@@ -17,15 +17,13 @@ interface Props {
   campaign?: CampaignFaction;
 }
 
-interface Target { key: string; name: string; caste: string; group?: string; cost?: number; models?: number; tier?: number }
+interface Target { ror?: boolean; key: string; name: string; caste: string; group?: string; cost?: number; models?: number; tier?: number }
 interface Faction { key: string; name: string }
 
 type SortKey = 'name' | 'group' | 'tier' | 'hit' | 'dmg' | 'res' | 'dps' | 'ttk' | 'eff' | 'cost' | 'back' | 'duel';
 interface SortState { key: SortKey; dir: 1 | -1 }
 type GroupBy = '' | 'type' | 'tier';
 type Verdict = 'win' | 'even' | 'lose';
-/** Regimiento de Renombre: el juego los marca con "_ror" en la clave de la unidad (igual que el roster) */
-const isRor = (key: string) => /_ror/.test(key);
 
 /** ★ a las de más duelos ganados menos perdidos (empates incluidos), si hay con qué comparar */
 function bestOf(matchups: Record<string, MatchupCount>): Set<string> {
@@ -265,9 +263,11 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
     for (const r of rows) if (r.info?.models === 1) out.add(r.target);
     return out;
   }, [factionUnits, rows]);
+  // Regimientos de Renombre del rival (marca del juego, o "_ror" en la clave si la unidad no está en la lista)
+  const rorKeys = useMemo(() => new Set(factionUnits.filter((u) => isRoR(u)).map((u) => u.key)), [factionUnits]);
   const hidden = useCallback(
-    (key: string) => (!!view.noRor && isRor(key)) || (!view.single && singles.has(key)),
-    [view.noRor, view.single, singles],
+    (key: string) => (!!view.noRor && (rorKeys.has(key) || isRoR({ key }))) || (!view.single && singles.has(key)),
+    [view.noRor, view.single, singles, rorKeys],
   );
   const countDuels = useCallback((d: Record<string, Record<string, Verdict>>) => {
     const out: Record<string, MatchupCount> = {};
@@ -286,7 +286,7 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
   const rest = useMemo(() => {
     const allowed = campaignUnits(campaign);
     const inArmy = new Set(army.units.map((u) => u.card));
-    return units.filter((u) => !inArmy.has(u.card) && (!allowed || allowed.has(u.card)) && (!view.noRorMine || !isRor(u.key + u.card)));
+    return units.filter((u) => !inArmy.has(u.card) && (!allowed || allowed.has(u.card)) && (!view.noRorMine || !isRoR(u)));
   }, [units, campaign, army.units, view.noRorMine]);
   const [restDuels, setRestDuels] = useState<Record<string, Record<string, Verdict>>>({});
   useEffect(() => {

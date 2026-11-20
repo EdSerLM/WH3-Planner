@@ -145,7 +145,7 @@ export function UnitCard({ card, labels, onSelect, selected, selfAbilities = [],
   const buffed = stats.filter((s) => card.stats[s].contributions.length).length;
 
   return (
-    <div className={'card ' + card.kind + (selected ? ' selected' : '')}>
+    <div className={'card ' + card.kind + (selected ? ' selected' : '') + (card.ror ? ' is-ror' : '')}>
       <div
         className={'card-head' + (onSelect ? ' clickable' : '')}
         onClick={onSelect}
@@ -153,7 +153,7 @@ export function UnitCard({ card, labels, onSelect, selected, selfAbilities = [],
       >
         {card.art && <img className="card-art" src={`/units/${card.art}.png`} alt="" />}
         <div className="card-head-text">
-          <div className="card-name">{card.name}</div>
+          <div className="card-name">{card.ror && <span className="ror-badge" title="Regimiento de Renombre: versión única y mejorada de una unidad. En campaña solo puedes tener 1.">🏅</span>}{card.name}</div>
           <div className="muted small">
             {KIND_ES[card.kind]} {card.caste ?? ''} · {card.models} modelo{card.models === 1 ? '' : 's'}
             {card.count > 1 ? ` · ×${card.count} unidades` : ''}

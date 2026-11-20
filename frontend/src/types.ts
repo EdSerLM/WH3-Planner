@@ -218,6 +218,8 @@ export interface UnitData {
   models: number;
   size: string;
   campaignOnly: boolean;
+  /** Regimiento de Renombre (main_units.is_renown del juego) */
+  ror?: boolean;
   /** Límite de unidades en campaña (Regimientos de Renombre = 1) */
   cap?: number;
   /** Solo estas facciones de campaña la pueden tener */
@@ -328,6 +330,8 @@ export interface StatLine {
 
 export interface ComputedCard {
   id: string;
+  /** Regimiento de Renombre */
+  ror?: boolean;
   name: string;
   /** Arte de la carta del juego (/units/<art>.png) */
   art?: string;

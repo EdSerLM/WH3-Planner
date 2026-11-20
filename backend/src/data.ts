@@ -1073,7 +1073,7 @@ export function getUnit(card: string): UnitData | undefined {
 interface CampaignRow { key: string; name: string; subculture: string; leaders: string[]; units: string[]; upgrades?: Record<string, number>; buildings?: Record<string, string[]>; howToPlay?: string }
 interface AllUnitsFile {
   source: string; subcultures: { key: string; name: string; flag?: string }[];
-  units: (Omit<UnitData, 'contact'> & { subcultures: string[]; casteKey?: string; uiGroup?: string; campOnly?: boolean; contact?: { melee?: string; missile?: string } })[];
+  units: (Omit<UnitData, 'contact'> & { subcultures: string[]; casteKey?: string; uiGroup?: string; campOnly?: boolean; ror?: boolean; contact?: { melee?: string; missile?: string } })[];
   /** Efectos de contacto de armas y proyectiles (fase de habilidad del juego -> nombre, duración y stats) */
   contacts?: Record<string, ContactEffect>;
   campaign?: CampaignRow[];
@@ -1130,7 +1130,7 @@ function asRosterUnit(u: AllUnitsFile['units'][number]): UnitData & { subculture
     caste: u.casteKey ?? u.caste,
     category: u.casteKey ?? '',
     group: GROUP_BY_UI[u.uiGroup ?? ''] ?? GROUP_BY_CASTE[u.casteKey ?? ''] ?? 'Infantry',
-    tier: u.tier ?? 0, campaignOnly: !!u.campOnly, mounts: u.mounts ?? 0, entity: '', barrier: u.barrier ?? 0,
+    tier: u.tier ?? 0, campaignOnly: !!u.campOnly, ror: !!u.ror || /_ror/.test(u.key) || undefined, mounts: u.mounts ?? 0, entity: '', barrier: u.barrier ?? 0,
     attrs: u.attrs.map(translateAttribute),
     contact: contactOfUnit(u.contact),
   };
