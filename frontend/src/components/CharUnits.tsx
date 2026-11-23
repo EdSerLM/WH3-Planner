@@ -75,12 +75,22 @@ export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNam
     return out;
   }, [units, rosterCards, buffs, owner, suffix, inBattle]);
 
-  const list = units.filter((u) => skills[u.card]);
+  // Habilidades que llegan a todas las unidades del roster (p. ej. "Ahora me ves…": Acechar a todo el ejército): no son
+  // de una unidad en particular, así que van aparte y no cuentan en las insignias de cada tarjeta
+  const armyWide = useMemo(() => {
+    const ids = units.map((u) => u.card);
+    if (ids.length < 2) return new Set<string>();
+    const sets = ids.map((id) => new Set([...(potential[id]?.now ?? []), ...(potential[id]?.r7 ?? [])]));
+    return new Set([...sets[0]].filter((s) => sets.every((x) => x.has(s))));
+  }, [units, potential]);
+  const notArmy = (x: string) => !armyWide.has(x);
+  const list = units.filter((u) => skills[u.card] && [...skills[u.card].now, ...skills[u.card].r7].some(notArmy));
   const none = { now: [] as string[], r7: [] as string[] };
   // Compradas y las que faltan, por separado: las que cuentan siempre y las que solo cuentan con la unidad en rango 7+
   const info = (id: string) => {
-    const s = skills[id] ?? none;
-    const p = potential[id] ?? none;
+    const s0 = skills[id] ?? none, p0 = potential[id] ?? none;
+    const s = { now: s0.now.filter(notArmy), r7: s0.r7.filter(notArmy) };
+    const p = { now: p0.now.filter(notArmy), r7: p0.r7.filter(notArmy) };
     const have = [...s.now, ...s.r7];
     const missNow = p.now.filter((x) => !have.includes(x));
     const missR7 = p.r7.filter((x) => !have.includes(x) && !missNow.includes(x));
@@ -126,13 +136,23 @@ export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNam
               <button type="button" className={view === 'units' ? 'on' : ''} onClick={() => setView('units')}>Por unidad</button>
             </span>
           </div>
+          {armyWide.size > 0 && view === 'units' && (
+            <p className="small army-wide">
+              <span className="su-chip all">🛡 Todo el ejército</span>{' '}
+              {[...armyWide].map((s) => {
+                const on = Object.values(skills).some((x) => x.now.includes(s) || x.r7.includes(s));
+                return <span key={s} className={'aw-skill ' + (on ? 'ok' : 'off')} title={on ? 'Comprada: la reciben todas las unidades' : 'Sin comprar: la recibirían todas las unidades'}>{on ? '✦' : '○'} {s}</span>;
+              })}
+              <span className="muted"> · no se cuentan en cada unidad</span>
+            </p>
+          )}
           {view === 'skills' ? (
-            <SkillUnits units={units} potential={potential} have={(id) => info(id).have} tree={tree} selection={selection} onChange={onChange}
+            <SkillUnits units={units} potential={potential} armyWide={armyWide} have={(id) => info(id).have} tree={tree} selection={selection} onChange={onChange}
               selected={selected} onPick={(id) => setSelected(selected === id ? null : id)} />
           ) : (
           <UnitBadgeStrip
             units={units}
-            dim={(id) => !skills[id]}
+            dim={(id) => !info(id).have.length}
             badge={(id) => {
               const s = info(id);
               if (!s.total) return { text: '—' };
@@ -156,6 +176,7 @@ export function CharUnits({ owner, units, rosterCards, buffs, labels, abilityNam
       )}
       {sel && (
         <div className="tech-unit-detail">
+          {armyWide.size > 0 && <p className="small muted">Además recibe lo de todo el ejército: {[...armyWide].join(', ')}.</p>}
           <ul className="tech-unit-list small">
             {sel.totalNow > 0 && <li className="list-head">Siempre ({sel.now.length}/{sel.totalNow})</li>}
             {sel.now.map((s) => skillLi(s, '✦', '', 'ok'))}

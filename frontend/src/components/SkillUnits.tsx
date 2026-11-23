@@ -22,6 +22,8 @@ interface Props {
   onChange: (sel: BuildSelection) => void;
   selected: string | null;
   onPick: (card: string) => void;
+  /** Las que llegan a todas las unidades: van primero, en su propio grupo */
+  armyWide?: Set<string>;
 }
 
 // "… a las unidades de Alimañas, Monjes de Plaga y Tríadas Eshin (Ejército del Señor)": las tarjetas ya dicen a quién
@@ -40,7 +42,7 @@ const ALL_OF: Record<string, string> = {
   'Artillery & War Machines': 'Toda la artillería y máquinas de guerra',
 };
 
-export function SkillUnits({ units, potential, have, tree, selection, onChange, selected, onPick }: Props) {
+export function SkillUnits({ units, potential, have, tree, selection, onChange, selected, onPick, armyWide }: Props) {
   // Unidades del roster por tipo (para saber si una habilidad cubre un tipo entero)
   const byGroup = useMemo(() => {
     const m = new Map<string, UnitData[]>();
@@ -66,14 +68,23 @@ export function SkillUnits({ units, potential, have, tree, selection, onChange, 
         m.set(s, cur);
       }
     }
-    return [...m.entries()].sort((a, b) => (order.get(a[0]) ?? 999) - (order.get(b[0]) ?? 999));
-  }, [units, potential, order]);
+    // Grupos: todo el ejército, siempre (por tipo o unidad) y solo con la unidad en rango 7+; dentro, en el orden del árbol
+    // Rango 7+: lo marcan las unidades o todos sus efectos de batalla dicen "(rango N y superior)"
+    const onlyRank = (name: string) => {
+      const fx = (nodeOf.get(name)?.levels[0]?.effects ?? []).filter((e) => e.text && (e.kind === 'battle' || e.kind === 'attribute'));
+      return fx.length > 0 && fx.every((e) => /rango \d+ y superior/i.test(e.text));
+    };
+    const grp = (name: string, r7: boolean) => (armyWide?.has(name) ? 0 : r7 || onlyRank(name) ? 2 : 1);
+    return [...m.entries()].sort((a, b) => grp(a[0], a[1].r7) - grp(b[0], b[1].r7) || (order.get(a[0]) ?? 999) - (order.get(b[0]) ?? 999))
+      .map(([n, i]) => [n, { ...i, grp: grp(n, i.r7) }] as const);
+  }, [units, potential, order, armyWide, nodeOf]);
+  const GROUP_HEAD = ['🛡 A todo el ejército', '✦ Siempre (por tipo o unidad)', 'R7+ Solo con la unidad en rango 7 o más'];
 
   if (!skills.length) return <p className="muted small">Ninguna habilidad de este árbol cambia las tarjetas de las unidades.</p>;
 
   return (
     <div className="skill-units">
-      {skills.map(([name, info]) => {
+      {skills.map(([name, info], idx) => {
         const node = nodeOf.get(name);
         const lvl = node ? levelOf(selection, node) : 0;
         const max = node?.levels.length ?? 0;
@@ -92,14 +103,17 @@ export function SkillUnits({ units, potential, have, tree, selection, onChange, 
         const reason = node ? whyNotBuy(node, selection, tree) : 'Objeto, montura o rasgo';
         const up = node ? buyUp(selection, tree, node) : selection;
         const canUp = !!node && lvl < max && up !== selection && (up.levels?.[node.key] ?? 0) > lvl;
+        const head = idx === 0 || skills[idx - 1][1].grp !== info.grp
+          ? <div className="su-group-head">{GROUP_HEAD[info.grp]} <span className="muted small">({skills.filter((x) => x[1].grp === info.grp).length})</span></div> : null;
         return (
-          <div key={name} className={'su-row' + (lvl > 0 ? ' on' : '')}>
+          <div key={name} style={{ display: 'contents' }}>{head}
+          <div className={'su-row' + (lvl > 0 ? ' on' : '')}>
             <div className="su-skill">
               {node && <SkillIcon node={node} size={30} />}
               <div className="su-body">
                 <div className="su-name">
                   {name}
-                  {info.r7 && <span className="rank-badge" title="Solo cuenta con la unidad en rango 7 o más (o el que pida)">R7+</span>}
+                  {info.grp === 2 && <span className="rank-badge" title="Solo cuenta con la unidad en rango 7 o más (o el que pida)">R7+</span>}
                 </div>
                 {node ? (
                   <div className="su-lvl">
@@ -133,6 +147,7 @@ export function SkillUnits({ units, potential, have, tree, selection, onChange, 
                 </>
               )}
             </div>
+          </div>
           </div>
         );
       })}

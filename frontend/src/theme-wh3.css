@@ -472,3 +472,9 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
   padding: 1px 6px; border-radius: 8px 8px 0 0; background: linear-gradient(#7fd6c2, #2f7f72); box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
   pointer-events: none; z-index: 3;
 }
+
+/* Unidades que reciben bufos: habilidades a todo el ejército y grupos de la vista por habilidad */
+.army-wide { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 6px 0; }
+.army-wide .aw-skill.ok { color: #9be38a; }
+.army-wide .aw-skill.off { color: var(--muted); }
+.su-group-head { grid-column: 1 / -1; margin: 10px 0 2px; padding-bottom: 3px; border-bottom: 1px solid var(--gold-dim); color: var(--gold-hi); font-weight: 700; font-size: 13px; letter-spacing: 0.03em; }
