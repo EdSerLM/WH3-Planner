@@ -153,7 +153,7 @@ export function UnitCard({ card, labels, onSelect, selected, selfAbilities = [],
       >
         {card.art && <img className="card-art" src={`/units/${card.art}.png`} alt="" />}
         <div className="card-head-text">
-          <div className="card-name">{card.ror && <span className="ror-badge" title="Regimiento de Renombre: versión única y mejorada de una unidad. En campaña solo puedes tener 1.">🏅</span>}{card.name}</div>
+          <div className="card-name">{/monst_arcanum/.test(card.id) && <span className="ror-badge" title="Monstrous Arcanum: monstruo de las cacerías de Norsca">📖</span>}{card.ror && <span className="ror-badge" title="Regimiento de Renombre: versión única y mejorada de una unidad. En campaña solo puedes tener 1.">🏅</span>}{card.name}</div>
           <div className="muted small">
             {KIND_ES[card.kind]} {card.caste ?? ''} · {card.models} modelo{card.models === 1 ? '' : 's'}
             {card.count > 1 ? ` · ×${card.count} unidades` : ''}

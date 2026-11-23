@@ -2,7 +2,7 @@ import { fmtStat } from '../statFormat';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import type { AbilityTiming, ArmyState, CampaignFaction, ComputedCard, DpsRow, TimedAbilityInfo, UnitData } from '../types';
-import { GROUP_ORDER, groupIndex, groupInfo, isRoR } from '../unitGroups';
+import { GROUP_ORDER, groupIndex, groupInfo, isRoR, isMA } from '../unitGroups';
 import { UnitIcon } from './UnitIcon';
 import { PickStrip, RosterDuelStrip, Tier, type MatchupCount } from './ArmySetup';
 import { campaignUnits } from '../campaign';
@@ -121,7 +121,7 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
   // grouped (booleano) es de versiones anteriores: equivale a agrupar por tipo
   // noRor: sin Regimientos de Renombre; verdict: solo los duelos con ese resultado;
   // single: mostrar los objetivos de un solo modelo (ocultos por defecto: el duelo no los calcula bien); mode: melee o distancia
-  const [view, setView] = useState<{ sort: SortState; grouped: boolean; groupBy?: GroupBy; noRor?: boolean; noRorMine?: boolean; single?: boolean; verdict?: Verdict | ''; mode?: AttackMode; timing?: AbilityTiming; recharge?: boolean }>(() =>
+  const [view, setView] = useState<{ sort: SortState; grouped: boolean; groupBy?: GroupBy; noRor?: boolean; noRorMine?: boolean; noMa?: boolean; single?: boolean; verdict?: Verdict | ''; mode?: AttackMode; timing?: AbilityTiming; recharge?: boolean }>(() =>
     loadJson(STORE_VIEW, { sort: { key: 'ttk', dir: 1 } as SortState, grouped: false }),
   );
   const groupBy: GroupBy = view.groupBy ?? (view.grouped ? 'type' : '');
@@ -266,8 +266,8 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
   // Regimientos de Renombre del rival (marca del juego, o "_ror" en la clave si la unidad no está en la lista)
   const rorKeys = useMemo(() => new Set(factionUnits.filter((u) => isRoR(u)).map((u) => u.key)), [factionUnits]);
   const hidden = useCallback(
-    (key: string) => (!!view.noRor && (rorKeys.has(key) || isRoR({ key }))) || (!view.single && singles.has(key)),
-    [view.noRor, view.single, singles, rorKeys],
+    (key: string) => (!!view.noRor && (rorKeys.has(key) || isRoR({ key }))) || (!!view.noMa && isMA({ key })) || (!view.single && singles.has(key)),
+    [view.noRor, view.noMa, view.single, singles, rorKeys],
   );
   const countDuels = useCallback((d: Record<string, Record<string, Verdict>>) => {
     const out: Record<string, MatchupCount> = {};
@@ -286,8 +286,8 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
   const rest = useMemo(() => {
     const allowed = campaignUnits(campaign);
     const inArmy = new Set(army.units.map((u) => u.card));
-    return units.filter((u) => !inArmy.has(u.card) && (!allowed || allowed.has(u.card)) && (!view.noRorMine || !isRoR(u)));
-  }, [units, campaign, army.units, view.noRorMine]);
+    return units.filter((u) => !inArmy.has(u.card) && (!allowed || allowed.has(u.card)) && (!view.noRorMine || !isRoR(u)) && (!view.noMa || !isMA(u)));
+  }, [units, campaign, army.units, view.noRorMine, view.noMa]);
   const [restDuels, setRestDuels] = useState<Record<string, Record<string, Verdict>>>({});
   useEffect(() => {
     if (!targets.length || !rest.length || !cards.length) {
@@ -537,6 +537,9 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
         </label>
         <label title="Oculta los Regimientos de Renombre del rival de la tabla y de la lista para agregar objetivos">
           <input type="checkbox" checked={!!view.noRor} onChange={(e) => setView((v) => ({ ...v, noRor: e.target.checked }))} /> del rival
+        </label>
+        <label title="Oculta los monstruos del Monstrous Arcanum (cacerías de Norsca): recompensas y jefes, tuyos y del rival">
+          <input type="checkbox" checked={!!view.noMa} onChange={(e) => setView((v) => ({ ...v, noMa: e.target.checked }))} /> Sin 📖 Monstrous Arcanum
         </label>
         <label title="Unidades de un solo modelo (gigantes, dragones, carros únicos, señores y héroes): el duelo las calcula mal, por eso están ocultas por defecto">
           <input type="checkbox" checked={!!view.single} onChange={(e) => setView((v) => ({ ...v, single: e.target.checked }))} /> Mostrar unidades de un solo modelo{!view.single && hiddenSingles > 0 ? ` (${hiddenSingles} oculta${hiddenSingles === 1 ? '' : 's'})` : ''}

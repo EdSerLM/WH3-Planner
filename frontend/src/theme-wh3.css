@@ -464,3 +464,11 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
 .card.is-ror .card-art { outline: 2px solid #d9b05a; outline-offset: -1px; }
 .ror-badge { margin-right: 5px; }
 .cmp-head.is-ror img { outline: 2px solid #d9b05a; box-shadow: 0 0 10px rgba(242, 207, 110, 0.5); }
+
+/* Monstrous Arcanum (cacerías de Norsca): marco verde escarcha y pestaña 📖 */
+.utile.is-ma { border: 2px solid #7fd6c2; box-shadow: 0 0 0 1px #000, 0 0 0 3px #2f7f72, 0 0 12px rgba(127, 214, 194, 0.45); }
+.utile.is-ma::before {
+  content: '📖'; position: absolute; left: 50%; bottom: 1px; transform: translateX(-50%); font-size: 11px; line-height: 1;
+  padding: 1px 6px; border-radius: 8px 8px 0 0; background: linear-gradient(#7fd6c2, #2f7f72); box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+  pointer-events: none; z-index: 3;
+}

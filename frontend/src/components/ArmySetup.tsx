@@ -4,7 +4,7 @@ import { api } from '../api';
 import { unitRank, type AbilityInfo, type ArmyUnitSelection, type BannerOption, type CampaignFaction, type ComputedCard, type StatKey, type UnitData } from '../types';
 import type { RosterBuffs } from '../App';
 import { campaignUnits } from '../campaign';
-import { groupIndex, groupInfo, isRoR } from '../unitGroups';
+import { groupIndex, groupInfo, isRoR, isMA, isMABoss } from '../unitGroups';
 import { BuffMark, SpecialTags } from './ArmyPanel';
 import { BannerPick } from './BannerPick';
 import { UnitIcon } from './UnitIcon';
@@ -147,6 +147,7 @@ function gainTitle(g: Gain, group: string) {
 export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, campaign, compact, onChange, onEditChar, bannerOptions }: Props) {
   const [q, setQ] = useState('');
   const [showRoR, setShowRoR] = useState(false);
+  const [showMA, setShowMA] = useState(true);
   const [onlyBuffed, setOnlyBuffed] = useState(false);
   const [showRoster, setShowRoster] = useState(true);
   const [selected, setSelected] = useState<Focus>(null);
@@ -179,6 +180,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
     const qq = q.trim().toLowerCase();
     const list = units
       .filter((u) => showRoR || !isRoR(u))
+      .filter((u) => !isMABoss(u) && (showMA || !isMA(u))) // Monstrous Arcanum: los jefes de cacería no se reclutan
       .filter((u) => !allowed || allowed.has(u.card))
       .filter((u) => !qq || u.name.toLowerCase().includes(qq))
       .filter((u) => !onlyBuffed || !!buffs[u.card])
@@ -187,7 +189,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
     const m = new Map<string, UnitData[]>();
     for (const u of list) m.set(u.group, [...(m.get(u.group) ?? []), u]);
     return [...m.entries()].sort((a, b) => groupIndex(a[0]) - groupIndex(b[0]));
-  }, [units, q, showRoR, onlyBuffed, buffs, allowed]);
+  }, [units, q, showRoR, showMA, onlyBuffed, buffs, allowed]);
 
   const add = (card: string) => {
     if (usedSlots >= 20) return;
@@ -267,7 +269,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
           return (
             <button
               key={sel.card + i}
-              className={'utile ' + (GROUP_CLASS[g] ?? '') + (u?.art ? ' has-art' : '') + (selected?.kind === 'unit' && selected.card === sel.card ? ' sel' : '') + (isRoR(u) ? ' is-ror' : '')}
+              className={'utile ' + (GROUP_CLASS[g] ?? '') + (u?.art ? ' has-art' : '') + (selected?.kind === 'unit' && selected.card === sel.card ? ' sel' : '') + (isRoR(u) ? ' is-ror' : '') + (isMA(u) ? ' is-ma' : '')}
               style={artStyle(u)}
               onMouseEnter={() => setHover({ kind: 'unit', card: sel.card })}
               onMouseLeave={() => setHover(null)}
@@ -352,6 +354,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
             <div className="roster-tools">
               <input placeholder="Buscar unidad…" value={q} onChange={(e) => setQ(e.target.value)} />
               <label><input type="checkbox" checked={showRoR} onChange={(e) => setShowRoR(e.target.checked)} /> Regimientos de Renombre</label>
+              <label title="Monstruos de las cacerías del Monstrous Arcanum (Norsca): recompensas y jefes"><input type="checkbox" checked={showMA} onChange={(e) => setShowMA(e.target.checked)} /> 📖 Monstrous Arcanum</label>
               <label title="Solo las unidades que reciben bufos de tu señor, héroes o tecnologías">
                 <input type="checkbox" checked={onlyBuffed} disabled={!anyBuffs} onChange={(e) => setOnlyBuffed(e.target.checked)} /> Solo con bufos
               </label>
@@ -370,7 +373,7 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
                       return (
                         <button
                           key={u.card}
-                          className={'utile ' + (GROUP_CLASS[g] ?? '') + (u.art ? ' has-art' : '') + (b ? ' buffed' : '') + (n ? ' in-army' : '') + (isRoR(u) ? ' is-ror' : '')}
+                          className={'utile ' + (GROUP_CLASS[g] ?? '') + (u.art ? ' has-art' : '') + (b ? ' buffed' : '') + (n ? ' in-army' : '') + (isRoR(u) ? ' is-ror' : '') + (isMA(u) ? ' is-ma' : '')}
                           style={artStyle(u)}
                           onClick={() => add(u.card)}
                           onMouseEnter={() => setHover({ kind: 'unit', card: u.card })}
@@ -443,7 +446,7 @@ export function RosterDuelStrip({ units, matchups, best }: { units: UnitData[]; 
       {list.map((u) => (
         <div
           key={u.card}
-          className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (best.has(u.card) ? ' best' : '') + (isRoR(u) ? ' is-ror' : '')}
+          className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (best.has(u.card) ? ' best' : '') + (isRoR(u) ? ' is-ror' : '') + (isMA(u) ? ' is-ma' : '')}
           style={artStyle(u)}
           title={`${u.name}\nNo está en tu ejército: agrégala en la pestaña Ejército para elegirla como atacante`}
         >
@@ -463,7 +466,7 @@ export function UnitTile({ u, selected, dim, title, badge, onClick }: { u: UnitD
   return (
     <button
       type="button"
-      className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (selected ? ' sel' : '') + (dim ? ' dim' : '') + (isRoR(u) ? ' is-ror' : '')}
+      className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (selected ? ' sel' : '') + (dim ? ' dim' : '') + (isRoR(u) ? ' is-ror' : '') + (isMA(u) ? ' is-ma' : '')}
       style={artStyle(u)}
       title={title ?? u.name}
       onClick={onClick}
@@ -510,7 +513,7 @@ export function UnitBadgeStrip({ units, chars = [], badge, tip, dim, selected, o
   const unitTile = (u: UnitData) => (
     <button
       key={u.card}
-      className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (selected === u.card ? ' sel' : '') + (dim?.(u.card) ? ' dim' : '') + (isRoR(u) ? ' is-ror' : '')}
+      className={'utile ' + (GROUP_CLASS[u.group] ?? '') + (u.art ? ' has-art' : '') + (selected === u.card ? ' sel' : '') + (dim?.(u.card) ? ' dim' : '') + (isRoR(u) ? ' is-ror' : '') + (isMA(u) ? ' is-ma' : '')}
       style={artStyle(u)}
       title={`${u.name}\n${tip(u.card)}`}
       onClick={() => onPick(u.card)}
@@ -622,7 +625,7 @@ export function PickStrip({ cards, units, selected, onPick, matchups, best }: {
         return (
           <button
             key={c.id}
-            className={'utile ' + (GROUP_CLASS[u?.group ?? ''] ?? '') + (u?.art ? ' has-art' : '') + (selected === c.id ? ' sel' : '') + (best?.has(c.id) ? ' best' : '') + (isRoR(u) ? ' is-ror' : '')}
+            className={'utile ' + (GROUP_CLASS[u?.group ?? ''] ?? '') + (u?.art ? ' has-art' : '') + (selected === c.id ? ' sel' : '') + (best?.has(c.id) ? ' best' : '') + (isRoR(u) ? ' is-ror' : '') + (isMA(u) ? ' is-ma' : '')}
             style={artStyle(u)}
             onClick={() => onPick(c.id)}
             title={c.name}

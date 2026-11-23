@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { unitRank, type ArmyUnitSelection, type CampaignFaction, type UnitData } from '../types';
 import type { RosterBuffs } from '../App';
 import { campaignUnits } from '../campaign';
-import { groupInfo, isRoR } from '../unitGroups';
+import { groupInfo, isRoR, isMA, isMABoss } from '../unitGroups';
 import { GroupIcon } from '../gameIcons';
 
 const RANKS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -84,6 +84,7 @@ export function ArmyPanel({ units, army, usedSlots, buffs = {}, campaign, onChan
   const unitAllowed = (u: UnitData) => !allowed || allowed.has(u.card);
   const [q, setQ] = useState('');
   const [showRoR, setShowRoR] = useState(false);
+  const [showMA, setShowMA] = useState(true);
   const [onlyBuffed, setOnlyBuffed] = useState(false);
   // El roster se abre en una ventana encima (así no ocupa la columna ni tiene su propia barra de desplazamiento)
   const [picking, setPicking] = useState(false);
@@ -99,12 +100,13 @@ export function ArmyPanel({ units, army, usedSlots, buffs = {}, campaign, onChan
   const filtered = useMemo(() => {
     const qq = q.trim().toLowerCase();
     return units
-      .filter((u) => showRoR || !isRoR(u)) // Regimientos de Renombre
+      .filter((u) => showRoR || !isRoR(u))
+      .filter((u) => !isMABoss(u) && (showMA || !isMA(u))) // Monstrous Arcanum: los jefes de cacería no se reclutan // Regimientos de Renombre
       .filter((u) => unitAllowed(u))
       .filter((u) => !qq || u.name.toLowerCase().includes(qq))
       .filter((u) => !onlyBuffed || !!buffs[u.card])
       .sort((a, b) => (GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group)) || a.cost - b.cost);
-  }, [units, q, showRoR, onlyBuffed, buffs, allowed]);
+  }, [units, q, showRoR, showMA, onlyBuffed, buffs, allowed]);
 
   const grouped = useMemo(() => {
     const m = new Map<string, UnitData[]>();
@@ -187,6 +189,7 @@ export function ArmyPanel({ units, army, usedSlots, buffs = {}, campaign, onChan
               <span className={usedSlots > 20 ? 'bad' : ''}>{usedSlots} / 20</span>
               <input autoFocus placeholder="Buscar unidad…" value={q} onChange={(e) => setQ(e.target.value)} />
               <label><input type="checkbox" checked={showRoR} onChange={(e) => setShowRoR(e.target.checked)} /> Regimientos de Renombre</label>
+              <label title="Monstruos de las cacerías del Monstrous Arcanum (Norsca): recompensas y jefes"><input type="checkbox" checked={showMA} onChange={(e) => setShowMA(e.target.checked)} /> 📖 Monstrous Arcanum</label>
               <label title="Muestra solo las unidades que reciben bufos de tu señor, héroes o tecnologías">
                 <input type="checkbox" checked={onlyBuffed} disabled={!anyBuffs} onChange={(e) => setOnlyBuffed(e.target.checked)} /> Solo con bufos
               </label>

@@ -30,3 +30,8 @@ export function groupIndex(g?: string) {
 /** Regimiento de Renombre: la marca del juego (main_units.is_renown) o "_ror" en la clave, como respaldo */
 export const isRoR = (u?: { key?: string; card?: string; ror?: boolean } | null) =>
   !!u && (!!u.ror || /_ror/.test(`${u.key ?? ''} ${u.card ?? ''}`));
+
+/** Monstruo del Monstrous Arcanum (cacerías de Norsca): recompensa (…_monst_arcanum_reward) o jefe de la cacería (…_monst_arcanum) */
+export const isMA = (u?: { key?: string; card?: string } | null) => !!u && /monst_arcanum/.test(`${u.key ?? ''} ${u.card ?? ''}`);
+/** Jefe de una cacería del Monstrous Arcanum: enemigo, no se recluta (las recompensas terminan en _reward) */
+export const isMABoss = (u?: { key?: string } | null) => !!u && /monst_arcanum$/.test(u.key ?? '');
