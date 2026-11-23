@@ -71,7 +71,7 @@ interface GameCharacter {
   /** Espacios de hechizo elegibles (Kairos): cada uno se abre con una habilidad del árbol */
   spellSlots?: { k: string; n: string; r: string; o: number; by: string; ef: string; opts: { k: string; lore: string; lk: string; n: string; e: GameEffect[] }[] }[] | null;
   /** Iniciativas del personaje (Senda a la Gloria, Ofrenda a las Fauces, Libros de Nagash...) */
-  initiatives?: { k: string; cat: string; n: string; fac?: string; max?: number; god?: string; top?: number; track?: { at: number; kind: string; key: string; n?: string; icon?: string }[]; items: { k: string; n: string; req?: string; locked?: boolean; e: GameEffect[]; need?: { s: string; n: number }[]; img?: string; tier?: number; dur?: number; cd?: number; g?: string; l?: string }[]; rows?: boolean; secs?: string[]; usets?: Record<string, { n: string; icon?: string; units: string[] }> }[] | null;
+  initiatives?: { k: string; cat: string; n: string; fac?: string; nfac?: string; max?: number; god?: string; top?: number; track?: { at: number; kind: string; key: string; n?: string; icon?: string }[]; items: { k: string; n: string; req?: string; locked?: boolean; e: GameEffect[]; need?: { s: string; n: number }[]; img?: string; tier?: number; dur?: number; cd?: number; g?: string; l?: string }[]; rows?: boolean; secs?: string[]; usets?: Record<string, { n: string; icon?: string; units: string[] }> }[] | null;
 }
 interface GameSkillsFile {
   source: string; format: number; subcultures: { key: string; name: string }[]; characters: GameCharacter[];
@@ -774,7 +774,7 @@ function buildGameTree(c: GameCharacter, faction: string): CharacterTree {
   if (c.initiatives?.length) {
     // Iniciativas del personaje: los dones se eligen (hasta "max"); las devociones/ascensos solo se informan
     tree.initiativeSets = c.initiatives.map((s) => ({
-      key: s.k, category: s.cat, name: s.n, faction: s.fac, max: s.max ?? 0,
+      key: s.k, category: s.cat, name: s.n, faction: s.fac, notFaction: s.nfac, max: s.max ?? 0,
       god: s.god, top: s.top, track: s.track?.map((t) => ({ ...t, art: t.kind === 'unit' ? artOfUnit(t.key) : undefined })), selectable: s.cat !== 'PATH_TO_GLORY_MARK',
       items: s.items.map((i) => ({ key: i.k, name: i.n, requirement: i.req, locked: !!i.locked, effects: gameEffects(i.e), need: i.need, img: i.img, tier: i.tier, duration: i.dur, cooldown: i.cd, group: i.g, level: i.l,
         benefits: [...new Set(i.e.flatMap((e) => (e.s.u !== undefined && !ALLIED_ONLY.test(e.k) ? gameFile?.unitLists[e.s.u] ?? [] : [])))] })),

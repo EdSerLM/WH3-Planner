@@ -105,6 +105,8 @@ export const SKILL_TABLES = [
   'rituals_tables', 'ritual_payload_ancillaries_tables',
   // Colegios de Magia (Gelt): coste de cada ritual en Ensayos Arcanos
   'resource_cost_pooled_resource_junctions_tables',
+  // Norsca: umbrales de altares de cada nivel de Devoción a los Dioses
+  'campaign_group_member_criteria_numeric_ranges_tables',
   // Acciones de héroe en su ejército (Instrucción, Formación de asalto...): acción -> resultados con efecto y valor; mejoras por habilidad
   'agent_actions_tables', 'action_results_additional_outcomes_tables', 'effect_bonus_value_id_action_results_additional_outcomes_junctions_tables',
   // Guaridas de Vampiros: edificios secundarios que se eligen al despertar a un vampiro
@@ -1199,6 +1201,57 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     mech.push({
       who: (sub, t, scs) => isLord(t) && scs.includes('wh3_main_sc_tze_tzeentch'),
       sets: [{ k: 'mech:changeling_schemes', cat: 'CHANGELING_SCHEMES', fac: 'wh3_dlc24_tze_the_deceivers', n: 'Maquinaciones del Embustero', max: 0, secs: theatres.map(secOf), items }],
+    });
+  }
+  // Norsca: Devoción a los Dioses (todos los legendarios norses menos Sayl) y, para Sayl el Infiel, Ritual oscuro y
+  // Manipulaciones (wh3_dlc27_nor_sayl_manipulation.lua). Cada altar suma 1 al dios al que está dedicado
+  {
+    const rng = new Map(T['campaign_group_member_criteria_numeric_ranges_tables'].map((r) => [r.member, r]));
+    const GODS: [string, string, string][] = [['khorne', 'hound', 'El Mastín (Khorne)'], ['nurgle', 'crow', 'El Cuervo (Nurgle)'], ['slaanesh', 'serpent', 'La Serpiente (Slaanesh)'], ['tzeentch', 'eagle', 'El Águila (Tzeentch)']];
+    const clean = (t?: string | null) => t?.replace(/\{\{tr:[^}]*\}\}\s*-?\s*/g, '').replace(/\[\[\/?[a-z]+(:[^\]]*)?\]\]/g, '').replace(/\s+/g, ' ').trim();
+    const godItems = GODS.flatMap(([g, , sec], i) => [1, 2, 3, 4].map((n) => {
+      const b = `wh_dlc08_bundle_god_bar_${g}_${n}`, r = rng.get(b);
+      const alt = r ? (r.max_range >= 15 || n === 4 ? `${r.min_range}+ altares` : `${r.min_range}–${r.max_range} altares`) : '';
+      return strip({ k: `god:${b}`, n: `${['I', 'II', 'III', 'IV'][n - 1]}. ${clean(L(`effect_bundles_localised_title_${b}`))?.replace(/\s*-\s*Nivel \d+$/, '') || sec}`, tier: i + 1, sec,
+        req: [`Nivel ${n} de ${sec}${alt ? ` · ${alt} dedicados` : ''}`, n === 4 ? 'Al llegar te ofrecen a su campeón; los demás dioses te rechazan y no te ofrecen el suyo' : ''].filter(Boolean).join('\n'),
+        e: effRows(bundleEff.get(b) ?? [], 'effect_key') });
+    }));
+    mech.push({
+      who: (sub, t, scs) => isLord(t) && scs.includes('wh_dlc08_sc_nor_norsca'),
+      sets: [{ k: 'mech:norsca_gods', cat: 'NORSCA_GODS', nfac: 'wh3_dlc27_nor_sayl', n: 'Devoción a los Dioses', max: 0, secs: GODS.map((x) => x[2]), items: godItems }],
+    });
+    // Sayl: etapas del Ritual oscuro (altares del Caos Absoluto: 4 / 10 / 18 / 30) y manipulaciones por nivel
+    const STAGES = [4, 10, 18, 30];
+    const ritual = STAGES.map((a, i) => {
+      const b = `wh3_dlc27_nor_sayl_narrative_t${i + 1}`, bb = `${b}_battle`;
+      return strip({ k: `sayl:${b}`, n: clean(L(`effect_bundles_localised_title_${b}`)) ?? `Etapa ${i + 1}`, tier: i + 1, sec: 'Ritual oscuro',
+        req: `${a} altares del Caos Absoluto${i < 3 ? ' · al vencer el encuentro: +5000 de oro y desbloquea el siguiente nivel de Manipulaciones' : ' · victoria de campaña'}`,
+        e: [...effRows(bundleEff.get(b) ?? [], 'effect_key'), ...effRows((bundleEff.get(bb) ?? []).filter((r) => !/treasury/.test(r.effect_key)), 'effect_key')] });
+    });
+    const TIERS: [string[], string][] = [
+      [['faction_vision', 'force_bundle', 'region_spoils', 'self_magic'], 'Nivel 0 · Atención +1 a +3'],
+      [['faction_recruitment', 'force_movement', 'region_foreign', 'self_recruit'], 'Nivel I · Atención +2 a +4'],
+      [['faction_treaties', 'force_damage', 'region_garrison', 'self_daemon'], 'Nivel II · Atención +3 a +5'],
+      [['faction_war', 'force_rebel', 'region_destroy', 'self_force'], 'Nivel III · Atención +8'],
+    ];
+    const rit = new Map(T['rituals_tables'].filter((r) => /^SAYL_/.test(r.category)).map((r) => [r.key, r]));
+    const manip = TIERS.flatMap(([ks, sec], i) => ks.map((k) => rit.get(`wh3_dlc27_sayl_manipulations_${k}`)).filter(Boolean).map((r) => {
+      const it = ritualItem(r!, { tier: i + 1, sec });
+      const desc = clean(L(`rituals_description_${r!.key}`));
+      // Las que afectan a un enemigo no son bufos tuyos: sus efectos van como texto para que no se sumen a tus tarjetas
+      const onEnemy = r!.category !== 'SAYL_SELF';
+      const fx = onEnemy ? ((it.e ?? []) as Row[]).map((e) => e.d).filter(Boolean) : [];
+      if (onEnemy) it.e = [];
+      it.req = [`Recarga ${r!.cooldown_time} turnos · objetivo: ${({ SAYL_FACTION: 'una facción', SAYL_FORCE: 'un ejército', SAYL_REGION: 'un asentamiento', SAYL_SELF: 'Sayl' } as Row)[r!.category]}`,
+        ...fx.map((d) => `• ${d}`), desc].filter(Boolean).join('\n');
+      return it;
+    }));
+    mech.push({
+      who: (sub, t, scs) => isLord(t) && scs.includes('wh_dlc08_sc_nor_norsca'),
+      sets: [
+        { k: 'mech:sayl_ritual', cat: 'SAYL_RITUAL', fac: 'wh3_dlc27_nor_sayl', n: 'Ritual oscuro', max: 0, secs: ['Ritual oscuro'], items: ritual },
+        { k: 'mech:sayl_manip', cat: 'SAYL_MANIP', fac: 'wh3_dlc27_nor_sayl', n: 'Manipulaciones', max: 0, secs: TIERS.map((x) => x[1]), items: manip },
+      ],
     });
   }
   // Kislev: favores de la Corte de Hielo / la Gran Ortodoxia y rituales de la Madre Patria

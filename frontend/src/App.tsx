@@ -933,7 +933,7 @@ const MECH_TAB: [RegExp, string][] = [
 ];
 /** Mecánicas que se ven con la facción de campaña elegida (las de otra facción se ocultan; las cortes siempre) */
 function visibleSets<T extends { category: string; faction?: string }>(sets: T[] | undefined, campaign?: string): T[] {
-  return (sets ?? []).filter((s) => !s.faction || !campaign || s.faction === campaign || s.category === 'COURT');
+  return (sets ?? []).filter((s) => !(s.notFaction && campaign === s.notFaction) && (!s.faction || !campaign || s.faction === campaign || s.category === 'COURT'));
 }
 function mechTabLabel(sets: { category: string; faction?: string }[], campaign?: string) {
   const mine = visibleSets(sets, campaign);

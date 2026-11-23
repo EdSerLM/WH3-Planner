@@ -21556,6 +21556,40 @@
           "StringU8"
         ]
       ]
+    },
+    "campaign_group_member_criteria_numeric_ranges_tables": {
+      "1": [
+        [
+          "max_range",
+          "I32"
+        ],
+        [
+          "member",
+          "StringU8"
+        ],
+        [
+          "min_range",
+          "I32"
+        ],
+        [
+          "context",
+          "StringU8"
+        ]
+      ],
+      "0": [
+        [
+          "max_range",
+          "I32"
+        ],
+        [
+          "member",
+          "StringU8"
+        ],
+        [
+          "min_range",
+          "I32"
+        ]
+      ]
     }
   }
 }

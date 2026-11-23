@@ -140,6 +140,8 @@ export interface HeroAction {
 
 export interface InitiativeSet {
   key: string; category: string; name: string; faction?: string; max: number; selectable: boolean;
+  /** Facción en la que NO aplica (p. ej. Devoción a los Dioses: todos los norses menos Sayl) */
+  notFaction?: string;
   /** Gloria demoníaca: dios, gloria máxima y línea de umbrales (ofrendas, unidades, dones) como en la pantalla del juego */
   god?: string; top?: number;
   track?: { at: number; kind: string; key: string; n?: string; icon?: string; art?: string }[];

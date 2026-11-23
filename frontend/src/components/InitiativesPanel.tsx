@@ -22,7 +22,7 @@ export function InitiativesPanel({ tree, selection, onChange, campaign, army }: 
   const all = tree.initiativeSets ?? [];
   // Cortes (Consejo de los Elfos, Congregación de los Antiguos...): solo la de la facción de campaña, si hay una elegida
   const mine = all.filter((s) => s.category === 'COURT' && s.faction === campaign);
-  const sets = all.filter((s) => !s.faction || !campaign || s.faction === campaign || (s.category === 'COURT' && mine.length === 0));
+  const sets = all.filter((s) => !(s.notFaction && campaign === s.notFaction) && (!s.faction || !campaign || s.faction === campaign || (s.category === 'COURT' && mine.length === 0)));
   const glory = sets.filter((s) => s.category === 'GLORY');
   const rest = sets.filter((s) => s.category !== 'GLORY');
   return (
