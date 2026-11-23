@@ -1212,13 +1212,25 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
     const godItems = GODS.flatMap(([g, , sec], i) => [1, 2, 3, 4].map((n) => {
       const b = `wh_dlc08_bundle_god_bar_${g}_${n}`, r = rng.get(b);
       const alt = r ? (r.max_range >= 15 || n === 4 ? `${r.min_range}+ altares` : `${r.min_range}–${r.max_range} altares`) : '';
+      // Un nivel por dios (cada nivel reemplaza al anterior): fila = dios, pieza = nivel
       return strip({ k: `god:${b}`, n: `${['I', 'II', 'III', 'IV'][n - 1]}. ${clean(L(`effect_bundles_localised_title_${b}`))?.replace(/\s*-\s*Nivel \d+$/, '') || sec}`, tier: i + 1, sec,
-        req: [`Nivel ${n} de ${sec}${alt ? ` · ${alt} dedicados` : ''}`, n === 4 ? 'Al llegar te ofrecen a su campeón; los demás dioses te rechazan y no te ofrecen el suyo' : ''].filter(Boolean).join('\n'),
+        g: sec, l: ['I', 'II', 'III', 'IV'][n - 1],
+        req: [`Nivel ${n} de ${sec}${alt ? ` · ${alt} dedicados` : ''}`, n === 1 ? 'Activo aunque no tengas altares de este dios' : '',
+          n === 4 ? 'Te ofrece a su campeón (solo puedes aceptar uno en toda la campaña); si lo aceptas, el dios rival te manda un ejército retador' : ''].filter(Boolean).join('\n'),
         e: effRows(bundleEff.get(b) ?? [], 'effect_key') });
     }));
+    // Campeones (wh_dlc08_norscan_gods.lua): aceptar uno trae al retador del dios rival (Khorne↔Slaanesh, Nurgle↔Tzeentch);
+    // rechazar a los cuatro trae a los cuatro retadores. Vencerlos da una de estas dos recompensas (se excluyen)
+    const CH = 'Campeones';
+    godItems.push(
+      strip({ k: 'god:rival', n: clean(L('effect_bundles_localised_title_wh3_dlc27_bundle_nor_allegiance_victory_against_rival')) ?? 'Rival destruido', tier: 5, sec: CH, g: CH, l: 'Aceptado',
+        req: 'Aceptaste al campeón de un dios y destruiste al retador de su dios rival', e: effRows(bundleEff.get('wh3_dlc27_bundle_nor_allegiance_victory_against_rival') ?? [], 'effect_key') }),
+      strip({ k: 'god:refusal', n: clean(L('effect_bundles_localised_title_wh3_dlc27_bundle_nor_allegiance_ultimate_refusal')) ?? 'Campeones deshechos', tier: 5, sec: CH, g: CH, l: 'Rechazados',
+        req: 'Rechazaste a los cuatro campeones y destruiste a los cuatro retadores', e: effRows(bundleEff.get('wh3_dlc27_bundle_nor_allegiance_ultimate_refusal') ?? [], 'effect_key') }),
+    );
     mech.push({
       who: (sub, t, scs) => isLord(t) && scs.includes('wh_dlc08_sc_nor_norsca'),
-      sets: [{ k: 'mech:norsca_gods', cat: 'NORSCA_GODS', nfac: 'wh3_dlc27_nor_sayl', n: 'Devoción a los Dioses', max: 0, secs: GODS.map((x) => x[2]), items: godItems }],
+      sets: [{ k: 'mech:norsca_gods', cat: 'NORSCA_GODS', nfac: 'wh3_dlc27_nor_sayl', n: 'Devoción a los Dioses', max: 0, rows: true, secs: [...GODS.map((x) => x[2]), 'Campeones'], items: godItems }],
     });
     // Sayl: etapas del Ritual oscuro (altares del Caos Absoluto: 4 / 10 / 18 / 30) y manipulaciones por nivel
     const STAGES = [4, 10, 18, 30];
