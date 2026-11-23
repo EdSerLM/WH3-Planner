@@ -478,3 +478,4 @@ select optgroup { background: #0f0b09; color: var(--gold); font-style: normal; f
 .army-wide .aw-skill.ok { color: #9be38a; }
 .army-wide .aw-skill.off { color: var(--muted); }
 .su-group-head { grid-column: 1 / -1; margin: 10px 0 2px; padding-bottom: 3px; border-bottom: 1px solid var(--gold-dim); color: var(--gold-hi); font-weight: 700; font-size: 13px; letter-spacing: 0.03em; }
+.item-how { color: #d9b8f0; margin-top: 2px; }

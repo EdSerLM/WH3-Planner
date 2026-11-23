@@ -34,7 +34,7 @@ export function ItemsPanel({ tree, selection, onChange, campaign }: Props) {
   const generic = useMemo(() => items.filter((i) => i.generic), [items]);
   const genHits = useMemo(() => {
     const t = norm(q.trim());
-    return generic.filter((i) => (!cat || i.category === cat) && (!t || norm(i.name).includes(t) || i.effects.some((e) => e.text && norm(e.text).includes(t))));
+    return generic.filter((i) => (!cat || (cat === '__how' ? !!i.how : i.category === cat)) && (!t || norm(i.name).includes(t) || norm(i.how ?? '').includes(t) || i.effects.some((e) => e.text && norm(e.text).includes(t))));
   }, [generic, q, cat]);
   if (!items.length) return null;
   const armoryKeys = new Set([...(tree.armory?.items ?? []).map((i) => i.key), ...(tree.spellSlots ?? []).flatMap((s) => s.options.map((o) => o.key)), ...(tree.initiativeSets ?? []).flatMap((s) => s.items.map((i) => i.key))]);
@@ -83,7 +83,7 @@ export function ItemsPanel({ tree, selection, onChange, campaign }: Props) {
       <span className="item-icon">{CAT_ICON[it.category] ?? '•'}</span>
       <span>
         {it.name}
-        <span className="muted small"> · {CAT_ES[it.category] ?? it.category}{it.rarity ? ` · ${RARITY_ES[it.rarity]}` : ''}{it.rank ? ` · rango ${it.rank}` : ''}{(it.owners ?? 1) > 1 ? ` · lo pueden llevar ${it.owners}` : ''}{it.onlyFactions ? ' · de una sola facción' : ''}</span>
+        <span className="muted small"> · {CAT_ES[it.category] ?? it.category}{it.rarity ? ` · ${RARITY_ES[it.rarity]}` : ''}{it.rank ? ` · rango ${it.rank}` : ''}{(it.owners ?? 1) > 1 ? ` · lo pueden llevar ${it.owners}` : ''}{it.onlyFactions ? ' · de una sola facción' : ''}{it.how ? ' · 🎭 maquinación' : ''}</span>
       </span>
     </button>
   );
@@ -117,6 +117,7 @@ export function ItemsPanel({ tree, selection, onChange, campaign }: Props) {
                 <input autoFocus value={q} placeholder="Buscar por nombre o efecto (p. ej. fuerza del arma, armadura)" onChange={(e) => setQ(e.target.value)} />
                 <select value={cat} onChange={(e) => setCat(e.target.value)}>
                   <option value="">Todas</option>
+                  {generic.some((i) => i.how) && <option value="__how">🎭 De maquinaciones ({generic.filter((i) => i.how).length})</option>}
                   {GEN_CATS.filter((c) => generic.some((i) => i.category === c)).map((c) => <option key={c} value={c}>{CAT_ES[c] ?? c}</option>)}
                 </select>
                 <button className="ghost" onClick={() => { setOpenGen(false); setQ(''); setCat(''); }}>Cerrar</button>
@@ -152,6 +153,7 @@ function ItemTip({ item, rect, tree }: { item: ItemInfo; rect: DOMRect; tree: Ch
       {item.description && <div className="tt-desc">{item.description}</div>}
       {item.rarity ? <div className="small muted">{item.category === 'follower' ? 'Seguidor' : 'Objeto'} {RARITY_ES[item.rarity]}{item.onlyFactions ? ' · solo para una facción' : ''}</div> : null}
       {item.rank ? <div className="small">{item.questBattle ? 'Batalla de misión' : 'Misión'} al llegar a rango {item.rank}</div> : null}
+      {item.how ? <div className="small item-how">🎭 {item.how}</div> : null}
       <ul>
         {item.effects.filter((e) => e.text).map((e, i) => {
           const ab = e.ability ? tree.abilityInfo[e.ability] : undefined;

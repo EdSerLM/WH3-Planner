@@ -188,6 +188,8 @@ export interface ItemInfo {
   category: string;
   rank?: number;
   questBattle?: boolean;
+  /** Cómo se consigue (p. ej. la maquinación del Cambiante que lo da) */
+  how?: string;
   effects: ParsedEffect[];
   ability?: string;
   /** Cuántos personajes distintos pueden llevarlo (1 = solo este) */

@@ -79,7 +79,7 @@ interface GameSkillsFile {
   techTrees?: GameTechTree[]; techs?: Record<string, GameTech>;
   ancillaries?: Record<string, { n: string; d?: string; cat: string; e: GameEffect[]; u?: number; sub?: string }>;
   /** Objetos de campaña que no son de un personaje (botín, seguidores, únicos del mundo) y estandartes de botín */
-  loot?: { k: string; fs?: string; ag?: string[] }[];
+  loot?: { k: string; fs?: string; ag?: string[]; how?: string }[];
   lootBanners?: { k: string; fs?: string; ag?: string[] }[];
   /** Qué subculturas (sc) o facciones sueltas (f) pueden tener los objetos de cada faction_set; fx = facciones excluidas */
   factionSets?: Record<string, { sc: string[]; f?: string[]; fx?: string[] }>;
@@ -656,6 +656,7 @@ function genericItems(c: GameCharacter, faction: string, skip: Set<string>): Ite
       };
       genericCache.set(l.k, it);
     }
+    if (l.how) it = { ...it, how: l.how };
     out.push(only ? { ...it, onlyFactions: only } : it);
   }
   return out;

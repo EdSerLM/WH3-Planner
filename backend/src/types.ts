@@ -453,6 +453,8 @@ export interface ItemInfo {
   /** Rango en el que se desbloquea su misión */
   rank?: number;
   questBattle?: boolean;
+  /** Cómo se consigue (p. ej. la maquinación del Cambiante que lo da) */
+  how?: string;
   effects: ParsedEffect[];
   /** Cuántos personajes distintos pueden llevarlo (1 = solo este) */
   owners?: number;
