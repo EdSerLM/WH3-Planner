@@ -1,4 +1,4 @@
-import { abilities, abilityByDisplayName, artOfUnit, isNamedMount, getCharacter, getUnit, lootBanners, targetFlagText, techEffects, unitInList, unitUpgradeEffects } from './data.js';
+import { abilities, abilityByDisplayName, artOfUnit, isNamedMount, getCharacter, getUnit, lootBanners, targetFlagText, techEffects, unitInList, unitUpgradeEffects, experienceBonuses } from './data.js';
 import { translateAttribute } from './i18n.js';
 import { MAX_RANK, autoRank, effectiveLevel, isFreeLevel, pointsAtRank, pointsFor } from './rankRules.js';
 import { unitRank } from './types.js';
@@ -791,6 +791,19 @@ export function compute(req: ComputeRequest): ComputeResult {
     let flaming = !!u.flaming;
     const notes: string[] = [];
     const rank = unitRank(sel);
+    // Veteranía (unit_experience_bonuses): por cada rango, ataque y defensa c. a c. suben base^0.6 × 0.12, liderazgo 1.06 y la
+    // recarga 2% (fórmula de la comunidad sobre los valores del juego; la precisión no está en las tarjetas)
+    // Los Regimientos de Renombre siempre están en rango 9 (tres galones de oro)
+    const vr = u.ror || /_ror/.test(u.key) ? 9 : rank;
+    if (vr > 0) {
+      const xp = new Map(experienceBonuses().map((b) => [b.stat, b]));
+      const grow = (stat: string, base: number) => { const b = xp.get(stat); return b ? Math.pow(Math.max(base, 1), b.growth_rate) * b.growth_scalar * vr : 0; };
+      const vet = (stat: StatKey, v: number, how: 'add' | 'pct') => { if (v) contribute(lines, stat, { source: `Veteranía (rango ${vr})`, from: 'Rango de la unidad', value: Math.round(v * 10) / 10, how }, true); };
+      vet('ma', Math.round(grow('stat_melee_attack', u.ma)), 'add');
+      vet('md', Math.round(grow('stat_melee_defence', u.md)), 'add');
+      vet('ld', Math.round(grow('stat_morale', u.leadership)), 'add');
+      if (u.missile) vet('reload', grow('stat_reloading', 0), 'pct');
+    }
     // Mejoras de unidad compradas en campaña (aspecto del Abedul/Roble/Sauce, mejoras de Ogros...): a la propia unidad
     for (const upKey of sel.upgrades ?? []) {
       const up = unitUpgradeEffects(u.key, upKey);
