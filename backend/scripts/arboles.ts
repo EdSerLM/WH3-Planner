@@ -1596,7 +1596,7 @@ export function buildAllSkills(T: Tables, sp: Map<string, string>) {
       return strip({
         k: `lair:${short}`, n: L(`building_culture_variants_name_${k}wh_main_vmp_vampire_counts`) ?? (trait ? L(`character_trait_levels_onscreen_name_${trait}`) : null) ?? pretty(short),
         req: LAIR_RANK[short] ? `El vampiro despierta en rango ${LAIR_RANK[short]}.` : desc ?? undefined,
-        tier: sec + 1, img: undefined,
+        tier: sec + 1, img: undefined, tr: trait,
         e: trait ? effRows(traitEff.get(trait) ?? [], 'effect') : [],
       });
     });

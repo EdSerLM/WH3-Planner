@@ -70,9 +70,12 @@ for (const f of fs.readdirSync(inDir).filter((x) => x.endsWith('.json'))) {
     if (innate) sel.innate = innate;
     if (banner) sel.banner = banner;
     // Rasgos de mecánicas que el planner trata como piezas (Corte de Hielo «icecourt:», Votos de Bretonia «vow:»...)
-    const mechKeys = (c.initiatives ?? []).flatMap((st) => st.items.map((it) => it.k)).filter((k) => /^[a-z]+:/.test(k));
+    const mechItems = (c.initiatives ?? []).flatMap((st) => st.items).filter((it) => /^[a-z]+:/.test(it.k));
+    const mechKeys = mechItems.map((it) => it.k);
     for (const [tk, , lv] of ch.traits ?? []) {
-      const hit = mechKeys.find((k) => { const t = k.slice(k.indexOf(':') + 1); return t === lv || t.startsWith(tk); });
+      // Las piezas que no se llaman como el rasgo (Guarida de Vampiros: «lair:power_3») llevan su rasgo en «tr»
+      const hit = mechItems.find((it) => it.tr && (it.tr === tk || it.tr === lv))?.k
+        ?? mechKeys.find((k) => { const t = k.slice(k.indexOf(':') + 1); return t === lv || t.startsWith(tk); });
       if (hit && !sel.items.includes(hit)) sel.items.push(hit);
     }
     return { sel, name: c.name };
