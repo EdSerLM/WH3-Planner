@@ -3,7 +3,7 @@
  * - Niveles con "autoRank" se desbloquean solos al llegar a ese rango (no cuestan puntos ni se compran).
  * - Niveles con "requiredRank" solo se pueden comprar desde ese rango.
  * - "pointsOnCreation" son niveles gratis desde el inicio.
- * - Puntos disponibles: 1 por rango (aprox.; ajusta POINTS_AT_RANK si tu experiencia en el juego es distinta).
+ * - Puntos disponibles: 1 por cada subida de rango; en rango 1 no hay puntos, así que en rango 50 son 49 (confirmado en el juego).
  */
 
 export const MAX_RANK = 50;
@@ -14,7 +14,7 @@ export interface RankNode {
 }
 
 export function pointsAtRank(rank: number): number {
-  return Math.max(0, rank);
+  return Math.max(0, rank - 1);
 }
 
 /** ¿El nivel i (0 = primero) es gratis a este rango? */
@@ -75,7 +75,7 @@ export function autoRank(nodes: (RankNode & { key: string })[], bought: Record<s
         req = Math.max(req, l.requiredRank ?? 1);
       }
     }
-    const need = Math.max(r, pts, req);
+    const need = Math.max(r, pts + 1, req);
     if (need === r) return r;
     if (need > MAX_RANK) return need;
     r = need;

@@ -109,7 +109,7 @@ export function resolveBuild(sel: BuildSelection): ResolvedBuild | null {
       if (r && r > rank) warnings.push(`"${node.name}" nivel ${i + 1} requiere rango ${r} (el personaje está en rango ${rank})`);
     }
   }
-  minRank = Math.max(minRank, pointsUsed);
+  minRank = Math.max(minRank, pointsUsed + 1); // 1 punto por subida de rango: N puntos piden rango N + 1
 
 
   const activeNodes: { node: SkillNode; level: number }[] = [];
