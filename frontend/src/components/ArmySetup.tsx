@@ -111,37 +111,60 @@ type Focus = { kind: 'unit'; card: string } | { kind: 'char'; id: string } | nul
  * Cuánto mejoran tus bufos (señor, héroes, tecnologías) a una unidad: suma de los % que suben sus stats
  * (los puntos de resistencia cuentan como %). No es su fuerza total: es cuánto aprovecha los bufos.
  */
-interface Gain { total: number; parts: { label: string; pct: number }[]; rank: number; of: number; verdict: 'hi' | 'mid' | 'lo' | 'none'; board: { card: string; name: string; total: number; cost: number }[] }
+interface Gain {
+  total: number; parts: { label: string; pct: number; from: number; to: number }[]; rank: number; of: number; verdict: 'hi' | 'mid' | 'lo' | 'none';
+  /** Fuerza real (DPS contra un objetivo de referencia) sin y con tus bufos, y su puesto entre las de su tipo */
+  metric: string; before: number; after: number; posBefore: number; posAfter: number;
+  board: { card: string; name: string; before: number; after: number }[];
+}
+/** Objetivo de referencia para comparar unidades del mismo tipo: defensa c. a c. 30 y armadura 50 */
+const REF_MD = 30, REF_ARMOUR = 50;
+/** DPS de la unidad completa contra el objetivo de referencia (c. a c. o a distancia, según su tipo), sin o con bufos */
+function powerOf(c: ComputedCard | undefined, ranged: boolean, buffed: boolean): number {
+  if (!c) return 0;
+  const v = (k: StatKey) => (buffed ? c.stats[k]?.final : c.stats[k]?.base) ?? 0;
+  const arm = 1 - 0.75 * REF_ARMOUR / 100;
+  if (ranged && c.missile && v('reload') > 0) {
+    const base = c.missile.dmg + c.missile.ap, scale = base > 0 ? v('missileDmg') / base : 1;
+    return (c.models * (c.missile.shots || 1) * (c.missile.dmg * scale * arm + c.missile.ap * scale)) / v('reload');
+  }
+  const hit = Math.min(90, Math.max(8, 35 + v('ma') - REF_MD)) / 100;
+  return (c.models * hit * (v('dmg') * arm + v('ap'))) / Math.max(c.interval || 4, 1);
+}
+/** «×1.5 (50% más)»: el multiplicador se entiende mejor que la suma de porcentajes */
+const times = (a: number, b: number) => (a > 0 ? b / a : 1);
+const fmtX = (x: number) => (x >= 1.995 ? `×${x.toFixed(1)}` : `×${x.toFixed(2)}`);
 const GAIN_STATS: [StatKey, string][] = [
   ['ma', 'Ataque'], ['md', 'Defensa'], ['armour', 'Armadura'], ['charge', 'Carga'], ['dmg', 'Daño base'], ['ap', 'Daño perforante'],
   ['hp', 'Salud'], ['speed', 'Velocidad'], ['ld', 'Liderazgo'], ['missileDmg', 'Proyectiles'], ['ammo', 'Munición'], ['range', 'Alcance'],
 ];
 const GAIN_RES: [StatKey, string][] = [['resPhysical', 'Res. física'], ['resMissile', 'Res. proyectiles'], ['resMagic', 'Res. hechizos'], ['resFlame', 'Res. fuego'], ['resWard', 'Salvación']];
-function buffGain(c?: ComputedCard): { total: number; parts: { label: string; pct: number }[] } | null {
+function buffGain(c?: ComputedCard): { total: number; parts: Gain['parts'] } | null {
   if (!c) return null;
   const parts: { label: string; pct: number }[] = [];
   for (const [k, label] of GAIN_STATS) {
     const l = c.stats[k];
-    if (l && l.base > 0 && l.final !== l.base) parts.push({ label, pct: ((l.final - l.base) / l.base) * 100 });
+    if (l && l.base > 0 && l.final !== l.base) parts.push({ label, pct: ((l.final - l.base) / l.base) * 100, from: l.base, to: l.final });
   }
   const r = c.stats.reload; // la recarga baja = mejor
-  if (r && r.base > 0 && r.final !== r.base) parts.push({ label: 'Recarga', pct: ((r.base - r.final) / r.base) * 100 });
+  if (r && r.base > 0 && r.final !== r.base) parts.push({ label: 'Recarga', pct: ((r.base - r.final) / r.base) * 100, from: r.base, to: r.final });
   for (const [k, label] of GAIN_RES) {
     const l = c.stats[k];
-    if (l && l.final !== l.base) parts.push({ label, pct: l.final - l.base });
+    if (l && l.final !== l.base) parts.push({ label, pct: l.final - l.base, from: l.base, to: l.final });
   }
   return { total: parts.reduce((s, p) => s + p.pct, 0), parts: parts.sort((a, b) => b.pct - a.pct) };
 }
 const GAIN_MARK = { hi: '▲', mid: '■', lo: '▼', none: '·' } as const;
+const fmtNum = (n: number) => (Math.abs(n - Math.round(n)) < 0.05 ? String(Math.round(n)) : n.toFixed(1));
 const GAIN_TEXT = {
-  hi: 'Rentable: tus bufos la mejoran más que a la mayoría de su tipo',
-  mid: 'Normal: tus bufos la mejoran como a otras de su tipo',
-  lo: 'Poco: otras de su tipo aprovechan más tus bufos',
+  hi: 'Aprovecha tus bufos más que la mayoría de su tipo (no quiere decir que sea la más fuerte)',
+  mid: 'Aprovecha tus bufos como otras de su tipo',
+  lo: 'Otras de su tipo aprovechan más tus bufos',
   none: 'No vale la pena por bufos: no le llega ninguno',
 } as const;
 function gainTitle(g: Gain, group: string) {
-  return `${GAIN_TEXT[g.verdict]}\nTotal +${Math.round(g.total)}% · puesto ${g.rank} de ${g.of} (${group})` +
-    (g.parts.length ? '\n' + g.parts.map((p) => `${p.label} +${Math.round(p.pct)}%`).join(', ') : '');
+  return `${GAIN_TEXT[g.verdict]}\nSu ${g.metric}: ${fmtX(times(g.before, g.after))} con tus bufos · ${g.posAfter}.ª más fuerte de ${g.of} (${group}; sin bufos ${g.posBefore}.ª)` +
+    (g.parts.length ? '\n' + g.parts.map((p) => `${p.label} ${fmtNum(p.from)} → ${fmtNum(p.to)}`).join(', ') : '');
 }
 
 export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, campaign, compact, onChange, onEditChar, bannerOptions }: Props) {
@@ -166,16 +189,26 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
     for (const u of units) {
       if (allowed && !allowed.has(u.card)) continue;
       if ((!showRoR && isRoR(u)) || isMABoss(u) || (!showMA && isMA(u))) continue;
-      const g = buffGain(rosterCards[u.card]) ?? { total: 0, parts: [] };
-      byGroup.set(u.group, [...(byGroup.get(u.group) ?? []), { card: u.card, name: u.name, cost: u.cost, ...g }]);
+      const c = rosterCards[u.card];
+      const g = buffGain(c) ?? { total: 0, parts: [] };
+      // A distancia: los tipos de proyectiles y artillería; el resto se compara en cuerpo a cuerpo
+      const ranged = /missile|artillery|ranged|war_machine/i.test(u.group) && !!c?.missile;
+      byGroup.set(u.group, [...(byGroup.get(u.group) ?? []), { card: u.card, name: u.name, cost: u.cost, ranged, before: powerOf(c, ranged, false), after: powerOf(c, ranged, true), ...g }]);
     }
     for (const list of byGroup.values()) {
-      list.sort((a, b) => b.total - a.total);
-      const board = list.map((x) => ({ card: x.card, name: x.name, total: x.total, cost: x.cost }));
-      list.forEach((x, i) => {
+      // Rentable: cuánto la mejoran tus bufos (multiplicador), comparado con las de su tipo
+      const byGain = [...list].sort((a, b) => times(b.before, b.after) - times(a.before, a.after));
+      const byBefore = [...list].sort((a, b) => b.before - a.before);
+      const byAfter = [...list].sort((a, b) => b.after - a.after);
+      const board = byAfter.map((x) => ({ card: x.card, name: x.name, before: x.before, after: x.after }));
+      byGain.forEach((x, i) => {
         const third = list.length / 3;
         const verdict: Gain['verdict'] = x.total <= 0 ? 'none' : list.length < 3 ? 'mid' : i < third ? 'hi' : i >= list.length - third ? 'lo' : 'mid';
-        out.set(x.card, { total: x.total, parts: x.parts, rank: list.findIndex((y) => y.total === x.total) + 1, of: list.length, verdict, board });
+        out.set(x.card, {
+          total: x.total, parts: x.parts, rank: i + 1, of: list.length, verdict, board,
+          metric: x.ranged ? 'daño a distancia' : 'daño cuerpo a cuerpo', before: x.before, after: x.after,
+          posBefore: byBefore.indexOf(x) + 1, posAfter: byAfter.indexOf(x) + 1,
+        });
       });
     }
     return out;
@@ -192,8 +225,8 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
       // Como en el juego: por nivel (tier) y, dentro del nivel, por coste; o por lo que aprovechan tus bufos
       .sort((a, b) => {
         if (sortBy !== 'tier') {
-          const ga = gains.get(a.card)?.total ?? 0, gb = gains.get(b.card)?.total ?? 0;
-          const d = sortBy === 'buff' ? gb - ga : gb / Math.max(b.cost, 1) - ga / Math.max(a.cost, 1);
+          const ga = gains.get(a.card), gb = gains.get(b.card);
+          const d = sortBy === 'buff' ? (gb?.after ?? 0) - (ga?.after ?? 0) : (gb?.after ?? 0) / Math.max(b.cost, 1) - (ga?.after ?? 0) / Math.max(a.cost, 1);
           if (d) return d;
         }
         return (a.tier ?? 0) - (b.tier ?? 0) || a.cost - b.cost;
@@ -373,8 +406,8 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
               <label title="Cómo ordenar las unidades dentro de cada tipo">Orden{' '}
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
                   <option value="tier">Nivel y coste (como el juego)</option>
-                  <option value="buff" disabled={!anyBuffs}>Más bufos (%)</option>
-                  <option value="value" disabled={!anyBuffs}>Bufos por coste</option>
+                  <option value="buff" disabled={!anyBuffs}>Más fuertes con tus bufos</option>
+                  <option value="value" disabled={!anyBuffs}>Fuerza con bufos por coste</option>
                 </select>
               </label>
               <span className="small muted">Clic para agregar · clic derecho en el ejército para quitar · pasa el ratón para ver la ficha</span>
@@ -746,22 +779,32 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building, ga
       <div className="ip-name">{name}</div>
       {gain && unit && (
         <div className={'ip-gain gain-' + gain.verdict} title={gainTitle(gain, groupInfo(unit.group).es)}>
-          {GAIN_MARK[gain.verdict]} {gain.verdict === 'none' ? 'No le llega ningún bufo' : `Bufos: +${Math.round(gain.total)}% · ${gain.rank}.º de ${gain.of} en ${groupInfo(unit.group).es}`}
-          <div className="small muted">{GAIN_TEXT[gain.verdict]}</div>
-          {gain.verdict !== 'none' && gain.board.length > 1 && (() => {
-            const max = Math.max(...gain.board.map((b) => b.total), 1);
+          {gain.verdict === 'none' ? <>{GAIN_MARK.none} No le llega ningún bufo</> : (
+            <>
+              <div><b>{fmtX(times(gain.before, gain.after))}</b> de {gain.metric} con tus bufos
+                <span className="small muted"> ({fmtNum(gain.before)} → {fmtNum(gain.after)} por segundo)</span></div>
+              <div className="small">
+                {gain.posAfter}.ª más fuerte de {gain.of} en {groupInfo(unit.group).es}
+                {gain.posBefore !== gain.posAfter && <span className="muted"> (sin bufos {gain.posBefore}.ª)</span>}
+              </div>
+              <div className="small muted">{GAIN_MARK[gain.verdict]} {GAIN_TEXT[gain.verdict]}</div>
+            </>
+          )}
+          {gain.board.length > 1 && (() => {
+            const max = Math.max(...gain.board.map((b) => b.after), 1);
             const idx = gain.board.findIndex((b) => b.card === unit.card);
             const show = gain.board.filter((b, i) => i < 5 || i === idx);
             return (
-              <div className="gain-board" title="Cuánto suben sus estadísticas con tus bufos (suma de %), contra las de su mismo tipo">
+              <div className="gain-board" title={`Daño por segundo de la unidad completa contra un objetivo de referencia (defensa ${REF_MD}, armadura ${REF_ARMOUR}); la parte clara es lo que suman tus bufos`}>
+                <div className="small muted">Las más fuertes de su tipo con tus bufos</div>
                 {show.map((b) => {
                   const i = gain.board.indexOf(b);
                   return (
-                    <div key={b.card} className={'gb-row' + (b.card === unit.card ? ' me' : '')}>
+                    <div key={b.card} className={'gb-row' + (b.card === unit.card ? ' me' : '')} title={`${b.name}: ${fmtNum(b.before)} → ${fmtNum(b.after)} (${fmtX(times(b.before, b.after))})`}>
                       <span className="gb-pos">{i + 1}.</span>
                       <span className="gb-name">{b.name}</span>
-                      <span className="gb-bar"><i style={{ width: `${Math.max(2, (b.total / max) * 100)}%` }} /></span>
-                      <span className="gb-val">+{Math.round(b.total)}%</span>
+                      <span className="gb-bar"><i className="base" style={{ width: `${(b.before / max) * 100}%` }} /><i className="buff" style={{ width: `${(Math.max(0, b.after - b.before) / max) * 100}%` }} /></span>
+                      <span className="gb-val">{fmtX(times(b.before, b.after))}</span>
                     </div>
                   );
                 })}
@@ -771,7 +814,7 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building, ga
           })()}
           {gain.parts.length > 0 && (
             <div className="gain-parts">
-              {gain.parts.slice(0, 6).map((p) => <span key={p.label} className="gp-chip">{p.label} <b>+{Math.round(p.pct)}%</b></span>)}
+              {gain.parts.slice(0, 6).map((p) => <span key={p.label} className="gp-chip">{p.label} <b>{fmtNum(p.from)} → {fmtNum(p.to)}</b></span>)}
             </div>
           )}
         </div>
