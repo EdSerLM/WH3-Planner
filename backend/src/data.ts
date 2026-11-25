@@ -1115,6 +1115,17 @@ const GROUP_BY_CASTE: Record<string, string> = {
   warmachine: 'Artillery & War Machines', generic: 'Infantry', lord: 'Lords', hero: 'Heroes',
 };
 
+/** Nombres de unidad (por subcultura) que existen fuera de campaña: una copia "solo campaña" con el mismo nombre
+ *  (p. ej. las del Suministro Imperial o las de Nakai) es la misma unidad del roster normal y no lleva la marca */
+let normalNames: Set<string> | null = null;
+function hasNormalTwin(u: AllUnitsFile['units'][number]): boolean {
+  if (!normalNames) {
+    normalNames = new Set();
+    for (const x of allUnitsFile?.units ?? []) if (!x.campOnly) for (const sc of x.subcultures ?? []) normalNames.add(`${sc}|${x.name}`);
+  }
+  return (u.subcultures ?? []).some((sc) => normalNames!.has(`${sc}|${u.name}`));
+}
+
 /** Unidad del juego en el formato del roster (id = clave de unidad; la carta queda en cardArt). */
 function asRosterUnit(u: AllUnitsFile['units'][number]): UnitData & { subcultures: string[] } {
   return {
@@ -1131,7 +1142,7 @@ function asRosterUnit(u: AllUnitsFile['units'][number]): UnitData & { subculture
     caste: u.casteKey ?? u.caste,
     category: u.casteKey ?? '',
     group: GROUP_BY_UI[u.uiGroup ?? ''] ?? GROUP_BY_CASTE[u.casteKey ?? ''] ?? 'Infantry',
-    tier: u.tier ?? 0, campaignOnly: !!u.campOnly, ror: !!u.ror || /_ror/.test(u.key) || undefined, mounts: u.mounts ?? 0, entity: '', barrier: u.barrier ?? 0,
+    tier: u.tier ?? 0, campaignOnly: !!u.campOnly && !hasNormalTwin(u), ror: !!u.ror || /_ror/.test(u.key) || undefined, mounts: u.mounts ?? 0, entity: '', barrier: u.barrier ?? 0,
     attrs: u.attrs.map(translateAttribute),
     contact: contactOfUnit(u.contact),
   };

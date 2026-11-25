@@ -185,7 +185,7 @@ function buffGain(c?: ComputedCard): { total: number; parts: Gain['parts'] } | n
 const GAIN_MARK = { hi: '▲', mid: '■', lo: '▼', none: '·' } as const;
 const fmtNum = (n: number) => (Math.abs(n - Math.round(n)) < 0.05 ? String(Math.round(n)) : n.toFixed(1));
 const GAIN_TEXT = {
-  hi: 'Aprovecha tus bufos más que la mayoría de su tipo (no quiere decir que sea la más fuerte)',
+  hi: 'Aprovecha tus bufos más que la mayoría de su tipo',
   mid: 'Aprovecha tus bufos como otras de su tipo',
   lo: 'Otras de su tipo aprovechan más tus bufos',
   none: 'No vale la pena por bufos: no le llega ninguno',
