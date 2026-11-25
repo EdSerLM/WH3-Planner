@@ -110,7 +110,7 @@ export function SkillTree({ tree, selection: rawSelection, onChange, info, banne
           />
           <button className="ghost" onClick={() => onChange(setRank(selection, tree, rank + 1))} disabled={rank >= MAX_RANK}>+</button>
           <span>
-            Puntos gastados: <b>{used}</b> <span className="muted">(1 por rango)</span>
+            Puntos gastados: <b>{used}</b> <span className="muted">(1 por subida de rango; 49 en rango 50)</span>
           </span>
           {selection.rankOver ? <span className="bad">No cabe: necesitaría rango {selection.rankOver}</span> : null}
           <button

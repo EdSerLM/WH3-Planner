@@ -111,7 +111,7 @@ type Focus = { kind: 'unit'; card: string } | { kind: 'char'; id: string } | nul
  * Cuánto mejoran tus bufos (señor, héroes, tecnologías) a una unidad: suma de los % que suben sus stats
  * (los puntos de resistencia cuentan como %). No es su fuerza total: es cuánto aprovecha los bufos.
  */
-interface Gain { total: number; parts: { label: string; pct: number }[]; rank: number; of: number; verdict: 'hi' | 'mid' | 'lo' | 'none' }
+interface Gain { total: number; parts: { label: string; pct: number }[]; rank: number; of: number; verdict: 'hi' | 'mid' | 'lo' | 'none'; board: { card: string; name: string; total: number; cost: number }[] }
 const GAIN_STATS: [StatKey, string][] = [
   ['ma', 'Ataque'], ['md', 'Defensa'], ['armour', 'Armadura'], ['charge', 'Carga'], ['dmg', 'Daño base'], ['ap', 'Daño perforante'],
   ['hp', 'Salud'], ['speed', 'Velocidad'], ['ld', 'Liderazgo'], ['missileDmg', 'Proyectiles'], ['ammo', 'Munición'], ['range', 'Alcance'],
@@ -149,6 +149,8 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
   const [showRoR, setShowRoR] = useState(false);
   const [showMA, setShowMA] = useState(true);
   const [onlyBuffed, setOnlyBuffed] = useState(false);
+  // Orden del roster: como el juego (nivel y coste), por bufos o por bufos por cada 1000 de coste
+  const [sortBy, setSortBy] = useState<'tier' | 'buff' | 'value'>('tier');
   const [showRoster, setShowRoster] = useState(true);
   const [selected, setSelected] = useState<Focus>(null);
   const [hover, setHover] = useState<Focus>(null);
@@ -160,21 +162,24 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
     const out = new Map<string, Gain>();
     if (!anyBuffs) return out;
     const byGroup = new Map<string, { card: string; total: number; parts: Gain['parts'] }[]>();
+    // Solo compiten las que se ven en el roster: sin Renombre ni Monstrous Arcanum si sus casillas están apagadas
     for (const u of units) {
       if (allowed && !allowed.has(u.card)) continue;
+      if ((!showRoR && isRoR(u)) || isMABoss(u) || (!showMA && isMA(u))) continue;
       const g = buffGain(rosterCards[u.card]) ?? { total: 0, parts: [] };
-      byGroup.set(u.group, [...(byGroup.get(u.group) ?? []), { card: u.card, ...g }]);
+      byGroup.set(u.group, [...(byGroup.get(u.group) ?? []), { card: u.card, name: u.name, cost: u.cost, ...g }]);
     }
     for (const list of byGroup.values()) {
       list.sort((a, b) => b.total - a.total);
+      const board = list.map((x) => ({ card: x.card, name: x.name, total: x.total, cost: x.cost }));
       list.forEach((x, i) => {
         const third = list.length / 3;
         const verdict: Gain['verdict'] = x.total <= 0 ? 'none' : list.length < 3 ? 'mid' : i < third ? 'hi' : i >= list.length - third ? 'lo' : 'mid';
-        out.set(x.card, { total: x.total, parts: x.parts, rank: list.findIndex((y) => y.total === x.total) + 1, of: list.length, verdict });
+        out.set(x.card, { total: x.total, parts: x.parts, rank: list.findIndex((y) => y.total === x.total) + 1, of: list.length, verdict, board });
       });
     }
     return out;
-  }, [units, rosterCards, allowed, anyBuffs]);
+  }, [units, rosterCards, allowed, anyBuffs, showRoR, showMA]);
 
   const roster = useMemo(() => {
     const qq = q.trim().toLowerCase();
@@ -184,12 +189,19 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
       .filter((u) => !allowed || allowed.has(u.card))
       .filter((u) => !qq || u.name.toLowerCase().includes(qq))
       .filter((u) => !onlyBuffed || !!buffs[u.card])
-      // Como en el juego: por nivel (tier) y, dentro del nivel, por coste
-      .sort((a, b) => (a.tier ?? 0) - (b.tier ?? 0) || a.cost - b.cost);
+      // Como en el juego: por nivel (tier) y, dentro del nivel, por coste; o por lo que aprovechan tus bufos
+      .sort((a, b) => {
+        if (sortBy !== 'tier') {
+          const ga = gains.get(a.card)?.total ?? 0, gb = gains.get(b.card)?.total ?? 0;
+          const d = sortBy === 'buff' ? gb - ga : gb / Math.max(b.cost, 1) - ga / Math.max(a.cost, 1);
+          if (d) return d;
+        }
+        return (a.tier ?? 0) - (b.tier ?? 0) || a.cost - b.cost;
+      });
     const m = new Map<string, UnitData[]>();
     for (const u of list) m.set(u.group, [...(m.get(u.group) ?? []), u]);
     return [...m.entries()].sort((a, b) => groupIndex(a[0]) - groupIndex(b[0]));
-  }, [units, q, showRoR, showMA, onlyBuffed, buffs, allowed]);
+  }, [units, q, showRoR, showMA, onlyBuffed, buffs, allowed, sortBy, gains]);
 
   const add = (card: string) => {
     if (usedSlots >= 20) return;
@@ -357,6 +369,13 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
               <label title="Monstruos de las cacerías del Monstrous Arcanum (Norsca): recompensas y jefes"><input type="checkbox" checked={showMA} onChange={(e) => setShowMA(e.target.checked)} /> 📖 Monstrous Arcanum</label>
               <label title="Solo las unidades que reciben bufos de tu señor, héroes o tecnologías">
                 <input type="checkbox" checked={onlyBuffed} disabled={!anyBuffs} onChange={(e) => setOnlyBuffed(e.target.checked)} /> Solo con bufos
+              </label>
+              <label title="Cómo ordenar las unidades dentro de cada tipo">Orden{' '}
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
+                  <option value="tier">Nivel y coste (como el juego)</option>
+                  <option value="buff" disabled={!anyBuffs}>Más bufos (%)</option>
+                  <option value="value" disabled={!anyBuffs}>Bufos por coste</option>
+                </select>
               </label>
               <span className="small muted">Clic para agregar · clic derecho en el ejército para quitar · pasa el ratón para ver la ficha</span>
             </div>
@@ -729,6 +748,32 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building, ga
         <div className={'ip-gain gain-' + gain.verdict} title={gainTitle(gain, groupInfo(unit.group).es)}>
           {GAIN_MARK[gain.verdict]} {gain.verdict === 'none' ? 'No le llega ningún bufo' : `Bufos: +${Math.round(gain.total)}% · ${gain.rank}.º de ${gain.of} en ${groupInfo(unit.group).es}`}
           <div className="small muted">{GAIN_TEXT[gain.verdict]}</div>
+          {gain.verdict !== 'none' && gain.board.length > 1 && (() => {
+            const max = Math.max(...gain.board.map((b) => b.total), 1);
+            const idx = gain.board.findIndex((b) => b.card === unit.card);
+            const show = gain.board.filter((b, i) => i < 5 || i === idx);
+            return (
+              <div className="gain-board" title="Cuánto suben sus estadísticas con tus bufos (suma de %), contra las de su mismo tipo">
+                {show.map((b) => {
+                  const i = gain.board.indexOf(b);
+                  return (
+                    <div key={b.card} className={'gb-row' + (b.card === unit.card ? ' me' : '')}>
+                      <span className="gb-pos">{i + 1}.</span>
+                      <span className="gb-name">{b.name}</span>
+                      <span className="gb-bar"><i style={{ width: `${Math.max(2, (b.total / max) * 100)}%` }} /></span>
+                      <span className="gb-val">+{Math.round(b.total)}%</span>
+                    </div>
+                  );
+                })}
+                {idx > 5 && <div className="small muted">…</div>}
+              </div>
+            );
+          })()}
+          {gain.parts.length > 0 && (
+            <div className="gain-parts">
+              {gain.parts.slice(0, 6).map((p) => <span key={p.label} className="gp-chip">{p.label} <b>+{Math.round(p.pct)}%</b></span>)}
+            </div>
+          )}
         </div>
       )}
       <div className="ip-caste">
