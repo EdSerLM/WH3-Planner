@@ -115,21 +115,49 @@ interface Gain {
   total: number; parts: { label: string; pct: number; from: number; to: number }[]; rank: number; of: number; verdict: 'hi' | 'mid' | 'lo' | 'none';
   /** Fuerza real (DPS contra un objetivo de referencia) sin y con tus bufos, y su puesto entre las de su tipo */
   metric: string; before: number; after: number; posBefore: number; posAfter: number;
+  /** Especialidad con la que se compara (vacío = todo el tipo) */
+  scope: string;
   board: { card: string; name: string; before: number; after: number }[];
 }
-/** Objetivo de referencia para comparar unidades del mismo tipo: defensa c. a c. 30 y armadura 50 */
-const REF_MD = 30, REF_ARMOUR = 50;
-/** DPS de la unidad completa contra el objetivo de referencia (c. a c. o a distancia, según su tipo), sin o con bufos */
-function powerOf(c: ComputedCard | undefined, ranged: boolean, buffed: boolean): number {
+/** Objetivos de referencia para comparar unidades: la bonificación contra grandes o contra infantería cuenta según el objetivo */
+const TARGETS = {
+  inf: { label: 'Infantería (defensa 30, armadura 50)', md: 30, armour: 50, large: false },
+  armored: { label: 'Infantería blindada (defensa 40, armadura 100)', md: 40, armour: 100, large: false },
+  cav: { label: 'Caballería (defensa 30, armadura 60, grande)', md: 30, armour: 60, large: true },
+  monster: { label: 'Monstruo grande (defensa 30, armadura 30, grande)', md: 30, armour: 30, large: true },
+} as const;
+type TargetKey = keyof typeof TARGETS;
+/** Especialidad dentro del tipo (icono de categoría del juego): lanzas, armas a dos manos, armas dobles… */
+function roleOf(u: UnitData): string {
+  const c = (u.catIcon ?? '').toLowerCase();
+  if (/spear|halberd|pike/.test(c)) return 'Lanzas y alabardas';
+  if (/great|two_hand|2h/.test(c)) return 'Armas a dos manos';
+  if (/dual/.test(c)) return 'Armas dobles';
+  if (/monstrous_infantry|ogre|troll/.test(c)) return 'Infantería monstruosa';
+  if (/crossbow/.test(c)) return 'Ballestas';
+  if (/bow/.test(c)) return 'Arcos';
+  if (/gun|handgun|pistol|blunderbuss|fire/.test(c)) return 'Armas de fuego';
+  if (/shock_cavalry|heavy/.test(c)) return 'Caballería de choque';
+  if (/chariot/.test(c)) return 'Carros';
+  if (/cavalry/.test(c)) return 'Caballería';
+  return c.replace(/^wh\d?_(main|dlc\d+|pro\d+)_/, '') || u.group;
+}
+/** DPS de la unidad completa contra el objetivo (c. a c. o a distancia, según su tipo), sin o con bufos.
+ *  La bonificación contra grandes/infantería suma al ataque y al daño (repartida entre base y perforante, como en el juego) */
+function powerOf(c: ComputedCard | undefined, ranged: boolean, buffed: boolean, t: (typeof TARGETS)[TargetKey]): number {
   if (!c) return 0;
   const v = (k: StatKey) => (buffed ? c.stats[k]?.final : c.stats[k]?.base) ?? 0;
-  const arm = 1 - 0.75 * REF_ARMOUR / 100;
+  const arm = 1 - 0.75 * Math.min(100, t.armour) / 100;
   if (ranged && c.missile && v('reload') > 0) {
     const base = c.missile.dmg + c.missile.ap, scale = base > 0 ? v('missileDmg') / base : 1;
-    return (c.models * (c.missile.shots || 1) * (c.missile.dmg * scale * arm + c.missile.ap * scale)) / v('reload');
+    const bonus = (t.large ? c.missile.bvl : c.missile.bvi) ?? 0;
+    const d = c.missile.dmg * scale, ap = c.missile.ap * scale, tot = d + ap || 1;
+    return (c.models * (c.missile.shots || 1) * ((d + bonus * d / tot) * arm + ap + bonus * ap / tot)) / v('reload');
   }
-  const hit = Math.min(90, Math.max(8, 35 + v('ma') - REF_MD)) / 100;
-  return (c.models * hit * (v('dmg') * arm + v('ap'))) / Math.max(c.interval || 4, 1);
+  const bonus = t.large ? v('bvl') : v('bvi');
+  const d = v('dmg'), ap = v('ap'), tot = d + ap || 1;
+  const hit = Math.min(90, Math.max(8, 35 + v('ma') + bonus - t.md)) / 100;
+  return (c.models * hit * ((d + bonus * d / tot) * arm + ap + bonus * ap / tot)) / Math.max(c.interval || 4, 1);
 }
 /** «×1.5 (50% más)»: el multiplicador se entiende mejor que la suma de porcentajes */
 const times = (a: number, b: number) => (a > 0 ? b / a : 1);
@@ -174,6 +202,8 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
   const [onlyBuffed, setOnlyBuffed] = useState(false);
   // Orden del roster: como el juego (nivel y coste), por bufos o por bufos por cada 1000 de coste
   const [sortBy, setSortBy] = useState<'tier' | 'buff' | 'value'>('tier');
+  const [target, setTarget] = useState<TargetKey>('inf');
+  const [byRole, setByRole] = useState(true);
   const [showRoster, setShowRoster] = useState(true);
   const [selected, setSelected] = useState<Focus>(null);
   const [hover, setHover] = useState<Focus>(null);
@@ -193,9 +223,21 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
       const g = buffGain(c) ?? { total: 0, parts: [] };
       // A distancia: los tipos de proyectiles y artillería; el resto se compara en cuerpo a cuerpo
       const ranged = /missile|artillery|ranged|war_machine/i.test(u.group) && !!c?.missile;
-      byGroup.set(u.group, [...(byGroup.get(u.group) ?? []), { card: u.card, name: u.name, cost: u.cost, ranged, before: powerOf(c, ranged, false), after: powerOf(c, ranged, true), ...g }]);
+      const t = TARGETS[target];
+      byGroup.set(u.group, [...(byGroup.get(u.group) ?? []), { card: u.card, name: u.name, cost: u.cost, ranged, role: roleOf(u), before: powerOf(c, ranged, false, t), after: powerOf(c, ranged, true, t), ...g }]);
     }
-    for (const list of byGroup.values()) {
+    // Comparar con la misma especialidad (lanzas con lanzas…) si hay al menos 3; si no, con todo el tipo
+    if (byRole) {
+      for (const [gk, list] of [...byGroup.entries()]) {
+        const roles = new Map<string, typeof list>();
+        for (const x of list) roles.set(x.role, [...(roles.get(x.role) ?? []), x]);
+        const rest: typeof list = [];
+        for (const [r, l] of roles) { if (l.length >= 3) byGroup.set(`${gk}|${r}`, l); else rest.push(...l); }
+        if (rest.length) byGroup.set(gk, rest); else byGroup.delete(gk);
+      }
+    }
+    for (const [gk, list] of byGroup.entries()) {
+      const scopeName = gk.includes('|') ? gk.split('|')[1] : '';
       // Rentable: cuánto la mejoran tus bufos (multiplicador), comparado con las de su tipo
       const byGain = [...list].sort((a, b) => times(b.before, b.after) - times(a.before, a.after));
       const byBefore = [...list].sort((a, b) => b.before - a.before);
@@ -206,13 +248,13 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
         const verdict: Gain['verdict'] = x.total <= 0 ? 'none' : list.length < 3 ? 'mid' : i < third ? 'hi' : i >= list.length - third ? 'lo' : 'mid';
         out.set(x.card, {
           total: x.total, parts: x.parts, rank: i + 1, of: list.length, verdict, board,
-          metric: x.ranged ? 'daño a distancia' : 'daño cuerpo a cuerpo', before: x.before, after: x.after,
+          metric: x.ranged ? 'daño a distancia' : 'daño cuerpo a cuerpo', before: x.before, after: x.after, scope: scopeName,
           posBefore: byBefore.indexOf(x) + 1, posAfter: byAfter.indexOf(x) + 1,
         });
       });
     }
     return out;
-  }, [units, rosterCards, allowed, anyBuffs, showRoR, showMA]);
+  }, [units, rosterCards, allowed, anyBuffs, showRoR, showMA, target, byRole]);
 
   const roster = useMemo(() => {
     const qq = q.trim().toLowerCase();
@@ -402,6 +444,14 @@ export function ArmySetup({ units, army, usedSlots, buffs, rosterCards, cards, c
               <label title="Monstruos de las cacerías del Monstrous Arcanum (Norsca): recompensas y jefes"><input type="checkbox" checked={showMA} onChange={(e) => setShowMA(e.target.checked)} /> 📖 Monstrous Arcanum</label>
               <label title="Solo las unidades que reciben bufos de tu señor, héroes o tecnologías">
                 <input type="checkbox" checked={onlyBuffed} disabled={!anyBuffs} onChange={(e) => setOnlyBuffed(e.target.checked)} /> Solo con bufos
+              </label>
+              <label title="Contra qué objetivo se mide la fuerza: la bonificación contra grandes o contra infantería cuenta según el objetivo">Objetivo{' '}
+                <select value={target} onChange={(e) => setTarget(e.target.value as TargetKey)}>
+                  {Object.entries(TARGETS).map(([k, t]) => <option key={k} value={k}>{t.label}</option>)}
+                </select>
+              </label>
+              <label title="Comparar solo con unidades de la misma especialidad (lanzas con lanzas, armas a dos manos con armas a dos manos…)">
+                <input type="checkbox" checked={byRole} onChange={(e) => setByRole(e.target.checked)} /> Misma especialidad
               </label>
               <label title="Cómo ordenar las unidades dentro de cada tipo">Orden{' '}
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
@@ -778,13 +828,13 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building, ga
       {(unit?.art ?? card?.art) && <img className="ip-art" src={`/units/${unit?.art ?? card?.art}.png`} alt="" />}
       <div className="ip-name">{name}</div>
       {gain && unit && (
-        <div className={'ip-gain gain-' + gain.verdict} title={gainTitle(gain, groupInfo(unit.group).es)}>
+        <div className={'ip-gain gain-' + gain.verdict} title={gainTitle(gain, gain.scope || groupInfo(unit.group).es)}>
           {gain.verdict === 'none' ? <>{GAIN_MARK.none} No le llega ningún bufo</> : (
             <>
               <div><b>{fmtX(times(gain.before, gain.after))}</b> de {gain.metric} con tus bufos
                 <span className="small muted"> ({fmtNum(gain.before)} → {fmtNum(gain.after)} por segundo)</span></div>
               <div className="small">
-                {gain.posAfter}.ª más fuerte de {gain.of} en {groupInfo(unit.group).es}
+                {gain.posAfter}.ª más fuerte de {gain.of} en {gain.scope || groupInfo(unit.group).es}
                 {gain.posBefore !== gain.posAfter && <span className="muted"> (sin bufos {gain.posBefore}.ª)</span>}
               </div>
               <div className="small muted">{GAIN_MARK[gain.verdict]} {GAIN_TEXT[gain.verdict]}</div>
@@ -795,8 +845,8 @@ function InfoPanel({ focus, unit, card, inArmy, buffs, upgradeRank, building, ga
             const idx = gain.board.findIndex((b) => b.card === unit.card);
             const show = gain.board.filter((b, i) => i < 5 || i === idx);
             return (
-              <div className="gain-board" title={`Daño por segundo de la unidad completa contra un objetivo de referencia (defensa ${REF_MD}, armadura ${REF_ARMOUR}); la parte clara es lo que suman tus bufos`}>
-                <div className="small muted">Las más fuertes de su tipo con tus bufos</div>
+              <div className="gain-board" title="Daño por segundo de la unidad completa contra el objetivo elegido arriba del roster; la parte verde es lo que suman tus bufos">
+                <div className="small muted">Las más fuertes {gain.scope ? `(${gain.scope})` : 'de su tipo'} con tus bufos</div>
                 {show.map((b) => {
                   const i = gain.board.indexOf(b);
                   return (
