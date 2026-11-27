@@ -324,7 +324,9 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
   );
   const isCharacter = (o: Target) => o.group === 'Lords' || o.group === 'Heroes' || /Señor|Héroe/.test(o.caste);
   const add = (key: string) => key && !targets.includes(key) && setTargets([...targets, key]);
-  const addAll = () => setTargets([...new Set([...targets, ...options.filter((o) => !isCharacter(o)).map((o) => o.key)])].slice(0, 60));
+  // Señores y héroes entran si está el duelo de personajes o si filtraste por ese tipo
+  const withChars = chars || groupFilter === 'Lords' || groupFilter === 'Heroes';
+  const addAll = () => setTargets([...new Set([...targets, ...options.filter((o) => withChars || !isCharacter(o)).map((o) => o.key)])].slice(0, 60));
 
   // Filas visibles: sin Regimientos de Renombre ni de un solo modelo si se pide, y solo el resultado elegido
   const shown = useMemo(
@@ -504,7 +506,7 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
             ))}
           </select>
         </label>
-        <button className="ghost" onClick={addAll} title="Agrega todas las unidades (sin señores ni héroes) de la lista filtrada, hasta 60">+ Todas las de la lista</button>
+        <button className="ghost" onClick={addAll} title={withChars ? "Agrega todas las de la lista filtrada, señores y héroes incluidos, hasta 60" : "Agrega todas las unidades (sin señores ni héroes) de la lista filtrada, hasta 60. Con el duelo de personajes o filtrando por Señores/Héroes también los agrega"}>+ Todas las de la lista</button>
         <button className="ghost" onClick={() => setTargets([])}>Limpiar</button>
       </div>
       <div className="dps-tools">
