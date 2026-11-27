@@ -27,6 +27,11 @@ const FRONTEND = join(BACKEND, '..', 'frontend');
 interface PackEntry { name: string; offset: number; size: number; compressed: boolean }
 interface Pack { path: string; fd: number; entries: PackEntry[] }
 
+/** Unidad (prefijo de clave) -> únicas facciones que la reclutan, cuando el juego lo decide por script y no por tablas */
+const FACTION_ONLY: [string, string[]][] = [
+  ['wh2_dlc15_hef_inf_mistwalkers_', ['wh2_main_hef_yvresse']],
+];
+
 function readAt(fd: number, pos: number, len: number): Buffer {
   const b = Buffer.alloc(len);
   let got = 0;
@@ -286,6 +291,9 @@ function buildAllUnits(p: Pack, sp: Map<string, string>) {
   }
   const poolOnly = new Map<string, Set<string>>();
   for (const [u, x] of poolFac) if (!x.any && x.facs.size && !builtSomewhere.has(u)) poolOnly.set(u, x.facs);
+  // Exclusivas que el juego no marca en las tablas (las reparte un script de la facción): los Caminantes de las Brumas
+  // solo los recluta Yvresse (Eltharion), aunque están en el grupo militar de todos los Altos Elfos
+  for (const [prefix, facs] of FACTION_ONLY) for (const r of T['main_units_tables']) if (String(r.unit).startsWith(prefix)) poolOnly.set(r.unit, new Set(facs));
   const leaders = new Map<string, string[]>();
   for (const r of T['frontend_faction_leaders_tables']) if (r.faction && r.agent_subtype_record) leaders.set(r.faction, [...(leaders.get(r.faction) ?? []), r.agent_subtype_record]);
   // Mejoras de unidad: qué grupos suben a cuáles, desde qué rango y con qué tecnología
