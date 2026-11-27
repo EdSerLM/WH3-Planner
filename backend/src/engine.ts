@@ -493,6 +493,8 @@ export interface AbilityState {
   mods?: string[];
   /** Cuánto lleva cargada (0-100 %) */
   scale?: number;
+  /** Curación: % de la vida por segundo mientras está puesta */
+  heal?: number;
 }
 
 export interface SummaryLine {
@@ -639,6 +641,7 @@ export function compute(req: ComputeRequest): ComputeResult {
         spell: ability.spell || undefined, magical: ability.magicalAttacks || undefined, flaming: ability.flamingAttacks || undefined,
         ...abilityMods(ability, [...effectsOf(b), ...armyMagicFx.filter((x) => x.from !== b)]),
         scale: Math.round(scaleOf(ability.key, b) * 100),
+        ...(ability.heal ? { heal: ability.heal } : {}),
       });
     }
   }

@@ -29,15 +29,15 @@ export const api = {
   lores: () => req<LoreInfo[]>('/api/lores'),
   campaign: (faction: string) => req<CampaignFaction[]>(`/api/campaign?faction=${encodeURIComponent(faction)}`),
   compute: (army: ArmyState) => req<ComputeResult>('/api/compute', { method: 'POST', body: JSON.stringify(army) }),
-  dps: (army: ArmyState, attacker: string, targets: string[], dir: 'front' | 'flank' | 'rear' = 'front', mode: 'melee' | 'ranged' = 'melee', timing: AbilityTiming = 'relaunch') =>
+  dps: (army: ArmyState, attacker: string, targets: string[], dir: 'front' | 'flank' | 'rear' = 'front', mode: 'melee' | 'ranged' = 'melee', timing: AbilityTiming = 'relaunch', chars = false) =>
     req<{ attacker: string; rows: DpsRow[]; disclaimer: string; debuffs: string[]; timing?: AbilityTiming; abilities?: TimedAbilityInfo[] }>('/api/dps', {
       method: 'POST',
-      body: JSON.stringify({ army, attacker, targets, dir, mode, timing }),
+      body: JSON.stringify({ army, attacker, targets, dir, mode, timing, chars }),
     }),
-  matchups: (army: ArmyState, targets: string[], dir: 'front' | 'flank' | 'rear' = 'front', mode: 'melee' | 'ranged' = 'melee', timing: AbilityTiming = 'relaunch') =>
+  matchups: (army: ArmyState, targets: string[], dir: 'front' | 'flank' | 'rear' = 'front', mode: 'melee' | 'ranged' = 'melee', timing: AbilityTiming = 'relaunch', chars = false) =>
     req<{ cards: Record<string, Record<string, 'win' | 'even' | 'lose'>> }>('/api/dps/matchups', {
       method: 'POST',
-      body: JSON.stringify({ army, targets, dir, mode, timing }),
+      body: JSON.stringify({ army, targets, dir, mode, timing, chars }),
     }),
   factions: () => req<{ key: string; name: string }[]>('/api/factions'),
   targets: (faction: string) =>

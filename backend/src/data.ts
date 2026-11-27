@@ -207,6 +207,7 @@ function toAbility(a: RawAbility): AbilityInfo {
     flamingAttacks: a.phases.some((p) => p.fire),
     // Cada fase dice a quién afecta: las de enemigos no se aplican a tu ejército (p. ej. "Símbolo de depravación": ellos ×0.5 velocidad, tú ×1.5)
     stats: mine.flatMap((p) => p.stats.map((st) => ({ ...st, d: translateAbilityStat(st.d) }))),
+    ...(mine.some((p) => (p.heal ?? 0) > 0 && (p.ts || p.tf)) ? { heal: mine.filter((p) => p.ts || p.tf).reduce((a, p) => a + (p.heal ?? 0), 0) } : {}),
     attributes: mine.flatMap((p) => p.attr.map((x) => translateAttribute(x))).filter(Boolean),
     enemyStats: (() => {
       const own = foes.flatMap((p) => p.stats.map((st) => ({ ...st, d: translateAbilityStat(st.d) })));
@@ -909,6 +910,20 @@ export function listCharacters(faction?: string): CharacterSummary[] {
       return { key: charId(c, f), name: names.get(c.key) ?? c.name, nameEn: c.nameEn, type: c.type, legendary: c.legendary, faction: f, art: artOfUnit(c.unit), ...(cu?.upkeep !== undefined ? { upkeep: cu.upkeep, rc: cu.rc } : {}), ...(c.factions ? { factions: c.factions } : {}), ...(c.nf ? { notFactions: c.nf } : {}), ...(c.fem ? { female: true } : {}), ...(c.ng ? { namesGroup: c.ng } : {}), ...(lore ? { lore } : {}) };
     })
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+}
+
+/** Árbol de habilidades del personaje de esa unidad (la base o una variante montada: grimgor, louen_1, skulltaker_juggernaut) */
+export function characterForUnit(unitKey: string): string | undefined {
+  addCampaignLeaders();
+  if (!gameFile) return undefined;
+  let best: { key: string; len: number } | undefined;
+  for (const c of gameFile.characters) {
+    if (!c.unit) continue;
+    const base = c.unit.replace(/_\d+$/, '');
+    const len = unitKey === c.unit ? 1e6 : unitKey.startsWith(base) ? base.length : -1;
+    if (len > 0 && (!best || len > best.len)) best = { key: c.key, len };
+  }
+  return best?.key;
 }
 
 export function getCharacter(key: string): CharacterTree | undefined {

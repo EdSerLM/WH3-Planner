@@ -469,6 +469,15 @@ export interface DpsRow {
     /** Solo a distancia: proyectiles por disparo, recarga, bloqueo del escudo, munición y % de su vida que alcanza a quitar */
     ranged?: { shots: number; reload: number; shield: number; ammo: number; missileRes: number; ammoPct: number };
   };
+  /** Duelo de personajes: vida por segundo que regenera cada lado (ya restada en los tiempos) */
+  regen?: { mine: number; theirs: number };
+  /** Duelo de personajes: el enemigo armado con su árbol (rango 50, combate y únicas, objetos propios) */
+  char?: {
+    name: string; points: number; items: string[]; mount?: string; uptime: number; regenPct: number;
+    actives: { name: string; dur: number; cd: number }[];
+    stats: { hp: number; ma: number; md: number; armour: number; ward: number; physical: number };
+    dps: { passive: number; active: number; theirPassive: number; theirActive: number };
+  };
   /** Ficha del objetivo (datos del juego) */
   info?: DpsTargetInfo;
   /** El duelo al revés: el enemigo pegándole a tu unidad */

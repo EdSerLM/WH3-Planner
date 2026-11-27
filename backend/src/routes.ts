@@ -5,6 +5,7 @@
 import { ABILITY_STAT_MAP } from './engine.js';
 import { abilities, DEFAULT_FACTION, getCharacter, getGraph, getTechTree, listGraphs, techSummary, listTechTrees, getUnit, listCampaign, campaignStart, listLores, listCharacterFactions, listCharacters, listRoster, listSubcultures, listTargets, sources, targetInfo, getTarget, bulletsInfo, groupIcons, unitAbilityInfo, namesOf } from './data.js';
 import { compute } from './engine.js';
+import { enemyCharacter, regenHp } from './charDuel.js';
 import { type AttackDir, type AttackMode, applyDebuffs, attackDps, cardAsTarget, DPS_DISCLAIMER, DPS_RANGED_DISCLAIMER, duel, targetsFromCards, unitAsAttacker } from './dps.js';
 import { deleteBuild, getBuild, listBuilds, upsertBuild } from './builds.js';
 import { STAT_LABELS_ES } from './effects.js';
@@ -123,7 +124,9 @@ function debuffedCard(c: ComputedCard, ds: Debuff[]): ComputedCard {
   return { ...c, stats };
 }
 
-function dpsRows(att: ComputedCard, targets: string[] | undefined, d: AttackDir, debuffs: ReturnType<typeof compute>['enemyDebuffs'], m: AttackMode = 'melee') {
+/** Duelo de personajes: un solo modelo contra un solo modelo con el árbol del enemigo, regeneración y activas */
+type DuelOpts = { chars?: boolean; myRegen?: number; timing?: Timing };
+function dpsRows(att: ComputedCard, targets: string[] | undefined, d: AttackDir, debuffs: ReturnType<typeof compute>['enemyDebuffs'], m: AttackMode = 'melee', opts: DuelOpts = {}) {
   const myUnit = att.kind === 'unit' ? getTarget(att.id) : undefined;
   const meImmune = !!myUnit?.attrs?.includes(IMMUNE_CONTACT) || att.attributes?.some((a) => a.name === IMMUNE_CONTACT);
   const mine0 = contactDebuff(myUnit, m, att.name);
@@ -148,8 +151,57 @@ function dpsRows(att: ComputedCard, targets: string[] | undefined, d: AttackDir,
       meImmune: meImmune && !!u?.contact?.[m === 'ranged' ? 'missile' : 'melee'] ? true : undefined,
       onThem: onThem.filter((x) => x.contact).map((x) => x.contact!),
     };
+    const single = !!opts.chars && att.models === 1 && u?.models === 1;
+    if (single && u) {
+      const ch = charRow(att, u.key, onThem, theirs, m, d, opts, t0);
+      if (ch) return { ...ch.mine, duel: ch.back, contact, char: ch.info, regen: ch.regen };
+      // Sin árbol (monstruo de un solo modelo): solo cuenta tu regeneración
+      const myRegen = opts.myRegen ?? 0;
+      if (myRegen > 0 && back) {
+        const net = Math.max(0, back.enemy.dps - myRegen);
+        const ttk = net > 0 ? Math.round((back.enemy.detail.hpTotal / net) * 10) / 10 : Infinity;
+        const back2 = duel(mine, { ...mine, dps: back.enemy.dps, timeToKill: ttk, detail: back.enemy.detail } as unknown as typeof mine);
+        return { ...mine, duel: { ...back2, enemy: { ...back.enemy, timeToKill: ttk } }, contact, regen: { mine: r1(myRegen), theirs: 0 } };
+      }
+    }
     return { ...mine, duel: back, contact };
   });
+}
+
+const r1 = (v: number) => Math.round(v * 10) / 10;
+
+/**
+ * El enemigo armado con su árbol (rango 50, combate y únicas, objetos propios). Sus activas se mezclan según cuánto
+ * tiempo las tiene puestas: todo el rato (always), nunca (once: se gastan al principio) o duración ÷ ciclo (relaunch).
+ * Cada lado regenera: el tiempo para matar usa el daño neto (daño por segundo − lo que regenera el otro).
+ */
+function charRow(att: ComputedCard, unitKey: string, onThem: Debuff[], theirs: Debuff[], m: AttackMode, d: AttackDir, opts: DuelOpts, t0: { id: string; name: string }) {
+  const ec = enemyCharacter(unitKey);
+  if (!ec) return null;
+  const timing = opts.timing ?? 'relaunch';
+  const w = timing === 'always' ? 1 : timing === 'once' ? 0 : ec.uptime;
+  const mix = (a: number, b: number) => a + (b - a) * w;
+  const tP = applyDebuffs(cardAsTarget(ec.passive), onThem), tA = applyDebuffs(cardAsTarget(ec.active), onThem);
+  const me = theirs.length ? debuffedCard(att, theirs) : att;
+  const mP = attackDps(m, me, tP, d), mA = attackDps(m, me, tA, d);
+  const myT = cardAsTarget(att);
+  const eP = attackDps(m, debuffedCard(ec.passive, onThem), myT), eA = attackDps(m, debuffedCard(ec.active, onThem), myT);
+  const theirRegen = (mix(ec.regen.passive, ec.regen.active) / 100) * tP.hpPerModel;
+  const myRegen = opts.myRegen ?? 0;
+  const mineDps = mix(mP.dps, mA.dps), theirDps = mix(eP.dps, eA.dps);
+  const ttk = (hp: number, dps: number, regen: number) => (dps - regen > 0 ? r1(hp / (dps - regen)) : Infinity);
+  const mine = { ...mP, target: t0.id, targetName: t0.name, dps: r1(mineDps), timeToKill: ttk(tP.hpPerModel, mineDps, theirRegen), detail: { ...mP.detail, hpTotal: tP.hpPerModel } };
+  const enemy = { ...eP, dps: r1(theirDps), timeToKill: ttk(myT.hpPerModel, theirDps, myRegen) };
+  const back = duel(mine, enemy);
+  return {
+    mine, back, regen: { mine: r1(myRegen), theirs: r1(theirRegen) },
+    info: {
+      name: ec.name, points: ec.points, items: ec.items, mount: ec.mount, uptime: Math.round(w * 100),
+      actives: ec.actives, regenPct: r1(mix(ec.regen.passive, ec.regen.active) * 100) / 100,
+      stats: { hp: Math.round(tP.hpPerModel), ma: Math.round(ec.passive.stats.ma?.final ?? 0), md: Math.round(tP.md), armour: Math.round(tP.armour), ward: tP.res.ward, physical: tP.res.physical },
+      dps: { passive: r1(mP.dps), active: r1(mA.dps), theirPassive: r1(eP.dps), theirActive: r1(eA.dps) },
+    },
+  };
 }
 
 // ---------- Habilidades con duración: la pelea por tramos ----------
@@ -188,19 +240,20 @@ function maskResults(army: ComputeRequest, list: TimedAbility[], result: ReturnT
   return out;
 }
 
-function timedRows(army: ComputeRequest, attacker: string, targets: string[], d: AttackDir, m: AttackMode, result: ReturnType<typeof compute>, base: Row[], timing: Timing, pre?: { list: TimedAbility[]; masks: Map<number, ReturnType<typeof compute>> }) {
+function timedRows(army: ComputeRequest, attacker: string, targets: string[], d: AttackDir, m: AttackMode, result: ReturnType<typeof compute>, base: Row[], timing: Timing, pre?: { list: TimedAbility[]; masks: Map<number, ReturnType<typeof compute>> }, opts: DuelOpts = {}) {
   const list = pre?.list ?? timedList(result);
   if (!list.length) return { rows: base.map((r) => ({ ...r, timing: undefined })), abilities: [] };
   const masks = pre?.masks ?? maskResults(army, list, result);
   // DPS de cada lado con cada combinación; la combinación completa ya es "base"
   const full = (1 << list.length) - 1;
   const perMask = new Map<number, Map<string, { mine: number; theirs: number }>>();
-  const pack = (rows: Row[]) => new Map(rows.map((r) => [r.target, { mine: r.dps, theirs: r.duel?.enemy.dps ?? 0 }]));
+  // Con regeneración (duelo de personajes) cuenta el daño neto: lo que regenera el otro se resta
+  const pack = (rows: Row[]) => new Map(rows.map((r) => { const g = (r as { regen?: { mine: number; theirs: number } }).regen; return [r.target, { mine: Math.max(0, r.dps - (g?.theirs ?? 0)), theirs: Math.max(0, (r.duel?.enemy.dps ?? 0) - (g?.mine ?? 0)) }]; }));
   perMask.set(full, pack(base));
   for (const [mask, res] of masks) {
     if (mask === full) continue;
     const att = res.cards.find((x) => x.id === attacker);
-    if (att) perMask.set(mask, pack(dpsRows(att, targets, d, res.enemyDebuffs, m)));
+    if (att) perMask.set(mask, pack(dpsRows(att, targets, d, res.enemyDebuffs, m, { ...opts, myRegen: regenHp(res, att) })));
   }
   const activeAt = (t: number, i: number, how: Timing): boolean => {
     if (how === 'always') return true;
@@ -322,14 +375,15 @@ export function handle(method: string, path: string, q: Q, body: Body): unknown 
       try { return compute({ ...(body as ComputeRequest), units: body?.units ?? [] }); } catch (e) { throw new HttpError(400, (e as Error).message); }
     }
     if (a === 'dps' && !b) {
-      const { army, attacker, targets, dir, mode } = body as { army: ComputeRequest; attacker: string; targets: string[]; dir?: AttackDir; mode?: AttackMode };
+      const { army, attacker, targets, dir, mode, chars } = body as { army: ComputeRequest; attacker: string; targets: string[]; dir?: AttackDir; mode?: AttackMode; chars?: boolean };
       const mm = modeOf(mode);
       const result = compute({ ...army, units: army.units ?? [] });
       const att = result.cards.find((x) => x.id === attacker);
       if (!att) throw new HttpError(404, 'Atacante no está en el ejército');
       const timing = (body as { timing?: Timing }).timing ?? 'relaunch';
-      const base = dpsRows(att, targets, dirOf(dir), result.enemyDebuffs, mm);
-      const timed = timedRows(army, attacker, targets, dirOf(dir), mm, result, base, timing);
+      const opts: DuelOpts = { chars: !!chars, timing, myRegen: chars ? regenHp(result, att) : 0 };
+      const base = dpsRows(att, targets, dirOf(dir), result.enemyDebuffs, mm, opts);
+      const timed = timedRows(army, attacker, targets, dirOf(dir), mm, result, base, timing, undefined, opts);
       const rows = timed.rows.map((r) => ({ ...r, info: targetInfo(r.target) }));
       return {
         attacker: att.name, rows, timing, abilities: timed.abilities,
@@ -337,15 +391,16 @@ export function handle(method: string, path: string, q: Q, body: Body): unknown 
       };
     }
     if (a === 'dps' && b === 'matchups') {
-      const { army, targets, dir, mode, timing } = body as { army: ComputeRequest; targets: string[]; dir?: AttackDir; mode?: AttackMode; timing?: Timing };
+      const { army, targets, dir, mode, timing, chars } = body as { army: ComputeRequest; targets: string[]; dir?: AttackDir; mode?: AttackMode; timing?: Timing; chars?: boolean };
       const result = compute({ ...army, units: army.units ?? [] });
       // Mismo modo de habilidades que la tabla: cada combinación se calcula una vez para todas las cartas
       const list = timedList(result);
       const pre = list.length && (timing ?? 'relaunch') !== 'always' ? { list, masks: maskResults(army, list, result) } : undefined;
       const cards = Object.fromEntries(
         result.cards.map((x) => {
-          const base = dpsRows(x, targets, dirOf(dir), result.enemyDebuffs, modeOf(mode));
-          const rows = pre ? timedRows(army, x.id, targets, dirOf(dir), modeOf(mode), result, base, timing ?? 'relaunch', pre).rows : base;
+          const opts: DuelOpts = { chars: !!chars, timing: timing ?? 'relaunch', myRegen: chars ? regenHp(result, x) : 0 };
+          const base = dpsRows(x, targets, dirOf(dir), result.enemyDebuffs, modeOf(mode), opts);
+          const rows = pre ? timedRows(army, x.id, targets, dirOf(dir), modeOf(mode), result, base, timing ?? 'relaunch', pre, opts).rows : base;
           return [x.id, Object.fromEntries(rows.flatMap((r) => (r.duel ? [[r.target, r.duel.verdict]] : [])))];
         }),
       );

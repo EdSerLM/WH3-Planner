@@ -121,10 +121,12 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
   // grouped (booleano) es de versiones anteriores: equivale a agrupar por tipo
   // noRor: sin Regimientos de Renombre; verdict: solo los duelos con ese resultado;
   // single: mostrar los objetivos de un solo modelo (ocultos por defecto: el duelo no los calcula bien); mode: melee o distancia
-  const [view, setView] = useState<{ sort: SortState; grouped: boolean; groupBy?: GroupBy; noRor?: boolean; noRorMine?: boolean; noMa?: boolean; single?: boolean; verdict?: Verdict | ''; mode?: AttackMode; timing?: AbilityTiming; recharge?: boolean }>(() =>
+  const [view, setView] = useState<{ sort: SortState; grouped: boolean; groupBy?: GroupBy; noRor?: boolean; noRorMine?: boolean; noMa?: boolean; single?: boolean; chars?: boolean; verdict?: Verdict | ''; mode?: AttackMode; timing?: AbilityTiming; recharge?: boolean }>(() =>
     loadJson(STORE_VIEW, { sort: { key: 'ttk', dir: 1 } as SortState, grouped: false }),
   );
   const groupBy: GroupBy = view.groupBy ?? (view.grouped ? 'type' : '');
+  // Duelo de personajes: el enemigo de un solo modelo con su árbol, regeneración y activas (para atacantes de un solo modelo)
+  const chars = !!view.chars;
   const mode: AttackMode = view.mode ?? 'melee';
   // Habilidades con duración: siempre puestas, un uso o relanzarlas al recargar; y si se ve la línea de recargas
   const timing: AbilityTiming = view.timing ?? 'relaunch';
@@ -185,7 +187,7 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
     let stale = false;
     const t = setTimeout(() => {
       api
-        .dps(army, attacker, targets, dir, mode, timing)
+        .dps(army, attacker, targets, dir, mode, timing, chars)
         .then((r) => {
           if (stale) return;
           // Objetivos guardados con claves viejas y nuevas de la misma unidad: el backend los resuelve a la misma
@@ -195,7 +197,7 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
           setRows(uniq);
           // Si el backend resolvió todos (misma cantidad y orden), se guardan con la clave actual y sin repetir
           if (r.rows.length === targets.length && r.rows.some((x, i) => x.target !== targets[i])) setTargets(uniq.map((x) => x.target));
-          setRowsFor(`${attacker}|${dir}|${mode}|${timing}`);
+          setRowsFor(`${attacker}|${dir}|${mode}|${timing}|${chars}`);
           setInfo({ disclaimer: r.disclaimer, debuffs: r.debuffs });
           setTimedAbilities(r.abilities ?? []);
           setErr(null);
@@ -203,18 +205,18 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
         .catch((e) => { if (!stale) setErr(e.message); });
     }, 200);
     return () => { stale = true; clearTimeout(t); };
-  }, [army, attacker, targets, dir, mode, timing]);
+  }, [army, attacker, targets, dir, mode, timing, chars]);
   // Fuego concentrado: el DPS de cada unidad extra contra los mismos objetivos
   const focusIds = useMemo(() => [...new Set(focus.filter((id) => cards.some((c) => c.id === id)))], [focus, cards]);
   useEffect(() => {
     if (!focusIds.length || !targets.length) { setFocusRows({}); return; }
     let stale = false;
     const t = setTimeout(() => {
-      Promise.all(focusIds.map((id) => api.dps(army, id, targets, dir, mode, timing).then((r) => [id, r.rows] as const).catch(() => [id, []] as const)))
+      Promise.all(focusIds.map((id) => api.dps(army, id, targets, dir, mode, timing, chars).then((r) => [id, r.rows] as const).catch(() => [id, []] as const)))
         .then((l) => { if (!stale) setFocusRows(Object.fromEntries(l)); });
     }, 250);
     return () => { stale = true; clearTimeout(t); };
-  }, [army, focusIds, targets, dir, mode, timing]);
+  }, [army, focusIds, targets, dir, mode, timing, chars]);
   /**
    * Filas con el fuego concentrado sumado: cada unidad le quita vida a su propio ritmo (vida ÷ su tiempo para matar),
    * así que juntas: tiempo = 1 ÷ (suma de 1 ÷ tiempo de cada una). El DPS se suma.
@@ -241,7 +243,7 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
       return { ...r, dps, timeToKill, duel, focus: { n: others.length + 1, soloDps: r.dps, soloTtk: r.timeToKill } };
     });
   }, [rawRows, focus, focusRows, copies]);
-  const recalculating = !!rows.length && rowsFor !== `${attacker}|${dir}|${mode}|${timing}`;
+  const recalculating = !!rows.length && rowsFor !== `${attacker}|${dir}|${mode}|${timing}|${chars}`;
 
   // Duelos de todas las tarjetas del ejército contra los mismos objetivos, para marcar en la franja las que mejor salen
   const [duels, setDuels] = useState<Record<string, Record<string, Verdict>>>({});
@@ -252,10 +254,10 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
     }
     let stale = false;
     const t = setTimeout(() => {
-      api.matchups(army, targets, dir, mode, timing).then((r) => { if (!stale) setDuels(r.cards); }).catch(() => { if (!stale) setDuels({}); });
+      api.matchups(army, targets, dir, mode, timing, chars).then((r) => { if (!stale) setDuels(r.cards); }).catch(() => { if (!stale) setDuels({}); });
     }, 400);
     return () => { stale = true; clearTimeout(t); };
-  }, [army, targets, dir, mode, timing, cards.length]);
+  }, [army, targets, dir, mode, timing, chars, cards.length]);
   // Objetivos de un solo modelo (gigantes, dragones, personajes...), por la ficha de cada fila o la lista de la facción
   const singles = useMemo(() => {
     const out = new Set<string>();
@@ -266,8 +268,8 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
   // Regimientos de Renombre del rival (marca del juego, o "_ror" en la clave si la unidad no está en la lista)
   const rorKeys = useMemo(() => new Set(factionUnits.filter((u) => isRoR(u)).map((u) => u.key)), [factionUnits]);
   const hidden = useCallback(
-    (key: string) => (!!view.noRor && (rorKeys.has(key) || isRoR({ key }))) || (!!view.noMa && isMA({ key })) || (!view.single && singles.has(key)),
-    [view.noRor, view.noMa, view.single, singles, rorKeys],
+    (key: string) => (!!view.noRor && (rorKeys.has(key) || isRoR({ key }))) || (!!view.noMa && isMA({ key })) || (!view.single && !chars && singles.has(key)),
+    [view.noRor, view.noMa, view.single, chars, singles, rorKeys],
   );
   const countDuels = useCallback((d: Record<string, Record<string, Verdict>>) => {
     const out: Record<string, MatchupCount> = {};
@@ -296,12 +298,12 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
     }
     let stale = false;
     const t = setTimeout(() => {
-      api.matchups({ ...army, units: rest.map((u) => ({ card: u.card, count: 1 })) }, targets, dir, mode, timing)
+      api.matchups({ ...army, units: rest.map((u) => ({ card: u.card, count: 1 })) }, targets, dir, mode, timing, chars)
         .then((r) => { if (!stale) setRestDuels(r.cards); })
         .catch(() => { if (!stale) setRestDuels({}); });
     }, 600);
     return () => { stale = true; clearTimeout(t); };
-  }, [army, rest, targets, dir, mode, timing, cards.length]);
+  }, [army, rest, targets, dir, mode, timing, chars, cards.length]);
   const restMatchups = useMemo(() => {
     const keep = new Set(rest.map((u) => u.card));
     return countDuels(Object.fromEntries(Object.entries(restDuels).filter(([id]) => keep.has(id))));
@@ -542,7 +544,10 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
           <input type="checkbox" checked={!!view.noMa} onChange={(e) => setView((v) => ({ ...v, noMa: e.target.checked }))} /> Sin 📖 Monstrous Arcanum
         </label>
         <label title="Unidades de un solo modelo (gigantes, dragones, carros únicos, señores y héroes): el duelo las calcula mal, por eso están ocultas por defecto">
-          <input type="checkbox" checked={!!view.single} onChange={(e) => setView((v) => ({ ...v, single: e.target.checked }))} /> Mostrar unidades de un solo modelo{!view.single && hiddenSingles > 0 ? ` (${hiddenSingles} oculta${hiddenSingles === 1 ? '' : 's'})` : ''}
+          <input type="checkbox" checked={!!view.single} onChange={(e) => setView((v) => ({ ...v, single: e.target.checked }))} /> Mostrar unidades de un solo modelo{!view.single && !chars && hiddenSingles > 0 ? ` (${hiddenSingles} oculta${hiddenSingles === 1 ? '' : 's'})` : ''}
+        </label>
+        <label className={chars ? 'chk-on' : ''} title={'Duelo de personajes: cuando un señor, héroe o unidad de un solo modelo pelea contra otro de un solo modelo, el enemigo va armado como en el planner: rango 50, todas sus habilidades de combate y únicas, sus objetos propios y la montura de su carta.\nCada lado regenera (se resta del daño) y las activas del enemigo cuentan según el modo de habilidades con duración (toda la pelea, un uso o relanzar: el promedio de tiempo que las tiene puestas).\nNo cuenta sus hechizos, la carga ni el tope de curación por batalla. Muestra también los objetivos de un solo modelo.'}>
+          <input type="checkbox" checked={chars} onChange={(e) => setView((v) => ({ ...v, chars: e.target.checked }))} /> ⚔ Duelo de personajes
         </label>
         <button className="ghost" onClick={() => setOpen(open.size ? new Set() : new Set(shown.map((r) => r.target)))}>
           {open.size ? 'Cerrar fichas' : 'Abrir todas las fichas'}
@@ -638,6 +643,8 @@ export function DpsPanel({ army, cards, units, ownName, campaign }: Props) {
                           </span>
                           <span className="small muted"><Tier t={r.info?.tier} /> {r.info?.caste ?? gi.es}</span>
                         </span>
+                        {r.char && <span className="tag tag-char" title={`Armado con su árbol: rango 50, ${r.char.points} puntos de combate y únicas${r.char.items.length ? `\nObjetos: ${r.char.items.join(', ')}` : ''}${r.char.mount ? `\nMontura: ${r.char.mount}` : ''}${r.regen ? `\nRegenera: tú ${r.regen.mine}/s · él ${r.regen.theirs}/s` : ''}`}>⚔ R50</span>}
+                        {!r.char && r.regen && r.regen.mine > 0 && <span className="tag tag-char" title={`Tu regeneración (${r.regen.mine} de vida por segundo) ya está restada de su daño`}>♥ regen</span>}
                         {r.info?.large && <span className="tag" title="Unidad grande: le afecta la bonificación contra grandes">Grande</span>}
                         {r.info?.bullets.slice(0, 4).map((b) => (
                           <span key={b.name} className={'bp-dot ' + (b.good ? 'good' : 'bad')} title={`${b.name}${b.tip ? `\n${b.tip}` : ''}`}>
@@ -763,6 +770,7 @@ function TargetSheet({ r }: { r: DpsRow }) {
           {r.contact.theirs && (r.contact.meImmune ? <>Sus ataques aplican {r.contact.theirs}, pero tu unidad es inmune. </> : <>Sus ataques te aplican <b>{r.contact.theirs}</b>: en el duelo baja tu daño. </>)}
         </p>
       )}
+      {r.char && <CharDuelInfo r={r} />}
       {d && <CalcLines d={d} hit={r.hitChance} perHit={r.dmgPerHit} res={r.resistanceUsed} dps={r.dps} ttk={r.timeToKill} large={!!i?.large} hpPerModel={i?.hpPerModel} you={false} />}
       {r.duel?.enemy.detail && (
         <>
@@ -771,6 +779,32 @@ function TargetSheet({ r }: { r: DpsRow }) {
             dps={r.duel.enemy.dps} ttk={r.duel.enemy.timeToKill} large={false} you />
         </>
       )}
+    </div>
+  );
+}
+
+/** El enemigo armado con su árbol y lo que cambia en el duelo */
+function CharDuelInfo({ r }: { r: DpsRow }) {
+  const c = r.char!;
+  const g = r.regen ?? { mine: 0, theirs: 0 };
+  return (
+    <div className="char-duel">
+      <div className="ts-sub">⚔ Duelo de personajes: {c.name}{c.mount ? ` (${c.mount})` : ''} con su árbol</div>
+      <p className="small">
+        Rango 50 con {c.points} puntos en combate y únicas{c.items.length ? <> · objetos: <b>{c.items.join(', ')}</b></> : null}.
+        {' '}Con ellos: ❤️ {c.stats.hp} · 🛡️ Def. {c.stats.md} · ⛓️ {c.stats.armour} de armadura
+        {c.stats.ward ? <> · salvación {c.stats.ward}%</> : null}{c.stats.physical ? <> · res. física {c.stats.physical}%</> : null}.
+      </p>
+      <p className="small">
+        Tu daño: <b>{c.dps.passive}</b>/s contra él sin sus activas, <b>{c.dps.active}</b>/s con ellas · el suyo: <b>{c.dps.theirPassive}</b>/s → <b>{c.dps.theirActive}</b>/s.
+        {' '}{c.actives.length
+          ? <>Sus activas ({c.actives.map((a) => `${a.name} ${a.dur} s / ${a.cd} s`).join(', ')}) cuentan el <b>{c.uptime}%</b> del tiempo.</>
+          : <>No tiene activas de combate.</>}
+      </p>
+      <p className="small">
+        ♥ Regeneración: tú <b>{g.mine}</b> de vida por segundo, él <b>{g.theirs}</b>/s{c.regenPct ? ` (${c.regenPct}% de su vida)` : ''}. Ya está restada: el tiempo para matar usa el daño neto.
+        {' '}El cálculo de abajo es sin sus activas ni regeneración.
+      </p>
     </div>
   );
 }

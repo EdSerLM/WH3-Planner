@@ -483,6 +483,8 @@ export interface AbilityInfo {
   magicalAttacks: boolean;
   flamingAttacks: boolean;
   stats: { stat: string; how: string; v: number; d: string }[];
+  /** Curación sobre uno mismo o aliados: % de la vida por segundo mientras dura */
+  heal?: number;
   /** Efecto de contacto que imbuye en los ataques (p. ej. "¡Veneno!") */
   contact?: string;
   /** Efectos que la misma habilidad pone a los enemigos (no se suman a tu ejército) */
